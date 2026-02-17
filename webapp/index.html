@@ -1,0 +1,333 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>BoxVolt Mini App</title>
+  <script src="https://telegram.org/js/telegram-web-app.js"></script>
+  <style>
+    :root {
+      --bg: #0f172a;
+      --card: #172240;
+      --text: #f8fafc;
+      --muted: #9aa8bd;
+      --accent: #2dd4bf;
+      --accent-2: #38bdf8;
+      --danger: #f87171;
+      --ok: #34d399;
+      --border: #2a3a63;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      background: radial-gradient(circle at top, #1a2950 0%, var(--bg) 45%);
+      color: var(--text);
+      min-height: 100vh;
+    }
+    .wrap {
+      max-width: 720px;
+      margin: 0 auto;
+      padding: 18px 14px 40px;
+    }
+    .title {
+      font-size: 24px;
+      font-weight: 700;
+      margin: 4px 0 6px;
+    }
+    .subtitle {
+      margin: 0 0 14px;
+      color: var(--muted);
+      font-size: 14px;
+    }
+    .card {
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      padding: 14px;
+      background: linear-gradient(180deg, rgba(255,255,255,0.03), rgba(255,255,255,0.01));
+      margin-bottom: 12px;
+    }
+    .status {
+      padding: 10px 12px;
+      border-radius: 10px;
+      font-size: 14px;
+      margin-bottom: 12px;
+      border: 1px solid var(--border);
+      color: var(--muted);
+      background: rgba(255,255,255,0.03);
+    }
+    .status.ok { border-color: rgba(52,211,153,.35); color: var(--ok); }
+    .status.err { border-color: rgba(248,113,113,.35); color: var(--danger); }
+    .plans {
+      display: grid;
+      gap: 10px;
+    }
+    .plan {
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 12px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+      background: rgba(8, 14, 30, 0.35);
+    }
+    .plan h3 {
+      margin: 0 0 4px;
+      font-size: 16px;
+    }
+    .plan p {
+      margin: 0;
+      color: var(--muted);
+      font-size: 13px;
+    }
+    button {
+      border: 0;
+      border-radius: 10px;
+      cursor: pointer;
+      font-weight: 600;
+      color: #031826;
+      background: linear-gradient(90deg, var(--accent), var(--accent-2));
+      padding: 10px 12px;
+      min-width: 118px;
+    }
+    button.ghost {
+      background: transparent;
+      border: 1px solid var(--border);
+      color: var(--text);
+    }
+    .order-row {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+      margin-top: 10px;
+    }
+    .mono {
+      font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+      font-size: 12px;
+      word-break: break-all;
+      color: #c5d6ea;
+      background: rgba(0,0,0,.25);
+      border-radius: 8px;
+      padding: 8px;
+      margin-top: 8px;
+      border: 1px solid rgba(255,255,255,.07);
+    }
+    .hidden { display: none; }
+    .small { font-size: 12px; color: var(--muted); }
+  </style>
+</head>
+<body>
+  <main class="wrap">
+    <h1 class="title">⚡ BoxVolt Mini App</h1>
+    <p class="subtitle">Покупка подписки и проверка оплаты в одном окне Telegram</p>
+
+    <div id="status" class="status">Загрузка...</div>
+
+    <section class="card">
+      <strong>Аккаунт</strong>
+      <div id="profile" class="small" style="margin-top:8px;">Проверяем данные...</div>
+    </section>
+
+    <section class="card">
+      <strong>Тарифы</strong>
+      <div id="plans" class="plans" style="margin-top:10px;"></div>
+    </section>
+
+    <section id="orderCard" class="card hidden">
+      <strong>Текущий заказ</strong>
+      <div id="orderInfo" class="small" style="margin-top:8px;"></div>
+      <div id="orderCode" class="mono"></div>
+      <div class="order-row">
+        <button id="payBtn">💸 Оплатить</button>
+        <button id="checkBtn" class="ghost">✅ Проверить оплату</button>
+        <button id="copyBtn" class="ghost">📋 Копировать код</button>
+      </div>
+      <p class="small" style="margin-top:10px;">Добавьте код заказа в комментарий к донату.</p>
+    </section>
+  </main>
+
+  <script>
+    const tg = window.Telegram && window.Telegram.WebApp ? window.Telegram.WebApp : null;
+    if (tg) {
+      tg.ready();
+      tg.expand();
+    }
+
+    const initData = tg ? tg.initData : "";
+    let currentOrderId = "";
+    let currentPaymentUrl = "";
+
+    const statusEl = document.getElementById("status");
+    const profileEl = document.getElementById("profile");
+    const plansEl = document.getElementById("plans");
+    const orderCardEl = document.getElementById("orderCard");
+    const orderInfoEl = document.getElementById("orderInfo");
+    const orderCodeEl = document.getElementById("orderCode");
+    const payBtn = document.getElementById("payBtn");
+    const checkBtn = document.getElementById("checkBtn");
+    const copyBtn = document.getElementById("copyBtn");
+
+    function setStatus(text, kind) {
+      statusEl.textContent = text;
+      statusEl.className = "status";
+      if (kind === "ok") statusEl.classList.add("ok");
+      if (kind === "err") statusEl.classList.add("err");
+    }
+
+    async function requestJson(url, method, payload) {
+      const options = { method, headers: { "Content-Type": "application/json" } };
+      if (payload) options.body = JSON.stringify(payload);
+      const res = await fetch(url, options);
+      let data = {};
+      try {
+        data = await res.json();
+      } catch (_) {
+        throw new Error("bad_json_response");
+      }
+      if (!res.ok || data.ok === false) {
+        throw new Error(data.error || ("http_" + res.status));
+      }
+      return data;
+    }
+
+    function renderPlans(plans, paymentEnabled) {
+      plansEl.innerHTML = "";
+      if (!paymentEnabled) {
+        const muted = document.createElement("div");
+        muted.className = "small";
+        muted.textContent = "Оплата временно отключена: админ не заполнил DonationAlerts.";
+        plansEl.appendChild(muted);
+        return;
+      }
+
+      plans.forEach((plan) => {
+        const item = document.createElement("div");
+        item.className = "plan";
+        item.innerHTML = `
+          <div>
+            <h3>${plan.title} • ${plan.amount_rub} ₽</h3>
+            <p>${plan.days} дней доступа</p>
+          </div>
+        `;
+        const btn = document.createElement("button");
+        btn.textContent = "Купить";
+        btn.onclick = () => createOrder(plan.code);
+        item.appendChild(btn);
+        plansEl.appendChild(item);
+      });
+    }
+
+    function showOrder(orderId, paymentUrl, plan) {
+      currentOrderId = orderId;
+      currentPaymentUrl = paymentUrl;
+      orderCardEl.classList.remove("hidden");
+      orderInfoEl.textContent = `Тариф: ${plan.title}, сумма: ${plan.amount_rub} ₽`;
+      orderCodeEl.textContent = orderId;
+      setStatus("Заказ создан. Нажмите «Оплатить».", "ok");
+    }
+
+    async function loadPlans() {
+      const data = await requestJson("/webapp/api/plans", "GET");
+      renderPlans(data.plans || [], data.payment_enabled);
+    }
+
+    async function loadProfile() {
+      if (!initData) {
+        profileEl.textContent = "Откройте Mini App из Telegram-бота.";
+        setStatus("initData не передан. Откройте приложение через бота.", "err");
+        return;
+      }
+
+      const me = await requestJson("/webapp/api/me", "POST", { init_data: initData });
+      const sub = me.subscription || {};
+      const subText = sub.active ? ("активна до " + (sub.subscription_end || "-")) : "неактивна";
+      profileEl.textContent = `ID: ${me.user.id} | Подписка: ${subText}`;
+
+      if (me.pending_order) {
+        showOrder(
+          me.pending_order.order_id,
+          "",
+          { title: me.pending_order.days + " дней", amount_rub: me.pending_order.amount_rub }
+        );
+        setStatus("Найден незавершенный заказ. Можно проверить его оплату.", "ok");
+      } else {
+        setStatus("Выберите тариф и создайте заказ.", "ok");
+      }
+    }
+
+    async function createOrder(planCode) {
+      if (!initData) {
+        setStatus("Откройте Mini App через Telegram-бота.", "err");
+        return;
+      }
+      try {
+        const data = await requestJson("/webapp/api/create-order", "POST", {
+          init_data: initData,
+          plan_code: planCode
+        });
+        showOrder(data.order_id, data.payment_url, data.plan);
+      } catch (err) {
+        setStatus("Ошибка создания заказа: " + err.message, "err");
+      }
+    }
+
+    async function checkOrderStatus() {
+      if (!currentOrderId) {
+        setStatus("Сначала создайте заказ.", "err");
+        return;
+      }
+      try {
+        const data = await requestJson("/webapp/api/order-status", "POST", {
+          init_data: initData,
+          order_id: currentOrderId
+        });
+        if (data.order.status === "paid") {
+          setStatus("Оплата подтверждена ✅", "ok");
+          await loadProfile();
+        } else {
+          setStatus("Платеж пока не подтвержден. Повторите через 10-30 секунд.", "err");
+        }
+      } catch (err) {
+        setStatus("Ошибка проверки оплаты: " + err.message, "err");
+      }
+    }
+
+    payBtn.onclick = () => {
+      if (!currentPaymentUrl) {
+        setStatus("Ссылка оплаты недоступна. Создайте новый заказ.", "err");
+        return;
+      }
+      if (tg && tg.openLink) {
+        tg.openLink(currentPaymentUrl);
+      } else {
+        window.open(currentPaymentUrl, "_blank");
+      }
+    };
+
+    checkBtn.onclick = checkOrderStatus;
+
+    copyBtn.onclick = async () => {
+      if (!currentOrderId) {
+        setStatus("Нет кода заказа для копирования.", "err");
+        return;
+      }
+      try {
+        await navigator.clipboard.writeText(currentOrderId);
+        setStatus("Код заказа скопирован.", "ok");
+      } catch (_) {
+        setStatus("Не удалось скопировать автоматически.", "err");
+      }
+    };
+
+    (async () => {
+      try {
+        await loadPlans();
+        await loadProfile();
+      } catch (err) {
+        setStatus("Ошибка загрузки: " + err.message, "err");
+      }
+    })();
+  </script>
+</body>
+</html>
