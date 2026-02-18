@@ -3,3 +3,4 @@ __pycache__/
 *.pyc
 users.db
 *.log
+donationalerts_token.json

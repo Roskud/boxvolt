@@ -115,6 +115,52 @@
     }
     .hidden { display: none; }
     .small { font-size: 12px; color: var(--muted); }
+    .field {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+      margin-top: 10px;
+    }
+    .field label {
+      font-size: 12px;
+      color: var(--muted);
+    }
+    .field input, .field textarea {
+      width: 100%;
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      background: rgba(8, 14, 30, 0.35);
+      color: var(--text);
+      padding: 9px 10px;
+      font-size: 13px;
+      font-family: inherit;
+      outline: none;
+    }
+    .field textarea { min-height: 88px; resize: vertical; }
+    .admin-plans {
+      display: grid;
+      gap: 8px;
+      margin-top: 10px;
+    }
+    .admin-plan {
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 10px;
+      background: rgba(8, 14, 30, 0.35);
+    }
+    .admin-plan-head {
+      font-size: 12px;
+      color: var(--muted);
+      margin-bottom: 8px;
+    }
+    .admin-plan-grid {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 8px;
+    }
+    @media (max-width: 520px) {
+      .admin-plan-grid { grid-template-columns: 1fr; }
+    }
   </style>
 </head>
 <body>
@@ -127,11 +173,101 @@
     <section class="card">
       <strong>Аккаунт</strong>
       <div id="profile" class="small" style="margin-top:8px;">Проверяем данные...</div>
+      <div id="activePromo" class="small" style="margin-top:8px;">Активный промокод: нет</div>
+      <div class="field">
+        <label for="promoCodeInput">Промокод</label>
+        <input id="promoCodeInput" type="text" placeholder="Например: BOXVOLT100">
+      </div>
+      <div class="order-row">
+        <button id="promoActivateBtn" class="ghost">🎟 Активировать промокод</button>
+      </div>
     </section>
 
     <section class="card">
       <strong>Тарифы</strong>
       <div id="plans" class="plans" style="margin-top:10px;"></div>
+    </section>
+
+    <section id="adminCard" class="card hidden">
+      <strong>🛠 Админ-панель</strong>
+      <p class="small" style="margin-top:8px;">
+        Изменение цен и акций прямо в Mini App.
+      </p>
+
+      <div class="field">
+        <label for="adminGlobalDiscount">Глобальная скидка (%)</label>
+        <input id="adminGlobalDiscount" type="number" min="0" max="90" value="0">
+      </div>
+
+      <div class="field">
+        <label for="adminSaleTitle">Заголовок акции</label>
+        <input id="adminSaleTitle" type="text" placeholder="Например: Weekend Sale">
+      </div>
+
+      <div class="field">
+        <label for="adminSaleMessage">Текст акции</label>
+        <textarea id="adminSaleMessage" placeholder="Только до конца недели..."></textarea>
+      </div>
+
+      <strong style="display:block; margin-top:12px;">Планы</strong>
+      <div id="adminPlans" class="admin-plans"></div>
+
+      <strong style="display:block; margin-top:14px;">Промокоды</strong>
+      <div class="field">
+        <label for="adminPromoCode">Код</label>
+        <input id="adminPromoCode" type="text" placeholder="Например: START50">
+      </div>
+      <div class="admin-plan-grid">
+        <div class="field">
+          <label for="adminPromoDiscount">Скидка (₽)</label>
+          <input id="adminPromoDiscount" type="number" min="1" max="100000" value="50">
+        </div>
+        <div class="field">
+          <label for="adminPromoExpires">Действует до</label>
+          <input id="adminPromoExpires" type="text" placeholder="2026-03-01 23:59">
+        </div>
+        <div class="field">
+          <label for="adminPromoMaxActivations">Лимит активаций (0 = без лимита)</label>
+          <input id="adminPromoMaxActivations" type="number" min="0" max="1000000" value="0">
+        </div>
+      </div>
+      <div class="order-row">
+        <button id="adminPromoSaveBtn" class="ghost">🎟 Сохранить промокод</button>
+        <button id="adminPromoReloadBtn" class="ghost">📋 Обновить список</button>
+      </div>
+      <div id="adminPromoList" class="small" style="margin-top:8px; white-space:pre-wrap;"></div>
+
+      <strong style="display:block; margin-top:14px;">Пользователи</strong>
+      <div class="field">
+        <label for="adminUserQuery">Поиск по @username или Telegram ID</label>
+        <input id="adminUserQuery" type="text" placeholder="@username или 123456789">
+      </div>
+      <div class="order-row">
+        <button id="adminUserSearchBtn" class="ghost">🔎 Найти</button>
+      </div>
+      <div id="adminUserResults" class="small" style="margin-top:8px; white-space:pre-wrap;"></div>
+      <div id="adminSelectedUser" class="small" style="margin-top:8px;">Выбранный пользователь: нет</div>
+      <div class="admin-plan-grid">
+        <div class="field">
+          <label for="adminGrantDays">Выдать дней</label>
+          <input id="adminGrantDays" type="number" min="1" max="3650" value="30">
+        </div>
+      </div>
+      <div class="order-row">
+        <button id="adminGrantBtn" class="ghost">➕ Выдать подписку</button>
+        <button id="adminRemoveSubBtn" class="ghost">🗑 Удалить подписку</button>
+      </div>
+
+      <div class="field">
+        <label for="adminNotifyText">Текст рассылки (опционально)</label>
+        <textarea id="adminNotifyText" placeholder="Если пусто, отправится текущий текст акции."></textarea>
+      </div>
+
+      <div class="order-row">
+        <button id="adminSaveBtn">💾 Сохранить цены</button>
+        <button id="adminReloadBtn" class="ghost">🔄 Обновить</button>
+        <button id="adminNotifyBtn" class="ghost">📣 Рассылка</button>
+      </div>
     </section>
 
     <section id="orderCard" class="card hidden">
@@ -141,9 +277,12 @@
       <div class="order-row">
         <button id="payBtn">💸 Оплатить</button>
         <button id="checkBtn" class="ghost">✅ Проверить оплату</button>
+        <button id="cancelBtn" class="ghost">❌ Отменить</button>
         <button id="copyBtn" class="ghost">📋 Копировать код</button>
       </div>
-      <p class="small" style="margin-top:10px;">Добавьте код заказа в комментарий к донату.</p>
+      <p class="small" style="margin-top:10px;">
+        Укажите сумму как в заказе. Комментарий (код заказа) желателен, но если поля нет, просто оплатите и нажмите «Проверить оплату».
+      </p>
     </section>
   </main>
 
@@ -155,17 +294,56 @@
     }
 
     const initData = tg ? tg.initData : "";
+    const urlParams = new URLSearchParams(window.location.search || "");
+    const requestedOrderId = String(urlParams.get("order_id") || "").trim().toUpperCase();
+    const autoPayRequested = String(urlParams.get("autopay") || "") === "1";
     let currentOrderId = "";
     let currentPaymentUrl = "";
+    let currentOrderProviderLabel = "DonatePay";
+    let autoStatusTimer = null;
+    let autoPayTriggered = false;
+    let isAdmin = false;
+    let adminLoaded = false;
+    let selectedAdminUserId = 0;
+    let adminFoundUsers = [];
+    let paymentProvider = "donatepay";
+    let paymentProviderLabel = "DonatePay";
 
     const statusEl = document.getElementById("status");
     const profileEl = document.getElementById("profile");
+    const activePromoEl = document.getElementById("activePromo");
+    const promoCodeInputEl = document.getElementById("promoCodeInput");
+    const promoActivateBtn = document.getElementById("promoActivateBtn");
     const plansEl = document.getElementById("plans");
+    const adminCardEl = document.getElementById("adminCard");
+    const adminGlobalDiscountEl = document.getElementById("adminGlobalDiscount");
+    const adminSaleTitleEl = document.getElementById("adminSaleTitle");
+    const adminSaleMessageEl = document.getElementById("adminSaleMessage");
+    const adminPlansEl = document.getElementById("adminPlans");
+    const adminPromoCodeEl = document.getElementById("adminPromoCode");
+    const adminPromoDiscountEl = document.getElementById("adminPromoDiscount");
+    const adminPromoExpiresEl = document.getElementById("adminPromoExpires");
+    const adminPromoMaxActivationsEl = document.getElementById("adminPromoMaxActivations");
+    const adminPromoSaveBtn = document.getElementById("adminPromoSaveBtn");
+    const adminPromoReloadBtn = document.getElementById("adminPromoReloadBtn");
+    const adminPromoListEl = document.getElementById("adminPromoList");
+    const adminUserQueryEl = document.getElementById("adminUserQuery");
+    const adminUserSearchBtn = document.getElementById("adminUserSearchBtn");
+    const adminUserResultsEl = document.getElementById("adminUserResults");
+    const adminSelectedUserEl = document.getElementById("adminSelectedUser");
+    const adminGrantDaysEl = document.getElementById("adminGrantDays");
+    const adminGrantBtn = document.getElementById("adminGrantBtn");
+    const adminRemoveSubBtn = document.getElementById("adminRemoveSubBtn");
+    const adminNotifyTextEl = document.getElementById("adminNotifyText");
+    const adminSaveBtn = document.getElementById("adminSaveBtn");
+    const adminReloadBtn = document.getElementById("adminReloadBtn");
+    const adminNotifyBtn = document.getElementById("adminNotifyBtn");
     const orderCardEl = document.getElementById("orderCard");
     const orderInfoEl = document.getElementById("orderInfo");
     const orderCodeEl = document.getElementById("orderCode");
     const payBtn = document.getElementById("payBtn");
     const checkBtn = document.getElementById("checkBtn");
+    const cancelBtn = document.getElementById("cancelBtn");
     const copyBtn = document.getElementById("copyBtn");
 
     function setStatus(text, kind) {
@@ -191,12 +369,285 @@
       return data;
     }
 
-    function renderPlans(plans, paymentEnabled) {
+    function setAdminVisible(visible) {
+      if (visible) adminCardEl.classList.remove("hidden");
+      else adminCardEl.classList.add("hidden");
+    }
+
+    function toInt(value, fallback = 0) {
+      const parsed = Number.parseInt(String(value), 10);
+      return Number.isFinite(parsed) ? parsed : fallback;
+    }
+
+    function promoErrorText(code) {
+      const map = {
+        bad_code_format: "Неверный формат промокода.",
+        promo_not_found: "Промокод не найден.",
+        promo_inactive: "Промокод отключен.",
+        promo_expired: "Срок действия промокода истек.",
+        promo_limit_reached: "Лимит активаций промокода исчерпан.",
+        promo_already_activated: "Вы уже активировали этот промокод."
+      };
+      return map[code] || ("Ошибка: " + code);
+    }
+
+    function renderAdminPromocodes(promocodes) {
+      if (!adminPromoListEl) return;
+      const items = (promocodes || []).map((promo) => {
+        const limit = Number(promo.max_activations || 0) > 0
+          ? `${promo.total_activations || 0}/${promo.max_activations}`
+          : `${promo.total_activations || 0}/∞`;
+        const used = Number(promo.used_activations || 0);
+        const state = promo.is_expired ? "истек" : (promo.is_active ? "активен" : "выкл");
+        return `• ${promo.code}: -${promo.discount_rub} ₽, до ${promo.expires_at}, активаций ${limit}, использовано ${used}, статус ${state}`;
+      });
+      adminPromoListEl.textContent = items.length ? items.join("\n") : "Промокодов пока нет.";
+    }
+
+    function updateSelectedUserView() {
+      if (!adminSelectedUserEl) return;
+      if (!selectedAdminUserId) {
+        adminSelectedUserEl.textContent = "Выбранный пользователь: нет";
+        return;
+      }
+      const user = adminFoundUsers.find((item) => Number(item.telegram_id) === Number(selectedAdminUserId));
+      if (!user) {
+        adminSelectedUserEl.textContent = `Выбранный пользователь: ID ${selectedAdminUserId}`;
+        return;
+      }
+      const username = user.username ? "@" + user.username : "-";
+      const sub = user.subscription_active
+        ? `активна до ${user.subscription_end || "-"}`
+        : "неактивна";
+      adminSelectedUserEl.textContent = `Выбранный пользователь: ${user.telegram_id} (${username}), подписка ${sub}`;
+    }
+
+    function renderAdminUsers(users) {
+      adminFoundUsers = Array.isArray(users) ? users : [];
+      if (!adminUserResultsEl) return;
+      if (!adminFoundUsers.length) {
+        adminUserResultsEl.textContent = "Пользователи не найдены.";
+        selectedAdminUserId = 0;
+        updateSelectedUserView();
+        return;
+      }
+
+      adminUserResultsEl.innerHTML = "";
+      adminFoundUsers.forEach((user) => {
+        const username = user.username ? "@" + user.username : "-";
+        const sub = user.subscription_active
+          ? `активна до ${user.subscription_end || "-"}`
+          : "неактивна";
+        const line = document.createElement("div");
+        line.className = "order-row";
+        const btn = document.createElement("button");
+        btn.className = "ghost";
+        btn.textContent = `ID ${user.telegram_id} | ${username} | ${sub}`;
+        btn.onclick = () => {
+          selectedAdminUserId = Number(user.telegram_id);
+          updateSelectedUserView();
+          setStatus(`Выбран пользователь ${selectedAdminUserId}.`, "ok");
+        };
+        line.appendChild(btn);
+        adminUserResultsEl.appendChild(line);
+      });
+      if (!selectedAdminUserId && adminFoundUsers.length) {
+        selectedAdminUserId = Number(adminFoundUsers[0].telegram_id || 0);
+      }
+      updateSelectedUserView();
+    }
+
+    function renderAdminPlans(plans) {
+      adminPlansEl.innerHTML = "";
+      (plans || []).forEach((plan) => {
+        const row = document.createElement("div");
+        row.className = "admin-plan";
+        row.dataset.code = plan.code || "";
+        row.innerHTML = `
+          <div class="admin-plan-head">Код: ${plan.code || "-"}</div>
+          <div class="admin-plan-grid">
+            <div class="field">
+              <label>Название</label>
+              <input class="admin-title" type="text" value="${plan.title || ""}">
+            </div>
+            <div class="field">
+              <label>Дней</label>
+              <input class="admin-days" type="number" min="1" max="3650" value="${plan.days || 1}">
+            </div>
+            <div class="field">
+              <label>Цена (₽)</label>
+              <input class="admin-amount" type="number" min="1" max="100000" value="${plan.amount_rub || 1}">
+            </div>
+            <div class="field">
+              <label>Скидка плана (%)</label>
+              <input class="admin-discount" type="number" min="0" max="90" value="${plan.discount_percent || 0}">
+            </div>
+          </div>
+        `;
+        adminPlansEl.appendChild(row);
+      });
+    }
+
+    function collectAdminPricing() {
+      const rows = Array.from(adminPlansEl.querySelectorAll(".admin-plan"));
+      const plans = rows.map((row) => ({
+        code: String(row.dataset.code || "").trim().toLowerCase(),
+        title: String(row.querySelector(".admin-title")?.value || "").trim(),
+        days: toInt(row.querySelector(".admin-days")?.value, 1),
+        amount_rub: toInt(row.querySelector(".admin-amount")?.value, 1),
+        discount_percent: toInt(row.querySelector(".admin-discount")?.value, 0)
+      }));
+
+      return {
+        global_discount_percent: toInt(adminGlobalDiscountEl.value, 0),
+        sale_title: String(adminSaleTitleEl.value || "").trim(),
+        sale_message: String(adminSaleMessageEl.value || "").trim(),
+        plans
+      };
+    }
+
+    function applyAdminPricing(pricing) {
+      adminGlobalDiscountEl.value = pricing.global_discount_percent ?? 0;
+      adminSaleTitleEl.value = pricing.sale_title || "";
+      adminSaleMessageEl.value = pricing.sale_message || "";
+      renderAdminPlans(pricing.plans || []);
+    }
+
+    async function loadAdminPanel() {
+      if (!isAdmin) return;
+      const data = await requestJson("/webapp/api/admin/pricing", "POST", { init_data: initData });
+      applyAdminPricing(data.pricing || {});
+      await loadAdminPromocodes();
+      adminLoaded = true;
+    }
+
+    async function saveAdminPricing() {
+      if (!isAdmin) return;
+      const pricing = collectAdminPricing();
+      const data = await requestJson("/webapp/api/admin/save-pricing", "POST", {
+        init_data: initData,
+        pricing
+      });
+      applyAdminPricing(data.pricing || {});
+      await loadPlans();
+      setStatus("Цены сохранены.", "ok");
+    }
+
+    async function adminNotify() {
+      if (!isAdmin) return;
+      const text = String(adminNotifyTextEl.value || "").trim();
+      const data = await requestJson("/webapp/api/admin/notify", "POST", {
+        init_data: initData,
+        text
+      });
+      setStatus(`Рассылка отправлена: ${data.sent}, ошибок: ${data.failed}.`, "ok");
+      adminNotifyTextEl.value = "";
+    }
+
+    async function loadAdminPromocodes() {
+      if (!isAdmin) return;
+      const data = await requestJson("/webapp/api/admin/promocodes", "POST", { init_data: initData });
+      renderAdminPromocodes(data.promocodes || []);
+    }
+
+    async function saveAdminPromocode() {
+      if (!isAdmin) return;
+      const payload = {
+        init_data: initData,
+        code: String(adminPromoCodeEl.value || "").trim(),
+        discount_rub: toInt(adminPromoDiscountEl.value, 0),
+        expires_at: String(adminPromoExpiresEl.value || "").trim(),
+        max_activations: toInt(adminPromoMaxActivationsEl.value, 0)
+      };
+      const data = await requestJson("/webapp/api/admin/create-promocode", "POST", payload);
+      renderAdminPromocodes(data.promocodes || []);
+      setStatus("Промокод сохранен.", "ok");
+    }
+
+    async function adminFindUsers() {
+      if (!isAdmin) return;
+      const query = String(adminUserQueryEl.value || "").trim();
+      if (!query) {
+        setStatus("Введите username или Telegram ID.", "err");
+        return;
+      }
+      const data = await requestJson("/webapp/api/admin/find-user", "POST", {
+        init_data: initData,
+        query
+      });
+      renderAdminUsers(data.users || []);
+      setStatus(`Найдено пользователей: ${(data.users || []).length}.`, "ok");
+    }
+
+    async function adminGrantSubscription() {
+      if (!isAdmin) return;
+      const telegramId = Number(selectedAdminUserId || 0);
+      if (!telegramId) {
+        setStatus("Сначала выберите пользователя.", "err");
+        return;
+      }
+      const days = toInt(adminGrantDaysEl.value, 0);
+      if (days <= 0) {
+        setStatus("Укажите корректное количество дней.", "err");
+        return;
+      }
+      const data = await requestJson("/webapp/api/admin/grant-subscription", "POST", {
+        init_data: initData,
+        telegram_id: telegramId,
+        days
+      });
+      setStatus(`Подписка выдана пользователю ${telegramId}.`, "ok");
+      if (data.user) {
+        renderAdminUsers([data.user]);
+      }
+    }
+
+    async function adminRemoveSubscription() {
+      if (!isAdmin) return;
+      const telegramId = Number(selectedAdminUserId || 0);
+      if (!telegramId) {
+        setStatus("Сначала выберите пользователя.", "err");
+        return;
+      }
+      const data = await requestJson("/webapp/api/admin/remove-subscription", "POST", {
+        init_data: initData,
+        telegram_id: telegramId
+      });
+      setStatus(`Подписка удалена у пользователя ${telegramId}.`, "ok");
+      if (data.user) {
+        renderAdminUsers([data.user]);
+      }
+    }
+
+    async function activatePromocode() {
+      if (!initData) {
+        setStatus("Откройте Mini App через Telegram-бота.", "err");
+        return;
+      }
+      const promoCode = String(promoCodeInputEl.value || "").trim();
+      if (!promoCode) {
+        setStatus("Введите промокод.", "err");
+        return;
+      }
+      try {
+        await requestJson("/webapp/api/activate-promocode", "POST", {
+          init_data: initData,
+          promo_code: promoCode
+        });
+        promoCodeInputEl.value = "";
+        await loadProfile();
+        setStatus("Промокод активирован.", "ok");
+      } catch (err) {
+        setStatus(promoErrorText(err.message), "err");
+      }
+    }
+
+    function renderPlans(plans, paymentEnabled, providerLabel) {
       plansEl.innerHTML = "";
       if (!paymentEnabled) {
         const muted = document.createElement("div");
         muted.className = "small";
-        muted.textContent = "Оплата временно отключена: админ не заполнил DonationAlerts.";
+        muted.textContent = "Оплата временно отключена: провайдер не настроен.";
         plansEl.appendChild(muted);
         return;
       }
@@ -204,10 +655,14 @@
       plans.forEach((plan) => {
         const item = document.createElement("div");
         item.className = "plan";
+        const discountLine = (plan.discount_percent > 0 && plan.base_amount_rub > plan.amount_rub)
+          ? `<p>Скидка: -${plan.discount_percent}% (было ${plan.base_amount_rub} ₽)</p>`
+          : "";
         item.innerHTML = `
           <div>
             <h3>${plan.title} • ${plan.amount_rub} ₽</h3>
             <p>${plan.days} дней доступа</p>
+            ${discountLine}
           </div>
         `;
         const btn = document.createElement("button");
@@ -216,20 +671,67 @@
         item.appendChild(btn);
         plansEl.appendChild(item);
       });
+
+      if (providerLabel) {
+        const note = document.createElement("div");
+        note.className = "small";
+        note.style.marginTop = "8px";
+        note.textContent = `Оплата через: ${providerLabel}`;
+        plansEl.appendChild(note);
+      }
     }
 
-    function showOrder(orderId, paymentUrl, plan) {
+    function clearOrder() {
+      currentOrderId = "";
+      currentPaymentUrl = "";
+      orderCardEl.classList.add("hidden");
+      orderInfoEl.textContent = "";
+      orderCodeEl.textContent = "";
+    }
+
+    function showOrder(orderId, paymentUrl, plan, expiresAt) {
       currentOrderId = orderId;
-      currentPaymentUrl = paymentUrl;
+      currentPaymentUrl = paymentUrl || "";
+      currentOrderProviderLabel = String(plan.provider_label || paymentProviderLabel || "платежный сервис");
       orderCardEl.classList.remove("hidden");
-      orderInfoEl.textContent = `Тариф: ${plan.title}, сумма: ${plan.amount_rub} ₽`;
+      const baseAmount = Number(plan.base_amount_rub || plan.amount_rub || 0);
+      const amount = Number(plan.amount_rub || 0);
+      const tariffDiscountTail = (plan.discount_percent > 0 && baseAmount > amount)
+        ? `, скидка тарифа: -${plan.discount_percent}% (было ${baseAmount} ₽)`
+        : "";
+      const promoCode = String((plan.promo && plan.promo.code) || plan.promo_code || "").trim();
+      const promoDiscount = Number((plan.promo && plan.promo.discount_rub) || plan.promo_discount_rub || 0);
+      const promoTail = promoCode && promoDiscount > 0
+        ? `, промокод ${promoCode}: -${promoDiscount} ₽`
+        : "";
+      const expiresTail = expiresAt ? `, истекает: ${expiresAt}` : "";
+      const providerTail = currentOrderProviderLabel ? `, сервис: ${currentOrderProviderLabel}` : "";
+      orderInfoEl.textContent = `Тариф: ${plan.title}, сумма: ${amount} ₽${tariffDiscountTail}${promoTail}${providerTail}${expiresTail}`;
       orderCodeEl.textContent = orderId;
-      setStatus("Заказ создан. Нажмите «Оплатить».", "ok");
+      setStatus(`Заказ создан. Нажмите «Оплатить» (${currentOrderProviderLabel}).`, "ok");
+      maybeAutoOpenPayment();
+    }
+
+    function stopAutoStatusPolling() {
+      if (autoStatusTimer) {
+        clearInterval(autoStatusTimer);
+        autoStatusTimer = null;
+      }
+    }
+
+    function startAutoStatusPolling() {
+      stopAutoStatusPolling();
+      if (!currentOrderId) return;
+      autoStatusTimer = setInterval(() => {
+        checkOrderStatus(true);
+      }, 10000);
     }
 
     async function loadPlans() {
       const data = await requestJson("/webapp/api/plans", "GET");
-      renderPlans(data.plans || [], data.payment_enabled);
+      paymentProvider = String(data.payment_provider || "donatepay");
+      paymentProviderLabel = String(data.payment_provider_label || "DonatePay");
+      renderPlans(data.plans || [], data.payment_enabled, paymentProviderLabel);
     }
 
     async function loadProfile() {
@@ -242,16 +744,39 @@
       const me = await requestJson("/webapp/api/me", "POST", { init_data: initData });
       const sub = me.subscription || {};
       const subText = sub.active ? ("активна до " + (sub.subscription_end || "-")) : "неактивна";
-      profileEl.textContent = `ID: ${me.user.id} | Подписка: ${subText}`;
+      const adminText = me.user && me.user.is_admin ? " | Роль: админ" : "";
+      profileEl.textContent = `ID: ${me.user.id} | Подписка: ${subText}${adminText}`;
+      if (me.active_promo && me.active_promo.code) {
+        activePromoEl.textContent = `Активный промокод: ${me.active_promo.code} (-${me.active_promo.discount_rub} ₽, до ${me.active_promo.expires_at})`;
+      } else {
+        activePromoEl.textContent = "Активный промокод: нет";
+      }
+
+      isAdmin = !!(me.user && me.user.is_admin);
+      setAdminVisible(isAdmin);
+      if (isAdmin && !adminLoaded) {
+        await loadAdminPanel();
+      }
 
       if (me.pending_order) {
         showOrder(
           me.pending_order.order_id,
-          "",
-          { title: me.pending_order.days + " дней", amount_rub: me.pending_order.amount_rub }
+          me.pending_order.payment_url || "",
+          {
+            title: me.pending_order.days + " дней",
+            amount_rub: me.pending_order.amount_rub,
+            base_amount_rub: me.pending_order.base_amount_rub,
+            provider_label: me.pending_order.provider_label || paymentProviderLabel,
+            promo_code: me.pending_order.promo_code,
+            promo_discount_rub: me.pending_order.promo_discount_rub
+          },
+          me.pending_order.expires_at || ""
         );
-        setStatus("Найден незавершенный заказ. Можно проверить его оплату.", "ok");
+        startAutoStatusPolling();
+        setStatus("Найден незавершенный заказ. Проверяем оплату автоматически.", "ok");
       } else {
+        stopAutoStatusPolling();
+        clearOrder();
         setStatus("Выберите тариф и создайте заказ.", "ok");
       }
     }
@@ -266,15 +791,19 @@
           init_data: initData,
           plan_code: planCode
         });
-        showOrder(data.order_id, data.payment_url, data.plan);
+        const orderPlan = Object.assign({}, data.plan || {}, {
+          provider_label: data.payment_provider_label || paymentProviderLabel
+        });
+        showOrder(data.order_id, data.payment_url, orderPlan, data.expires_at || "");
+        startAutoStatusPolling();
       } catch (err) {
         setStatus("Ошибка создания заказа: " + err.message, "err");
       }
     }
 
-    async function checkOrderStatus() {
+    async function checkOrderStatus(silent = false) {
       if (!currentOrderId) {
-        setStatus("Сначала создайте заказ.", "err");
+        if (!silent) setStatus("Сначала создайте заказ.", "err");
         return;
       }
       try {
@@ -283,29 +812,141 @@
           order_id: currentOrderId
         });
         if (data.order.status === "paid") {
+          stopAutoStatusPolling();
           setStatus("Оплата подтверждена ✅", "ok");
           await loadProfile();
+          return;
+        }
+        if (data.order.status === "cancelled") {
+          stopAutoStatusPolling();
+          clearOrder();
+          if (!silent) {
+            setStatus("Заказ отменен или истек. Создайте новый.", "err");
+          }
+          return;
+        }
+        if (!silent) {
+          const expiresAt = data.order.expires_at || "";
+          const tail = expiresAt ? ` Заказ истекает: ${expiresAt}.` : "";
+          setStatus("Платеж пока не подтвержден." + tail, "err");
         } else {
-          setStatus("Платеж пока не подтвержден. Повторите через 10-30 секунд.", "err");
+          setStatus("Платеж пока не подтвержден. Идет авто-проверка...", "ok");
         }
       } catch (err) {
-        setStatus("Ошибка проверки оплаты: " + err.message, "err");
+        if (!silent) setStatus("Ошибка проверки оплаты: " + err.message, "err");
       }
     }
 
-    payBtn.onclick = () => {
+    async function cancelOrder() {
+      if (!currentOrderId) {
+        setStatus("Нет заказа для отмены.", "err");
+        return;
+      }
+      try {
+        await requestJson("/webapp/api/cancel-order", "POST", {
+          init_data: initData,
+          order_id: currentOrderId
+        });
+        stopAutoStatusPolling();
+        clearOrder();
+        setStatus("Заказ отменен.", "ok");
+        await loadProfile();
+      } catch (err) {
+        setStatus("Ошибка отмены заказа: " + err.message, "err");
+      }
+    }
+
+    function openPaymentLink() {
       if (!currentPaymentUrl) {
         setStatus("Ссылка оплаты недоступна. Создайте новый заказ.", "err");
         return;
       }
-      if (tg && tg.openLink) {
-        tg.openLink(currentPaymentUrl);
-      } else {
-        window.open(currentPaymentUrl, "_blank");
+      if (currentOrderId && navigator.clipboard && navigator.clipboard.writeText) {
+        navigator.clipboard.writeText(currentOrderId).catch(() => {});
       }
+      if (tg && tg.openLink) {
+        tg.openLink(currentPaymentUrl, { try_instant_view: false });
+      } else {
+        window.location.href = currentPaymentUrl;
+      }
+    }
+
+    function maybeAutoOpenPayment() {
+      if (!autoPayRequested || autoPayTriggered) return;
+      if (!currentOrderId || !currentPaymentUrl) return;
+      if (requestedOrderId && requestedOrderId !== String(currentOrderId).toUpperCase()) return;
+      autoPayTriggered = true;
+      setStatus(`Открываем оплату в ${currentOrderProviderLabel}...`, "ok");
+      openPaymentLink();
+    }
+
+    payBtn.onclick = () => {
+      openPaymentLink();
     };
 
-    checkBtn.onclick = checkOrderStatus;
+    checkBtn.onclick = () => checkOrderStatus(false);
+    cancelBtn.onclick = cancelOrder;
+    promoActivateBtn.onclick = async () => {
+      await activatePromocode();
+    };
+    adminSaveBtn.onclick = async () => {
+      try {
+        await saveAdminPricing();
+      } catch (err) {
+        setStatus("Ошибка сохранения цен: " + err.message, "err");
+      }
+    };
+    adminReloadBtn.onclick = async () => {
+      try {
+        await loadAdminPanel();
+        setStatus("Конфиг обновлен.", "ok");
+      } catch (err) {
+        setStatus("Ошибка обновления конфига: " + err.message, "err");
+      }
+    };
+    adminNotifyBtn.onclick = async () => {
+      try {
+        await adminNotify();
+      } catch (err) {
+        setStatus("Ошибка рассылки: " + err.message, "err");
+      }
+    };
+    adminPromoSaveBtn.onclick = async () => {
+      try {
+        await saveAdminPromocode();
+      } catch (err) {
+        setStatus("Ошибка сохранения промокода: " + promoErrorText(err.message), "err");
+      }
+    };
+    adminPromoReloadBtn.onclick = async () => {
+      try {
+        await loadAdminPromocodes();
+        setStatus("Список промокодов обновлен.", "ok");
+      } catch (err) {
+        setStatus("Ошибка загрузки промокодов: " + err.message, "err");
+      }
+    };
+    adminUserSearchBtn.onclick = async () => {
+      try {
+        await adminFindUsers();
+      } catch (err) {
+        setStatus("Ошибка поиска пользователя: " + err.message, "err");
+      }
+    };
+    adminGrantBtn.onclick = async () => {
+      try {
+        await adminGrantSubscription();
+      } catch (err) {
+        setStatus("Ошибка выдачи подписки: " + err.message, "err");
+      }
+    };
+    adminRemoveSubBtn.onclick = async () => {
+      try {
+        await adminRemoveSubscription();
+      } catch (err) {
+        setStatus("Ошибка удаления подписки: " + err.message, "err");
+      }
+    };
 
     copyBtn.onclick = async () => {
       if (!currentOrderId) {

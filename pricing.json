@@ -1,0 +1,42 @@
+{
+  "global_discount_percent": 0,
+  "sale_title": "",
+  "sale_message": "",
+  "plans": [
+    {
+      "code": "d1",
+      "title": "1 день",
+      "days": 1,
+      "amount_rub": 5,
+      "discount_percent": 0
+    },
+    {
+      "code": "w1",
+      "title": "7 дней",
+      "days": 7,
+      "amount_rub": 35,
+      "discount_percent": 0
+    },
+    {
+      "code": "w2",
+      "title": "14 дней",
+      "days": 14,
+      "amount_rub": 65,
+      "discount_percent": 0
+    },
+    {
+      "code": "m1",
+      "title": "30 дней",
+      "days": 30,
+      "amount_rub": 100,
+      "discount_percent": 0
+    },
+    {
+      "code": "m2",
+      "title": "60 дней",
+      "days": 60,
+      "amount_rub": 150,
+      "discount_percent": 0
+    }
+  ]
+}
