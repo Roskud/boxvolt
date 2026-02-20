@@ -1,17 +1,20 @@
 # BoxVolt VPN Bot
 
-Telegram-бот для продажи и управления VPN-подпиской (VLESS Reality через 3x-ui) с оплатой через DonationAlerts, webhook и OAuth API-синхронизацией.
+Telegram-бот для продажи и управления VPN-подпиской (VLESS Reality через 3x-ui) с оплатой через DonatePay/CryptoBot и webhook/API-синхронизацией.
 
 ## Что уже реализовано
 
-- Оплата через DonationAlerts (без Telegram Payments / YooKassa / DonatePay).
+- Оплата через DonatePay и CryptoBot (без Telegram Payments / YooKassa).
 - Создание заказа в боте с уникальным `order_id`.
 - Проверка оплаты через webhook + защита секретом.
-- OAuth авторизация DonationAlerts + фоновая синхронизация донатов через API.
+- Фоновая синхронизация платежей DonatePay через API.
 - Автопродление `subscription_end` после успешной оплаты.
 - Автосоздание VLESS-клиента в 3x-ui и отправка ключа в Telegram.
 - Динамические цены из `pricing.json` (подхват без перезапуска бота).
 - Скидки (глобальные и по тарифам) + админ-рассылка акции.
+- Реферальная программа: deep-link + автозачисление бонусных дней за оплаченные приглашения.
+- Антифрод: rate-limit заказов, burst-лимит, blacklist, защита trial по username/cooldown.
+- Админ-метрики `/admin_stats` + ежедневный авто-отчет в админ-чат.
 - Главное меню + под-кнопки (inline) для тарифов и инструкций.
 - Telegram Mini App (`/webapp`) с оплатой и проверкой статуса.
 - Встроенная админ-панель прямо в Mini App (для admin ID): цены/акции/рассылка.
@@ -69,12 +72,20 @@ cp .env.example .env
 - `BOT_TOKEN`
 - `XUI_URL`, `XUI_USERNAME`, `XUI_PASSWORD`, `INBOUND_ID`
 - `SERVER_IP`, `PUBLIC_KEY`, `SHORT_ID`, `SNI`
-- `DONATIONALERTS_USERNAME`
-- `DONATIONALERTS_WEBHOOK_SECRET`
-- `DONATIONALERTS_CLIENT_ID`, `DONATIONALERTS_CLIENT_SECRET`, `DONATIONALERTS_REDIRECT_URI`
+- `DONATEPAY_DONATE_BASE_URL`
+- `DONATEPAY_API_KEY`
+- `DONATEPAY_WEBHOOK_SECRET`
+- `CRYPTOBOT_ENABLED=1` и `CRYPTOBOT_API_TOKEN` (если хотите включить CryptoBot)
 - `WEBAPP_PUBLIC_URL`
 - `PRICING_FILE`
 - `ADMIN_TELEGRAM_IDS` (для команды рассылки акции)
+- `ADMIN_NOTIFY_CHAT_IDS` (опционально: chat_id групп/каналов для уведомлений об оплате)
+- `ADMIN_NOTIFY_TOPIC_ID` (опционально: ID топика в группе для уведомлений об оплате)
+- `REFERRAL_ENABLED`, `REFERRAL_REWARD_DAYS`, `REFERRAL_MIN_PLAN_DAYS` (реферальная программа)
+- `BLACKLIST_TELEGRAM_IDS` (опционально: статический blacklist через `.env`)
+- `ORDER_CREATE_COOLDOWN_SECONDS`, `ORDER_BURST_WINDOW_SECONDS`, `ORDER_BURST_MAX` (лимиты создания заказов)
+- `TRIAL_REQUEST_COOLDOWN_SECONDS`, `TRIAL_USERNAME_UNIQUE` (защита trial)
+- `ADMIN_DAILY_REPORT_ENABLED`, `ADMIN_DAILY_REPORT_INTERVAL_SECONDS` (ежедневный отчет)
 - `PAYMENT_PENDING_TTL_MINUTES` (авто-отмена неоплаченного заказа)
 - `PAYMENT_CLEANUP_INTERVAL_SECONDS` (интервал фоновой очистки)
 
@@ -104,10 +115,15 @@ cp .env.example .env
 
 Команды:
 - `/prices` — показать актуальные тарифы и активную акцию.
+- `/rules` — показать правила сервиса.
 - `/myid` — показать ваш Telegram ID (удобно для `ADMIN_TELEGRAM_IDS`).
 - `/admin` — открыть админ-панель (только для admin ID).
+- `/admin_stats` — метрики (24ч / 7д / всего).
 - `/sale_notify` — админ-рассылка текста акции из `pricing.json`.
 - `/sale_notify ваш текст` — админ-рассылка произвольного текста.
+- `/blacklist_add <tg_id> [причина]` — добавить в blacklist.
+- `/blacklist_del <tg_id>` — удалить из blacklist.
+- `/blacklist_list` — показать blacklist.
 
 Mini App Admin:
 - Если ваш ID есть в `ADMIN_TELEGRAM_IDS`, в Mini App появится блок `🛠 Админ-панель`.
@@ -116,33 +132,54 @@ Mini App Admin:
 Важно: для админ-команд укажите в `.env` список ID:
 `ADMIN_TELEGRAM_IDS=123456789,987654321`
 
-## DonationAlerts: webhook + OAuth sync
+Для уведомлений об оплате в админ-чат(ы) можно указать:
+`ADMIN_NOTIFY_CHAT_IDS=-1001234567890,-1009876543210`
 
-В `DonationAlerts` настройте webhook URL в формате:
+Для отправки именно в топик (форум-тему) укажите:
+`ADMIN_NOTIFY_TOPIC_ID=12345`
+`Topic ID` можно получить командой `/myid`, отправив её внутри нужного топика.
+
+## DonatePay: webhook + API sync
+
+Если в вашем кабинете DonatePay есть вебхук, настройте URL:
 
 ```text
-https://YOUR_DOMAIN/donationalerts/webhook?secret=YOUR_SECRET
+https://YOUR_DOMAIN/donatepay/webhook?secret=YOUR_SECRET
 ```
 
-Где `YOUR_SECRET` должен совпадать с `DONATIONALERTS_WEBHOOK_SECRET` в `.env`.
+Где `YOUR_SECRET` должен совпадать с `DONATEPAY_WEBHOOK_SECRET` в `.env`.
+
+Если вебхука в интерфейсе нет, это нормально: бот работает без него через API polling (`DONATEPAY_API_KEY`, `DONATEPAY_POLL_ENABLED=1`).
 
 Важно:
 - Бот связывает платеж с пользователем по `order_id`.
 - Также поддерживается fallback через `metadata.telegram_id` (берется последний pending-заказ пользователя).
 - В ссылке оплаты `order_id` подставляется в комментарий автоматически.
 - После webhook с успешной оплатой подписка продлевается автоматически.
-- Если webhook не пришел, фоновый OAuth sync подтянет донат из API.
+- Если webhook не пришел, фоновый poll подтянет платеж через API DonatePay.
 - Неоплаченный заказ отменяется автоматически через `PAYMENT_PENDING_TTL_MINUTES` минут.
 
-OAuth flow:
-1. Создайте OAuth приложение в DonationAlerts и получите `Client ID` + `Client Secret`.
-2. В `DONATIONALERTS_REDIRECT_URI` укажите:
-   `https://YOUR_DOMAIN/donationalerts/oauth/callback`
-3. Перезапустите бота.
-4. Откройте URL:
-   `https://YOUR_DOMAIN/donationalerts/oauth/url?secret=YOUR_SYNC_SECRET`
-5. Перейдите по ссылке из ответа и подтвердите доступ.
-6. Токен сохранится в `donationalerts_token.json`, после этого sync будет работать автоматически.
+## CryptoBot (Crypto Pay API)
+
+Включение в `.env`:
+
+```env
+CRYPTOBOT_ENABLED=1
+CRYPTOBOT_API_TOKEN=YOUR_CRYPTO_PAY_API_TOKEN
+CRYPTOBOT_WEBHOOK_PATH=/cryptobot/webhook
+CRYPTOBOT_POLL_ENABLED=1
+```
+
+Webhook URL для CryptoBot:
+
+```text
+https://YOUR_DOMAIN/cryptobot/webhook
+```
+
+Рекомендуется:
+- включать `CRYPTOBOT_VALIDATE_SIGNATURE=1`, если прокси не ломает исходные webhook-заголовки;
+- при необходимости задать `CRYPTOBOT_WEBHOOK_SECRET` и передавать его в URL/заголовке;
+- не отключать poll (`CRYPTOBOT_POLL_ENABLED=1`) как fallback, если webhook задерживается.
 
 ## Telegram WebApp
 
@@ -166,10 +203,9 @@ WEBAPP_INITDATA_MAX_AGE_SECONDS=86400
 Для webhook нужен публичный HTTPS.
 Если SSL на домене не активирован, webhook не будет стабильно работать.
 
-## Ограничения DonationAlerts
+## Ограничения платежей
 
-Проверьте правила DonationAlerts перед запуском платежей за VPN.
-В официальной базе знаний указано, что сервис может ограничивать использование для продажи товаров/услуг и других сценариев, которые не соответствуют их политике.
+Проверьте правила выбранного провайдера платежей перед запуском приема оплаты.
 
 ## Запуск
 
@@ -230,22 +266,8 @@ server {
     ssl_certificate /etc/letsencrypt/live/your-domain.tld/fullchain.pem;
     ssl_certificate_key /etc/letsencrypt/live/your-domain.tld/privkey.pem;
 
-    location /donationalerts/webhook {
-        proxy_pass http://127.0.0.1:8080/donationalerts/webhook;
-        proxy_set_header Host $host;
-        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
-        proxy_set_header X-Forwarded-Proto $scheme;
-    }
-
-    location /donationalerts/oauth/ {
-        proxy_pass http://127.0.0.1:8080/donationalerts/oauth/;
-        proxy_set_header Host $host;
-        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
-        proxy_set_header X-Forwarded-Proto $scheme;
-    }
-
-    location /donationalerts/sync {
-        proxy_pass http://127.0.0.1:8080/donationalerts/sync;
+    location /donatepay/webhook {
+        proxy_pass http://127.0.0.1:8080/donatepay/webhook;
         proxy_set_header Host $host;
         proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
         proxy_set_header X-Forwarded-Proto $scheme;
@@ -291,8 +313,8 @@ server {
 
 - Бот: отправьте `/start`.
 - Webhook: откройте `https://YOUR_DOMAIN/health`.
-- OAuth URL: `https://YOUR_DOMAIN/donationalerts/oauth/url?secret=YOUR_SYNC_SECRET`.
-- Ручной sync: `https://YOUR_DOMAIN/donationalerts/sync?secret=YOUR_SYNC_SECRET`.
+- DonatePay webhook endpoint: `https://YOUR_DOMAIN/donatepay/webhook`.
+- CryptoBot webhook endpoint: `https://YOUR_DOMAIN/cryptobot/webhook`.
 - WebApp: откройте `https://YOUR_DOMAIN/webapp` (из Telegram).
 - VPN: нажмите `🚀 Подключить VPN` и проверьте, что выдан валидный `vless://...` ключ.
 
@@ -300,4 +322,4 @@ server {
 
 - Не храните секреты в `bot.py`.
 - Не коммитьте `.env`.
-- Регулярно меняйте `DONATIONALERTS_WEBHOOK_SECRET`.
+- Регулярно меняйте `DONATEPAY_WEBHOOK_SECRET`.
