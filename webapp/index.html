@@ -357,7 +357,7 @@
       letter-spacing: 0.03em;
     }
 
-    .field input, .field textarea {
+    .field input, .field textarea, .field select {
       width: 100%;
       border: 1px solid rgba(181, 255, 246, 0.28);
       border-radius: 12px;
@@ -378,7 +378,8 @@
     }
 
     .field input:focus,
-    .field textarea:focus {
+    .field textarea:focus,
+    .field select:focus {
       border-color: rgba(183, 255, 247, 0.74);
       box-shadow: 0 0 0 2px rgba(138, 255, 239, 0.2);
     }
@@ -649,6 +650,61 @@
         </div>
       </div>
 
+      <div class="mini-block">
+        <strong style="display:block;">🛡 Антиабуз 2.0</strong>
+        <p class="small" style="margin:8px 0 0;">
+          Настройки защиты от спама заказов и trial-абуза. Применяются сразу, без перезапуска.
+        </p>
+        <div class="state-line">
+          <span id="adminAntiabuseBadge" class="state-pill info">Загрузка...</span>
+        </div>
+        <div class="admin-plan-grid">
+          <div class="field">
+            <label for="adminAbSoftEnabled">Soft-block</label>
+            <select id="adminAbSoftEnabled">
+              <option value="1">Включен</option>
+              <option value="0">Выключен</option>
+            </select>
+          </div>
+          <div class="field">
+            <label for="adminAbSoftBlockSeconds">Время soft-block (сек.)</label>
+            <input id="adminAbSoftBlockSeconds" type="number" min="60" max="86400" value="1800">
+          </div>
+          <div class="field">
+            <label for="adminAbThreshold">Порог strikes</label>
+            <input id="adminAbThreshold" type="number" min="2" max="50" value="4">
+          </div>
+          <div class="field">
+            <label for="adminAbStrikeWindow">Окно strikes (сек.)</label>
+            <input id="adminAbStrikeWindow" type="number" min="300" max="604800" value="86400">
+          </div>
+          <div class="field">
+            <label for="adminAbWeightOrder">Вес: order spam</label>
+            <input id="adminAbWeightOrder" type="number" min="1" max="10" value="1">
+          </div>
+          <div class="field">
+            <label for="adminAbWeightTrial">Вес: trial reuse</label>
+            <input id="adminAbWeightTrial" type="number" min="1" max="10" value="2">
+          </div>
+          <div class="field">
+            <label for="adminAbWeightUsername">Вес: username pattern</label>
+            <input id="adminAbWeightUsername" type="number" min="1" max="10" value="1">
+          </div>
+          <div class="field">
+            <label for="adminAbFpDays">Окно fingerprint (дней)</label>
+            <input id="adminAbFpDays" type="number" min="1" max="365" value="30">
+          </div>
+          <div class="field">
+            <label for="adminAbFpMaxUsers">Лимит users на fingerprint</label>
+            <input id="adminAbFpMaxUsers" type="number" min="1" max="10" value="2">
+          </div>
+        </div>
+        <div class="order-row">
+          <button id="adminAntiabuseSaveBtn" class="ghost">💾 Сохранить антиабуз</button>
+          <button id="adminAntiabuseResetBtn" class="ghost">↩️ Сбросить к .env</button>
+        </div>
+      </div>
+
       <div class="field">
         <label for="adminBroadcastText">Текст рассылки (опционально)</label>
         <textarea id="adminBroadcastText" placeholder="Если пусто, отправится текущий текст акции."></textarea>
@@ -725,6 +781,7 @@
     let adminLoaded = false;
     let adminUpdateMode = "auto";
     let adminMaintenanceEnabled = false;
+    let adminAntiabuseConfig = null;
     let selectedAdminUserId = 0;
     let adminFoundUsers = [];
     let paymentProvider = "donatepay";
@@ -779,6 +836,18 @@
     const adminToggleUpdateModeBtn = document.getElementById("adminToggleUpdateModeBtn");
     const adminSendUpdateNoticeBtn = document.getElementById("adminSendUpdateNoticeBtn");
     const adminToggleMaintenanceBtn = document.getElementById("adminToggleMaintenanceBtn");
+    const adminAntiabuseBadgeEl = document.getElementById("adminAntiabuseBadge");
+    const adminAbSoftEnabledEl = document.getElementById("adminAbSoftEnabled");
+    const adminAbSoftBlockSecondsEl = document.getElementById("adminAbSoftBlockSeconds");
+    const adminAbThresholdEl = document.getElementById("adminAbThreshold");
+    const adminAbStrikeWindowEl = document.getElementById("adminAbStrikeWindow");
+    const adminAbWeightOrderEl = document.getElementById("adminAbWeightOrder");
+    const adminAbWeightTrialEl = document.getElementById("adminAbWeightTrial");
+    const adminAbWeightUsernameEl = document.getElementById("adminAbWeightUsername");
+    const adminAbFpDaysEl = document.getElementById("adminAbFpDays");
+    const adminAbFpMaxUsersEl = document.getElementById("adminAbFpMaxUsers");
+    const adminAntiabuseSaveBtn = document.getElementById("adminAntiabuseSaveBtn");
+    const adminAntiabuseResetBtn = document.getElementById("adminAntiabuseResetBtn");
     const adminFlagsReloadBtn = document.getElementById("adminFlagsReloadBtn");
     const adminResolveFlagIdEl = document.getElementById("adminResolveFlagId");
     const adminResolveFlagBtn = document.getElementById("adminResolveFlagBtn");
@@ -821,7 +890,11 @@
         throw new Error("bad_json_response");
       }
       if (!res.ok || data.ok === false) {
-        throw new Error(data.error || ("http_" + res.status));
+        const code = String(data.error || ("http_" + res.status));
+        const err = new Error(code);
+        err.code = code;
+        err.details = data;
+        throw err;
       }
       return data;
     }
@@ -937,6 +1010,54 @@
         : "Техработы: выключены (выдача/перевыпуск ключей доступны)";
     }
 
+    function antiabuseTitle(config) {
+      if (!config || typeof config !== "object") {
+        return "Антиабуз: конфиг недоступен";
+      }
+      const enabled = toBool(config.soft_block_enabled);
+      const threshold = toInt(config.soft_block_threshold, 0);
+      const softSec = toInt(config.soft_block_seconds, 0);
+      const strikeWindow = toInt(config.strike_window_seconds, 0);
+      return `Антиабуз: ${enabled ? "вкл" : "выкл"}, порог ${threshold}, soft-block ${softSec}с, окно ${strikeWindow}с`;
+    }
+
+    function renderAdminAntiabuseConfig(config) {
+      const safe = config && typeof config === "object" ? config : {};
+      adminAntiabuseConfig = Object.assign({}, safe);
+      if (adminAbSoftEnabledEl) {
+        adminAbSoftEnabledEl.value = toBool(safe.soft_block_enabled) ? "1" : "0";
+      }
+      if (adminAbSoftBlockSecondsEl) {
+        adminAbSoftBlockSecondsEl.value = String(toInt(safe.soft_block_seconds, 1800));
+      }
+      if (adminAbThresholdEl) {
+        adminAbThresholdEl.value = String(toInt(safe.soft_block_threshold, 4));
+      }
+      if (adminAbStrikeWindowEl) {
+        adminAbStrikeWindowEl.value = String(toInt(safe.strike_window_seconds, 86400));
+      }
+      if (adminAbWeightOrderEl) {
+        adminAbWeightOrderEl.value = String(toInt(safe.strike_weight_order_spam, 1));
+      }
+      if (adminAbWeightTrialEl) {
+        adminAbWeightTrialEl.value = String(toInt(safe.strike_weight_trial_reuse, 2));
+      }
+      if (adminAbWeightUsernameEl) {
+        adminAbWeightUsernameEl.value = String(toInt(safe.strike_weight_username_pattern, 1));
+      }
+      if (adminAbFpDaysEl) {
+        adminAbFpDaysEl.value = String(toInt(safe.trial_fingerprint_window_days, 30));
+      }
+      if (adminAbFpMaxUsersEl) {
+        adminAbFpMaxUsersEl.value = String(toInt(safe.trial_fingerprint_max_users, 2));
+      }
+      if (adminAntiabuseBadgeEl) {
+        adminAntiabuseBadgeEl.textContent = antiabuseTitle(safe);
+        adminAntiabuseBadgeEl.className = "state-pill";
+        adminAntiabuseBadgeEl.classList.add(toBool(safe.soft_block_enabled) ? "ok" : "warn");
+      }
+    }
+
     function renderAdminRuntimeState(state) {
       adminUpdateMode = String(state.update_notify_mode || "auto").trim().toLowerCase() === "manual"
         ? "manual"
@@ -954,6 +1075,7 @@
         adminMaintenanceBadgeEl.className = "state-pill";
         adminMaintenanceBadgeEl.classList.add(adminMaintenanceEnabled ? "warn" : "ok");
       }
+      renderAdminAntiabuseConfig(state.antiabuse_config || {});
     }
 
     function renderAdminPromocodes(promocodes) {
@@ -1194,6 +1316,40 @@
         ? "Технические работы включены."
         : "Технические работы выключены.";
       setStatus(`${prefix} Уведомлено: ${data.sent}, ошибок: ${data.failed}.`, "ok");
+    }
+
+    function collectAdminAntiabuseConfig() {
+      return {
+        soft_block_enabled: toBool(adminAbSoftEnabledEl ? adminAbSoftEnabledEl.value : "1"),
+        soft_block_seconds: toInt(adminAbSoftBlockSecondsEl ? adminAbSoftBlockSecondsEl.value : 1800, 1800),
+        soft_block_threshold: toInt(adminAbThresholdEl ? adminAbThresholdEl.value : 4, 4),
+        strike_window_seconds: toInt(adminAbStrikeWindowEl ? adminAbStrikeWindowEl.value : 86400, 86400),
+        strike_weight_order_spam: toInt(adminAbWeightOrderEl ? adminAbWeightOrderEl.value : 1, 1),
+        strike_weight_trial_reuse: toInt(adminAbWeightTrialEl ? adminAbWeightTrialEl.value : 2, 2),
+        strike_weight_username_pattern: toInt(adminAbWeightUsernameEl ? adminAbWeightUsernameEl.value : 1, 1),
+        trial_fingerprint_window_days: toInt(adminAbFpDaysEl ? adminAbFpDaysEl.value : 30, 30),
+        trial_fingerprint_max_users: toInt(adminAbFpMaxUsersEl ? adminAbFpMaxUsersEl.value : 2, 2),
+      };
+    }
+
+    async function adminSaveAntiabuseConfig() {
+      if (!isAdmin) return;
+      const antiabuse = collectAdminAntiabuseConfig();
+      const data = await requestJson("/webapp/api/admin/set-antiabuse", "POST", {
+        init_data: initData,
+        antiabuse,
+      });
+      renderAdminRuntimeState(data);
+      setStatus("Антиабуз-конфиг сохранен.", "ok");
+    }
+
+    async function adminResetAntiabuseConfig() {
+      if (!isAdmin) return;
+      const data = await requestJson("/webapp/api/admin/reset-antiabuse", "POST", {
+        init_data: initData,
+      });
+      renderAdminRuntimeState(data);
+      setStatus("Антиабуз сброшен к значениям из .env.", "ok");
     }
 
     async function loadAdminPromocodes() {
@@ -1608,6 +1764,18 @@
         showOrder(data.order_id, data.payment_url, orderPlan, data.expires_at || "");
         startAutoStatusPolling();
       } catch (err) {
+        const code = String(err.code || err.message || "");
+        if (code === "order_rate_limited") {
+          const retryAfter = Number((err.details && err.details.retry_after_seconds) || 0);
+          const message = String(
+            (err.details && err.details.message)
+            || (retryAfter > 0
+              ? `⏳ Подождите ${retryAfter} секунд перед следующим заказом.`
+              : "⏳ Подождите перед следующим заказом.")
+          );
+          setStatus(message, "err");
+          return;
+        }
         setStatus("Ошибка создания заказа: " + err.message, "err");
       }
     }
@@ -1716,6 +1884,18 @@
           setStatus("Исходный тариф недоступен, выбран ближайший активный тариф.", "ok");
         }
       } catch (err) {
+        const code = String(err.code || err.message || "");
+        if (code === "order_rate_limited") {
+          const retryAfter = Number((err.details && err.details.retry_after_seconds) || 0);
+          const message = String(
+            (err.details && err.details.message)
+            || (retryAfter > 0
+              ? `⏳ Подождите ${retryAfter} секунд перед следующим заказом.`
+              : "⏳ Подождите перед следующим заказом.")
+          );
+          setStatus(message, "err");
+          return;
+        }
         setStatus("Ошибка повтора заказа: " + err.message, "err");
       }
     }
@@ -1889,6 +2069,20 @@
         await adminToggleMaintenance();
       } catch (err) {
         setStatus("Ошибка переключения техработ: " + err.message, "err");
+      }
+    };
+    adminAntiabuseSaveBtn.onclick = async () => {
+      try {
+        await adminSaveAntiabuseConfig();
+      } catch (err) {
+        setStatus("Ошибка сохранения антиабуза: " + err.message, "err");
+      }
+    };
+    adminAntiabuseResetBtn.onclick = async () => {
+      try {
+        await adminResetAntiabuseConfig();
+      } catch (err) {
+        setStatus("Ошибка сброса антиабуза: " + err.message, "err");
       }
     };
     adminFlagsReloadBtn.onclick = async () => {

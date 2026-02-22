@@ -9,6 +9,7 @@ import io
 import os
 import re
 import sqlite3
+import subprocess
 import tarfile
 import uuid
 import base64
@@ -180,6 +181,13 @@ UPDATE_NOTIFY_TEXT = env(
 
 # Bot settings
 SUPPORT_CONTACT = env("SUPPORT_CONTACT", "@boxvolt_support")
+NEWS_BUTTON_TEXT = env("NEWS_BUTTON_TEXT", "Новости и обновления").strip() or "Новости и обновления"
+NEWS_INFO_TEXT = env(
+    "NEWS_INFO_TEXT",
+    "Наши ресурсы, в которых мы публикуем всю актуальную информацию о работе",
+).strip() or "Наши ресурсы, в которых мы публикуем всю актуальную информацию о работе"
+NEWS_CHANNEL_TITLE = env("NEWS_CHANNEL_TITLE", "Канал в Telegram").strip() or "Канал в Telegram"
+NEWS_CHANNEL_URL = env("NEWS_CHANNEL_URL", "").strip()
 START_PHOTO = env("START_PHOTO", "").strip()
 BLACKLIST_TELEGRAM_IDS_RAW = env("BLACKLIST_TELEGRAM_IDS", "")
 REQUIRE_CHANNEL_SUBSCRIPTION = env("REQUIRE_CHANNEL_SUBSCRIPTION", "1") == "1"
@@ -211,7 +219,7 @@ PENDING_ORDER_REMINDER_INTERVAL_SECONDS = max(
     30,
     int(env("PENDING_ORDER_REMINDER_INTERVAL_SECONDS", "120")),
 )
-ORDER_CREATE_COOLDOWN_SECONDS = max(0, int(env("ORDER_CREATE_COOLDOWN_SECONDS", "45")))
+ORDER_CREATE_COOLDOWN_SECONDS = max(0, int(env("ORDER_CREATE_COOLDOWN_SECONDS", "30")))
 ORDER_BURST_WINDOW_SECONDS = max(1, int(env("ORDER_BURST_WINDOW_SECONDS", "600")))
 ORDER_BURST_MAX = max(1, int(env("ORDER_BURST_MAX", "8")))
 TRIAL_REQUEST_COOLDOWN_SECONDS = max(0, int(env("TRIAL_REQUEST_COOLDOWN_SECONDS", "120")))
@@ -254,6 +262,29 @@ SUPPORT_SLA_ALERT_LIMIT = max(1, int(env("SUPPORT_SLA_ALERT_LIMIT", "20")))
 ANTIABUSE_FLAGS_ENABLED = env("ANTIABUSE_FLAGS_ENABLED", "1") == "1"
 ANTIABUSE_FLAG_DEDUP_SECONDS = max(60, int(env("ANTIABUSE_FLAG_DEDUP_SECONDS", "1800")))
 ANTIABUSE_FLAG_RETENTION_DAYS = max(1, int(env("ANTIABUSE_FLAG_RETENTION_DAYS", "30")))
+ANTIABUSE_SOFT_BLOCK_ENABLED = env("ANTIABUSE_SOFT_BLOCK_ENABLED", "1") == "1"
+ANTIABUSE_SOFT_BLOCK_SECONDS = max(60, int(env("ANTIABUSE_SOFT_BLOCK_SECONDS", "1800")))
+ANTIABUSE_SOFT_BLOCK_THRESHOLD = max(2, int(env("ANTIABUSE_SOFT_BLOCK_THRESHOLD", "4")))
+ANTIABUSE_STRIKE_WINDOW_SECONDS = max(300, int(env("ANTIABUSE_STRIKE_WINDOW_SECONDS", "86400")))
+ANTIABUSE_STRIKE_WEIGHT_ORDER_SPAM = max(1, int(env("ANTIABUSE_STRIKE_WEIGHT_ORDER_SPAM", "1")))
+ANTIABUSE_STRIKE_WEIGHT_TRIAL_REUSE = max(1, int(env("ANTIABUSE_STRIKE_WEIGHT_TRIAL_REUSE", "2")))
+ANTIABUSE_STRIKE_WEIGHT_USERNAME_PATTERN = max(
+    1,
+    int(env("ANTIABUSE_STRIKE_WEIGHT_USERNAME_PATTERN", "1")),
+)
+ANTIABUSE_TRIAL_FINGERPRINT_WINDOW_DAYS = max(1, int(env("ANTIABUSE_TRIAL_FINGERPRINT_WINDOW_DAYS", "30")))
+ANTIABUSE_TRIAL_FINGERPRINT_MAX_USERS = max(1, int(env("ANTIABUSE_TRIAL_FINGERPRINT_MAX_USERS", "2")))
+ANTIABUSE_CONFIG_META_PREFIX = "antiabuse_cfg:"
+ANTIABUSE_INT_LIMITS: dict[str, tuple[int, int]] = {
+    "soft_block_seconds": (60, 86400),
+    "soft_block_threshold": (2, 50),
+    "strike_window_seconds": (300, 604800),
+    "strike_weight_order_spam": (1, 10),
+    "strike_weight_trial_reuse": (1, 10),
+    "strike_weight_username_pattern": (1, 10),
+    "trial_fingerprint_window_days": (1, 365),
+    "trial_fingerprint_max_users": (1, 10),
+}
 AUTO_BACKUP_ENABLED = env("AUTO_BACKUP_ENABLED", "1") == "1"
 AUTO_BACKUP_INTERVAL_SECONDS = max(3600, int(env("AUTO_BACKUP_INTERVAL_SECONDS", "86400")))
 AUTO_BACKUP_CHECK_INTERVAL_SECONDS = max(60, int(env("AUTO_BACKUP_CHECK_INTERVAL_SECONDS", "300")))
@@ -289,8 +320,15 @@ ROUTE_CIS_LANG_CODES = {
     item.lower()
     for item in parse_csv_env(env("ROUTE_CIS_LANG_CODES", "ru,uk,be,kk,ky,uz,tg,tk,hy,az"), default=["ru"])
 }
+ROUTE_AUTO_PREFER_RESERVE = env("ROUTE_AUTO_PREFER_RESERVE", "0") == "1"
 ROUTE_RESERVE_INBOUND_ID = max(0, int(env("ROUTE_RESERVE_INBOUND_ID", str(SPEED_INBOUND_ID))))
 ROUTE_RESERVE_NAME = env("ROUTE_RESERVE_NAME", "Резервный").strip() or "Резервный"
+ROUTE_RESERVE_PROFILE_ENABLED = env("ROUTE_RESERVE_PROFILE_ENABLED", "1") == "1"
+ROUTE_RESERVE_XUI_URL = env("ROUTE_RESERVE_XUI_URL", "").strip().rstrip("/")
+ROUTE_RESERVE_XUI_USERNAME = env("ROUTE_RESERVE_XUI_USERNAME", "").strip()
+ROUTE_RESERVE_XUI_PASSWORD = env("ROUTE_RESERVE_XUI_PASSWORD", "").strip()
+ROUTE_RESERVE_SERVER_IP = env("ROUTE_RESERVE_SERVER_IP", "").strip()
+ROUTE_RESERVE_SERVER_PORT = max(0, int(env("ROUTE_RESERVE_SERVER_PORT", "0")))
 
 LOYALTY_ENABLED = env("LOYALTY_ENABLED", "1") == "1"
 LOYALTY_EVERY_PAID = max(2, int(env("LOYALTY_EVERY_PAID", "5")))
@@ -568,9 +606,23 @@ def init_db() -> None:
         CREATE TABLE IF NOT EXISTS trial_claims (
             telegram_id INTEGER PRIMARY KEY,
             username TEXT,
+            username_fingerprint TEXT,
             claimed_at TEXT NOT NULL
         )
         """
+    )
+    if not _column_exists(conn, "trial_claims", "username_fingerprint"):
+        cursor.execute("ALTER TABLE trial_claims ADD COLUMN username_fingerprint TEXT")
+    cursor.execute(
+        """
+        UPDATE trial_claims
+        SET username_fingerprint = LOWER(TRIM(COALESCE(username, '')))
+        WHERE username_fingerprint IS NULL OR username_fingerprint = ''
+        """
+    )
+    cursor.execute(
+        "CREATE INDEX IF NOT EXISTS idx_trial_claims_username_fingerprint "
+        "ON trial_claims (username_fingerprint)"
     )
 
     cursor.execute(
@@ -846,16 +898,20 @@ def day_word(value: int) -> str:
 
 
 def build_rules_text() -> str:
+    support_line = SUPPORT_CONTACT if SUPPORT_CONTACT else "@boxvolt_bot"
     return (
         "📜 Правила BoxVolt VPN\n\n"
-        "1. Используйте сервис только в законных целях.\n"
-        "2. Оплата засчитывается при сумме не ниже тарифа (комиссия сверху допустима).\n"
-        "3. Тест предоставляется 1 раз и только до первой оплаты.\n"
-        "4. Реферальный бонус начисляется после оплаты приглашенным тарифа от 14 дней.\n"
-        "5. Передача доступа третьим лицам и фрод-злоупотребления запрещены.\n"
-        "6. При нарушениях доступ может быть ограничен без компенсации.\n"
-        "7. По вопросам: "
-        f"{SUPPORT_CONTACT}"
+        "1. Протокол и тип услуги: VLESS Reality, серверные (приватные) VPN-сети.\n"
+        "2. Происхождение сервиса: личная инфраструктура (не брут, не абуз).\n"
+        "3. География: Германия и Россия (доступные профили в личном кабинете).\n"
+        "4. Оплата: сумма должна быть не ниже тарифа; комиссия платежного сервиса может быть сверху.\n"
+        "5. Гарантия: на полный оплаченный срок аренды услуги.\n"
+        "6. Ограничения: 1 активное подключение на 1 ключ; безлимит по трафику в рамках fair-use.\n"
+        "7. Возможные блокировки сервисов: P2P/Bittorrent может быть ограничен провайдером.\n"
+        "8. Формат выдачи: Subscription URL, VLESS-конфиг и QR для импорта.\n"
+        "9. Запрещено: брутфорс, сканирование, DDoS, спам и иные незаконные действия.\n"
+        "10. При нарушениях доступ может быть ограничен без компенсации.\n"
+        f"11. Техническая поддержка: {support_line}"
     )
 
 
@@ -1218,6 +1274,31 @@ def required_channel_join_url() -> str:
     return f"https://t.me/{channel.lstrip('@')}"
 
 
+def news_channel_join_url() -> str:
+    source = str(NEWS_CHANNEL_URL or "").strip()
+    if source:
+        if source.startswith("https://t.me/") or source.startswith("http://t.me/"):
+            return source.replace("http://", "https://", 1)
+        if source.startswith("@"):
+            return f"https://t.me/{source.lstrip('@')}"
+        if re.fullmatch(r"[A-Za-z0-9_]{4,64}", source):
+            return f"https://t.me/{source}"
+        if source.startswith("https://"):
+            return source
+    return required_channel_join_url()
+
+
+def build_news_keyboard() -> InlineKeyboardMarkup | None:
+    target_url = news_channel_join_url()
+    if not target_url:
+        return None
+    return InlineKeyboardMarkup(
+        inline_keyboard=[
+            [InlineKeyboardButton(text=f"{NEWS_CHANNEL_TITLE} ↗", url=target_url)],
+        ]
+    )
+
+
 def build_subscription_required_keyboard() -> InlineKeyboardMarkup:
     return InlineKeyboardMarkup(
         inline_keyboard=[
@@ -1493,7 +1574,9 @@ def effective_user_route_mode(user: sqlite3.Row | None, telegram_id: int) -> str
     selected_mode = get_user_route_mode(telegram_id)
     if selected_mode in {"main", "reserve"}:
         return selected_mode
-    return "reserve" if user_is_cis_preferred(user) else "main"
+    if ROUTE_AUTO_PREFER_RESERVE and user_is_cis_preferred(user):
+        return "reserve"
+    return "main"
 
 
 def get_all_user_ids() -> list[int]:
@@ -1574,6 +1657,267 @@ def blacklist_list(limit: int = 100) -> list[sqlite3.Row]:
     ).fetchall()
     conn.close()
     return rows
+
+
+def normalize_username_value(username: str | None) -> str:
+    return str(username or "").strip().lstrip("@").lower()
+
+
+def username_fingerprint(username: str | None) -> str:
+    normalized = normalize_username_value(username)
+    if not normalized:
+        return ""
+    token = re.sub(r"[^a-z0-9_]+", "", normalized).strip("_")
+    if not token:
+        return ""
+    root = re.sub(r"\d+$", "", token).strip("_")
+    if len(root) >= 4:
+        return root[:48]
+    skeleton = re.sub(r"\d", "#", token)
+    skeleton = re.sub(r"_+", "_", skeleton).strip("_")
+    return skeleton[:48]
+
+
+def suspicious_username_patterns(username: str | None) -> list[str]:
+    normalized = normalize_username_value(username)
+    if not normalized:
+        return []
+    patterns: list[str] = []
+    if re.search(r"(.)\1{3,}", normalized):
+        patterns.append("repeated_chars")
+    digits = sum(ch.isdigit() for ch in normalized)
+    if len(normalized) >= 8 and digits / max(1, len(normalized)) >= 0.5:
+        patterns.append("high_digits_ratio")
+    if re.fullmatch(r"[a-z_]{0,3}\d{5,}", normalized):
+        patterns.append("short_prefix_many_digits")
+    if any(token in normalized for token in ("test", "trial", "free", "temp", "fake", "demo", "qwerty", "asdf")):
+        patterns.append("abuse_keyword")
+    return patterns
+
+
+def antiabuse_strike_meta_key(telegram_id: int) -> str:
+    return f"antiabuse:strikes:{int(telegram_id)}"
+
+
+def antiabuse_soft_block_meta_key(telegram_id: int) -> str:
+    return f"antiabuse:soft_block_until:{int(telegram_id)}"
+
+
+def antiabuse_soft_block_left_seconds(telegram_id: int) -> int:
+    config = get_antiabuse_runtime_config()
+    if not bool(config.get("soft_block_enabled")):
+        return 0
+    raw = get_app_meta(antiabuse_soft_block_meta_key(telegram_id))
+    until_at = parse_date(raw)
+    if not until_at:
+        return 0
+    left = int((until_at - dt.datetime.now()).total_seconds())
+    return max(0, left)
+
+
+def set_antiabuse_soft_block(telegram_id: int, seconds: int, reason: str = "") -> int:
+    config = get_antiabuse_runtime_config()
+    if not bool(config.get("soft_block_enabled")) or int(telegram_id) <= 0:
+        return 0
+    default_seconds = int(config.get("soft_block_seconds") or ANTIABUSE_SOFT_BLOCK_SECONDS)
+    duration = max(60, int(seconds or default_seconds))
+    now_at = dt.datetime.now()
+    existing_until = parse_date(get_app_meta(antiabuse_soft_block_meta_key(telegram_id)))
+    until_at = now_at + dt.timedelta(seconds=duration)
+    if existing_until and existing_until > until_at:
+        until_at = existing_until
+    set_app_meta(
+        antiabuse_soft_block_meta_key(telegram_id),
+        until_at.strftime("%Y-%m-%d %H:%M:%S"),
+    )
+    details = f"duration={duration} until={until_at.strftime('%Y-%m-%d %H:%M:%S')}"
+    tail = str(reason or "").strip()
+    if tail:
+        details += f" reason={tail[:300]}"
+    log_suspicious_flag(
+        telegram_id,
+        "antiabuse_soft_block",
+        details,
+        dedup_seconds=300,
+    )
+    left = int((until_at - now_at).total_seconds())
+    return max(0, left)
+
+
+def clear_antiabuse_soft_block(telegram_id: int) -> None:
+    set_app_meta(antiabuse_soft_block_meta_key(telegram_id), "")
+
+
+def read_antiabuse_strike_state(telegram_id: int) -> tuple[int, dt.datetime | None]:
+    raw = str(get_app_meta(antiabuse_strike_meta_key(telegram_id)) or "").strip()
+    if not raw:
+        return 0, None
+    try:
+        payload = json.loads(raw)
+    except Exception:  # noqa: BLE001
+        payload = None
+    if isinstance(payload, dict):
+        count = max(0, int(payload.get("count") or 0))
+        window_start = parse_date(str(payload.get("window_start") or ""))
+        return count, window_start
+    if raw.isdigit():
+        return max(0, int(raw)), None
+    return 0, None
+
+
+def clear_antiabuse_strike_state(telegram_id: int) -> None:
+    set_app_meta(antiabuse_strike_meta_key(telegram_id), "")
+
+
+def clear_antiabuse_state(telegram_id: int) -> None:
+    clear_antiabuse_strike_state(telegram_id)
+    clear_antiabuse_soft_block(telegram_id)
+
+
+def write_antiabuse_strike_state(telegram_id: int, count: int, window_start: dt.datetime) -> None:
+    payload = {
+        "count": max(0, int(count)),
+        "window_start": window_start.strftime("%Y-%m-%d %H:%M:%S"),
+        "updated_at": now_str(),
+    }
+    set_app_meta(antiabuse_strike_meta_key(telegram_id), json.dumps(payload, ensure_ascii=False))
+
+
+def register_antiabuse_strike(
+    telegram_id: int,
+    reason: str,
+    *,
+    weight: int = 1,
+    details: str = "",
+) -> tuple[int, int]:
+    if int(telegram_id) <= 0:
+        return 0, 0
+
+    config = get_antiabuse_runtime_config()
+    now_at = dt.datetime.now()
+    strike_count, window_start = read_antiabuse_strike_state(telegram_id)
+    strike_window = int(config.get("strike_window_seconds") or ANTIABUSE_STRIKE_WINDOW_SECONDS)
+    if not window_start or (now_at - window_start).total_seconds() > strike_window:
+        strike_count = 0
+        window_start = now_at
+
+    strike_count += max(1, int(weight))
+    write_antiabuse_strike_state(telegram_id, strike_count, window_start)
+
+    blocked_left = antiabuse_soft_block_left_seconds(telegram_id)
+    if (
+        bool(config.get("soft_block_enabled"))
+        and blocked_left <= 0
+        and strike_count >= int(config.get("soft_block_threshold") or ANTIABUSE_SOFT_BLOCK_THRESHOLD)
+    ):
+        blocked_left = set_antiabuse_soft_block(
+            telegram_id,
+            int(config.get("soft_block_seconds") or ANTIABUSE_SOFT_BLOCK_SECONDS),
+            reason=f"{reason}:{details[:120]}",
+        )
+
+    return strike_count, blocked_left
+
+
+def apply_order_retry_penalty(
+    telegram_id: int,
+    retry_reason: str,
+    retry_after: int,
+    *,
+    context: str,
+) -> None:
+    normalized_reason = str(retry_reason or "").strip().lower()
+    if normalized_reason in {"ok", "antiabuse"}:
+        return
+
+    config = get_antiabuse_runtime_config()
+    weight = 0
+    if normalized_reason == "burst":
+        weight = int(config.get("strike_weight_order_spam") or ANTIABUSE_STRIKE_WEIGHT_ORDER_SPAM)
+    elif normalized_reason == "cooldown":
+        if retry_after >= max(10, ORDER_CREATE_COOLDOWN_SECONDS - 10):
+            weight = int(config.get("strike_weight_order_spam") or ANTIABUSE_STRIKE_WEIGHT_ORDER_SPAM)
+
+    if weight <= 0:
+        return
+
+    details = f"context={context} reason={normalized_reason} retry_after={int(retry_after)}"
+    log_suspicious_flag(
+        telegram_id,
+        "order_spam_attempt",
+        details,
+        dedup_seconds=300,
+    )
+    register_antiabuse_strike(
+        telegram_id,
+        "order_spam_attempt",
+        weight=weight,
+        details=details,
+    )
+
+
+def trial_fingerprint_reused_by_many_users(
+    telegram_id: int,
+    fingerprint: str,
+    *,
+    max_users: int | None = None,
+    within_days: int | None = None,
+) -> bool:
+    config = get_antiabuse_runtime_config()
+    resolved_max_users = (
+        int(max_users)
+        if max_users is not None
+        else int(config.get("trial_fingerprint_max_users") or ANTIABUSE_TRIAL_FINGERPRINT_MAX_USERS)
+    )
+    resolved_within_days = (
+        int(within_days)
+        if within_days is not None
+        else int(config.get("trial_fingerprint_window_days") or ANTIABUSE_TRIAL_FINGERPRINT_WINDOW_DAYS)
+    )
+    token = str(fingerprint or "").strip().lower()
+    if not token:
+        return False
+    conn = get_conn()
+    params: list[Any] = [token, int(telegram_id)]
+    query = """
+        SELECT COUNT(DISTINCT telegram_id) AS cnt
+        FROM trial_claims
+        WHERE LOWER(TRIM(COALESCE(username_fingerprint, ''))) = ?
+          AND telegram_id != ?
+    """
+    days = max(0, int(resolved_within_days))
+    if days > 0:
+        cutoff = (dt.datetime.now() - dt.timedelta(days=days)).strftime("%Y-%m-%d %H:%M:%S")
+        query += " AND claimed_at >= ?"
+        params.append(cutoff)
+    row = conn.execute(query, tuple(params)).fetchone()
+    conn.close()
+    count = int(row["cnt"] or 0) if row else 0
+    return count >= max(1, int(resolved_max_users))
+
+
+def update_trial_claim_fingerprint(telegram_id: int, username: str | None, fingerprint: str) -> None:
+    conn = get_conn()
+    conn.execute(
+        """
+        UPDATE trial_claims
+        SET username = COALESCE(?, username),
+            username_fingerprint = CASE
+                WHEN ? IS NULL OR ? = '' THEN username_fingerprint
+                ELSE ?
+            END
+        WHERE telegram_id = ?
+        """,
+        (
+            username,
+            fingerprint,
+            fingerprint,
+            fingerprint,
+            int(telegram_id),
+        ),
+    )
+    conn.commit()
+    conn.close()
 
 
 def log_suspicious_flag(
@@ -1751,6 +2095,9 @@ def order_create_retry_after_seconds(telegram_id: int) -> int:
 
 
 def order_create_retry_state(telegram_id: int) -> tuple[int, str]:
+    antiabuse_left = antiabuse_soft_block_left_seconds(telegram_id)
+    if antiabuse_left > 0:
+        return antiabuse_left, "antiabuse"
     cooldown_left = payment_order_cooldown_left(telegram_id)
     if cooldown_left > 0:
         return cooldown_left, "cooldown"
@@ -1758,6 +2105,13 @@ def order_create_retry_state(telegram_id: int) -> tuple[int, str]:
     if burst_left > 0:
         return burst_left, "burst"
     return 0, "ok"
+
+
+def order_create_retry_message(retry_after: int, retry_reason: str) -> str:
+    seconds = max(1, int(retry_after))
+    if str(retry_reason or "").strip().lower() == "antiabuse":
+        return f"🛡 Защита от абуза: создание заказов временно ограничено на {seconds} сек."
+    return f"⏳ Подождите {seconds} секунд перед следующим заказом."
 
 
 def trial_request_meta_key(telegram_id: int) -> str:
@@ -1780,7 +2134,7 @@ def mark_trial_request_seen(telegram_id: int) -> None:
 
 
 def has_trial_claim_by_username(username: str | None) -> bool:
-    normalized = str(username or "").strip().lstrip("@").lower()
+    normalized = normalize_username_value(username)
     if not normalized:
         return False
     conn = get_conn()
@@ -1849,6 +2203,25 @@ def set_app_meta(key: str, value: str) -> None:
     conn.close()
 
 
+def get_app_meta_many(keys: list[str]) -> dict[str, str]:
+    if not keys:
+        return {}
+    normalized = [str(key or "").strip() for key in keys if str(key or "").strip()]
+    if not normalized:
+        return {}
+    placeholders = ",".join("?" for _ in normalized)
+    conn = get_conn()
+    rows = conn.execute(
+        f"SELECT key, value FROM app_meta WHERE key IN ({placeholders})",
+        tuple(normalized),
+    ).fetchall()
+    conn.close()
+    result: dict[str, str] = {}
+    for row in rows:
+        result[str(row["key"])] = str(row["value"])
+    return result
+
+
 def _meta_to_bool(value: str | None, default: bool = False) -> bool:
     if value is None:
         return default
@@ -1881,6 +2254,84 @@ def maintenance_mode_enabled() -> bool:
 
 def set_maintenance_mode(enabled: bool) -> None:
     set_app_meta("maintenance_mode", "1" if enabled else "0")
+
+
+def antiabuse_config_meta_key(name: str) -> str:
+    return f"{ANTIABUSE_CONFIG_META_PREFIX}{str(name or '').strip().lower()}"
+
+
+def antiabuse_default_config() -> dict[str, Any]:
+    return {
+        "soft_block_enabled": bool(ANTIABUSE_SOFT_BLOCK_ENABLED),
+        "soft_block_seconds": int(ANTIABUSE_SOFT_BLOCK_SECONDS),
+        "soft_block_threshold": int(ANTIABUSE_SOFT_BLOCK_THRESHOLD),
+        "strike_window_seconds": int(ANTIABUSE_STRIKE_WINDOW_SECONDS),
+        "strike_weight_order_spam": int(ANTIABUSE_STRIKE_WEIGHT_ORDER_SPAM),
+        "strike_weight_trial_reuse": int(ANTIABUSE_STRIKE_WEIGHT_TRIAL_REUSE),
+        "strike_weight_username_pattern": int(ANTIABUSE_STRIKE_WEIGHT_USERNAME_PATTERN),
+        "trial_fingerprint_window_days": int(ANTIABUSE_TRIAL_FINGERPRINT_WINDOW_DAYS),
+        "trial_fingerprint_max_users": int(ANTIABUSE_TRIAL_FINGERPRINT_MAX_USERS),
+    }
+
+
+def get_antiabuse_runtime_config() -> dict[str, Any]:
+    config = antiabuse_default_config()
+    meta_keys = [antiabuse_config_meta_key(name) for name in config]
+    raw_map = get_app_meta_many(meta_keys)
+    for name, default in list(config.items()):
+        meta_value = str(raw_map.get(antiabuse_config_meta_key(name), "")).strip()
+        if meta_value == "":
+            continue
+        if name == "soft_block_enabled":
+            config[name] = _meta_to_bool(meta_value, default=bool(default))
+            continue
+        limits = ANTIABUSE_INT_LIMITS.get(name)
+        if not limits:
+            continue
+        parsed = _safe_int(meta_value, int(default))
+        config[name] = _clamp(parsed, limits[0], limits[1])
+    return config
+
+
+def set_antiabuse_runtime_config(config: dict[str, Any]) -> dict[str, Any]:
+    current = antiabuse_default_config()
+    normalized: dict[str, Any] = {}
+    for name, default in current.items():
+        if name == "soft_block_enabled":
+            normalized[name] = _meta_to_bool(config.get(name), default=bool(default))
+            continue
+        limits = ANTIABUSE_INT_LIMITS.get(name)
+        if not limits:
+            continue
+        parsed = _safe_int(config.get(name), int(default))
+        normalized[name] = _clamp(parsed, limits[0], limits[1])
+
+    for name, value in normalized.items():
+        if name == "soft_block_enabled":
+            set_app_meta(antiabuse_config_meta_key(name), "1" if value else "0")
+        else:
+            set_app_meta(antiabuse_config_meta_key(name), str(int(value)))
+    return get_antiabuse_runtime_config()
+
+
+def clear_antiabuse_runtime_config() -> dict[str, Any]:
+    for name in antiabuse_default_config():
+        set_app_meta(antiabuse_config_meta_key(name), "")
+    return get_antiabuse_runtime_config()
+
+
+def antiabuse_config_summary(config: dict[str, Any] | None = None) -> str:
+    cfg = config or get_antiabuse_runtime_config()
+    return (
+        f"soft={'on' if cfg.get('soft_block_enabled') else 'off'}, "
+        f"threshold={int(cfg.get('soft_block_threshold') or 0)}, "
+        f"block={int(cfg.get('soft_block_seconds') or 0)}s, "
+        f"window={int(cfg.get('strike_window_seconds') or 0)}s, "
+        f"w(order/trial/pattern)="
+        f"{int(cfg.get('strike_weight_order_spam') or 0)}/"
+        f"{int(cfg.get('strike_weight_trial_reuse') or 0)}/"
+        f"{int(cfg.get('strike_weight_username_pattern') or 0)}"
+    )
 
 
 def maintenance_user_block_text() -> str:
@@ -4201,6 +4652,7 @@ def build_main_keyboard(telegram_id: int | None = None) -> ReplyKeyboardMarkup:
         ],
         [KeyboardButton(text="👤 Личный кабинет"), KeyboardButton(text="📚 Инструкции")],
         [KeyboardButton(text="🛟 Поддержка"), KeyboardButton(text="📜 Правила")],
+        [KeyboardButton(text=NEWS_BUTTON_TEXT)],
         [KeyboardButton(text="🔥 Акции")],
     ]
     if REFERRAL_ENABLED:
@@ -4422,7 +4874,6 @@ def build_profile_keyboard(subscription_active: bool) -> InlineKeyboardMarkup:
             ]
         )
         rows.append([InlineKeyboardButton(text="🔁 Повторить прошлый тариф", callback_data="profile:renew_last")])
-        rows.append([InlineKeyboardButton(text="🛰 Переключить на резерв", callback_data="profile:toggle_route")])
     rows.extend(
         [
             [InlineKeyboardButton(text="🎟 Ввести промокод", callback_data="profile:promo")],
@@ -4590,6 +5041,8 @@ def format_admin_panel_text() -> str:
         "• /blacklist_list — список blacklist\n"
         "• /flags_list — подозрительные антифрод-флаги\n"
         "• /flags_resolve <id> — пометить флаг обработанным\n"
+        "• /antiabuse_state <tg_id> — посмотреть strike/block статус\n"
+        "• /antiabuse_reset <tg_id> — сбросить strike/block статус\n"
         "• /backup_now — создать резервную копию сейчас\n"
         "• /myid — показать ваш Telegram ID\n\n"
         f"Режим уведомлений об обновлениях: {update_mode}\n"
@@ -5025,35 +5478,33 @@ def build_donatepay_url(
 
     clean_order_id = str(order_id).strip().upper()
     amount_text = str(int(amount_rub))
-    amount_dot = f"{int(amount_rub)}.00"
     payer_tag, username_clean = payment_identity_values(telegram_id, username)
+    display_name = (username_clean or payer_tag or "").strip()
     params = {
+        # Keep both formats because DonatePay has UI/version differences.
         "amount": amount_text,
         "sum": amount_text,
-        "value": amount_text,
-        "price": amount_text,
-        "amount_rub": amount_text,
-        "amount_float": amount_dot,
         "currency": "RUB",
-        "comment": clean_order_id,
         "message": clean_order_id,
-        "text": clean_order_id,
-        "description": clean_order_id,
+        "comment": clean_order_id,
         "order_id": clean_order_id,
-        "utm_source": "boxvolt_bot",
-        "utm_medium": "telegram",
-        "utm_campaign": clean_order_id,
     }
-    if payer_tag:
-        params["nickname"] = payer_tag
+    if display_name:
+        params["name"] = display_name
+        params["nickname"] = display_name
+        params["username"] = display_name
+        params["user"] = display_name
+    elif payer_tag:
         params["name"] = payer_tag
+        params["nickname"] = payer_tag
+        params["username"] = payer_tag
         params["user"] = payer_tag
-    if username_clean:
-        params["username"] = username_clean
-        params["vars[username]"] = username_clean
     if telegram_id is not None and int(telegram_id) > 0:
         params["telegram_id"] = str(int(telegram_id))
         params["vars[telegram_id]"] = str(int(telegram_id))
+    params["vars[order_id]"] = clean_order_id
+    if username_clean:
+        params["vars[username]"] = username_clean
     return _append_query_params(base, params)
 
 
@@ -6706,6 +7157,7 @@ def find_inbound_client_stat(
 
 def extract_reality_profile_from_inbound(inbound_obj: dict[str, Any]) -> dict[str, str]:
     profile = default_reality_profile()
+    explicit_public_key = False
 
     stream_raw = inbound_obj.get("streamSettings") or "{}"
     try:
@@ -6720,14 +7172,32 @@ def extract_reality_profile_from_inbound(inbound_obj: dict[str, Any]) -> dict[st
     if not isinstance(reality, dict):
         return profile
 
+    direct_public_key = str(reality.get("publicKey") or "").strip()
+    if direct_public_key:
+        profile["public_key"] = direct_public_key
+        explicit_public_key = True
+    direct_fingerprint = str(reality.get("fingerprint") or "").strip()
+    if direct_fingerprint:
+        profile["fingerprint"] = direct_fingerprint
+
     settings = reality.get("settings")
     if isinstance(settings, dict):
         public_key = str(settings.get("publicKey") or "").strip()
         fingerprint = str(settings.get("fingerprint") or "").strip()
         if public_key:
             profile["public_key"] = public_key
+            explicit_public_key = True
         if fingerprint:
             profile["fingerprint"] = fingerprint
+
+    if not explicit_public_key:
+        private_key = str(reality.get("privateKey") or "").strip()
+        if not private_key and isinstance(settings, dict):
+            private_key = str(settings.get("privateKey") or "").strip()
+        if private_key:
+            derived_public_key = derive_reality_public_key_from_private(private_key)
+            if derived_public_key:
+                profile["public_key"] = derived_public_key
 
     short_ids = reality.get("shortIds")
     if isinstance(short_ids, list) and short_ids:
@@ -6749,6 +7219,48 @@ def extract_reality_profile_from_inbound(inbound_obj: dict[str, Any]) -> dict[st
     return profile
 
 
+_REALITY_PUBLIC_KEY_CACHE: dict[str, str] = {}
+
+
+def derive_reality_public_key_from_private(private_key: str) -> str:
+    key = str(private_key or "").strip()
+    if not key:
+        return ""
+    cached = _REALITY_PUBLIC_KEY_CACHE.get(key)
+    if cached:
+        return cached
+
+    commands = (
+        ["/usr/local/x-ui/bin/xray-linux-amd64", "x25519", "-i", key],
+        ["xray", "x25519", "-i", key],
+    )
+    for cmd in commands:
+        try:
+            result = subprocess.run(
+                cmd,
+                capture_output=True,
+                text=True,
+                timeout=6,
+                check=False,
+            )
+        except (FileNotFoundError, subprocess.TimeoutExpired, OSError):
+            continue
+
+        combined = f"{result.stdout}\n{result.stderr}".strip()
+        if not combined:
+            continue
+        for line in combined.splitlines():
+            if ":" not in line:
+                continue
+            k, v = line.split(":", maxsplit=1)
+            key_name = k.strip().lower()
+            value = v.strip()
+            if key_name in {"publickey", "public key", "password"} and value:
+                _REALITY_PUBLIC_KEY_CACHE[key] = value
+                return value
+    return ""
+
+
 def cache_reality_profile(profile: dict[str, str]) -> None:
     global REALITY_PROFILE_CACHE, REALITY_PROFILE_CACHE_AT
     REALITY_PROFILE_CACHE = profile
@@ -6763,9 +7275,24 @@ def reality_profile_cache_valid() -> bool:
 
 
 async def xui_login(client: httpx.AsyncClient) -> httpx.Cookies:
+    return await xui_login_with_endpoint(client)
+
+
+async def xui_login_with_endpoint(
+    client: httpx.AsyncClient,
+    *,
+    xui_url: str | None = None,
+    xui_username: str | None = None,
+    xui_password: str | None = None,
+) -> httpx.Cookies:
+    endpoint = str(xui_url or XUI_URL).strip().rstrip("/")
+    username = str(xui_username or XUI_USERNAME).strip()
+    password = str(xui_password or XUI_PASSWORD).strip()
+    if not all([endpoint, username, password]):
+        raise RuntimeError("3x-ui endpoint config is incomplete")
     login_resp = await client.post(
-        f"{XUI_URL}/login",
-        data={"username": XUI_USERNAME, "password": XUI_PASSWORD},
+        f"{endpoint}/login",
+        data={"username": username, "password": password},
     )
     login_resp.raise_for_status()
     return login_resp.cookies
@@ -6775,8 +7302,11 @@ async def xui_get_inbound_by_id(
     client: httpx.AsyncClient,
     cookies: httpx.Cookies,
     inbound_id: int,
+    *,
+    xui_url: str | None = None,
 ) -> dict[str, Any]:
-    resp = await client.get(f"{XUI_URL}/panel/api/inbounds/get/{inbound_id}", cookies=cookies)
+    endpoint = str(xui_url or XUI_URL).strip().rstrip("/")
+    resp = await client.get(f"{endpoint}/panel/api/inbounds/get/{inbound_id}", cookies=cookies)
     resp.raise_for_status()
 
     try:
@@ -6801,8 +7331,11 @@ async def xui_get_inbound_from_list(
     client: httpx.AsyncClient,
     cookies: httpx.Cookies,
     inbound_id: int = INBOUND_ID,
+    *,
+    xui_url: str | None = None,
 ) -> dict[str, Any]:
-    resp = await client.get(f"{XUI_URL}/panel/api/inbounds/list", cookies=cookies)
+    endpoint = str(xui_url or XUI_URL).strip().rstrip("/")
+    resp = await client.get(f"{endpoint}/panel/api/inbounds/list", cookies=cookies)
     resp.raise_for_status()
 
     try:
@@ -6911,16 +7444,32 @@ async def xui_upsert_client_for_inbound(
     flow_override: str | None = None,
     cache_main_reality: bool = False,
     email_override: str | None = None,
+    xui_url: str | None = None,
+    xui_username: str | None = None,
+    xui_password: str | None = None,
 ) -> tuple[str, dict[str, Any]]:
-    if not all([XUI_URL, XUI_USERNAME, XUI_PASSWORD]):
+    endpoint = str(xui_url or XUI_URL).strip().rstrip("/")
+    username = str(xui_username or XUI_USERNAME).strip()
+    password = str(xui_password or XUI_PASSWORD).strip()
+    if not all([endpoint, username, password]):
         raise RuntimeError("3x-ui config is incomplete in .env")
 
     expiry_time_ms = subscription_end_to_ms(subscription_end)
     client_email = str(email_override).strip() if email_override else str(telegram_id)
 
     async with httpx.AsyncClient(timeout=20.0) as client:
-        cookies = await xui_login(client)
-        inbound_obj = await xui_get_inbound_by_id(client, cookies, inbound_id)
+        cookies = await xui_login_with_endpoint(
+            client,
+            xui_url=endpoint,
+            xui_username=username,
+            xui_password=password,
+        )
+        inbound_obj = await xui_get_inbound_by_id(
+            client,
+            cookies,
+            inbound_id,
+            xui_url=endpoint,
+        )
         if cache_main_reality:
             cache_reality_profile(extract_reality_profile_from_inbound(inbound_obj))
 
@@ -6963,13 +7512,13 @@ async def xui_upsert_client_for_inbound(
         if found_client:
             update_id = current_uuid or client_uuid
             resp = await client.post(
-                f"{XUI_URL}/panel/api/inbounds/updateClient/{update_id}",
+                f"{endpoint}/panel/api/inbounds/updateClient/{update_id}",
                 data={"id": inbound_id, "settings": json.dumps(settings_payload, ensure_ascii=False)},
                 cookies=cookies,
             )
         else:
             resp = await client.post(
-                f"{XUI_URL}/panel/api/inbounds/addClient",
+                f"{endpoint}/panel/api/inbounds/addClient",
                 data={"id": inbound_id, "settings": json.dumps(settings_payload, ensure_ascii=False)},
                 cookies=cookies,
             )
@@ -7045,7 +7594,7 @@ def reserve_inbound_email(telegram_id: int) -> str:
 
 def youtube_profile_display_name() -> str:
     name = str(YOUTUBE_PROFILE_NAME or "").strip()
-    return name or "Ютуб без рекламы"
+    return name or "🎬 YT UltraFast"
 
 
 def youtube_inbound_email(telegram_id: int) -> str:
@@ -7059,6 +7608,7 @@ async def generate_vless_link_with_options(
     flow_override: str | None = None,
     reality_profile: dict[str, str] | None = None,
     server_port: int | None = None,
+    server_ip: str | None = None,
 ) -> str:
     profile = reality_profile or await get_reality_profile()
     params = {
@@ -7076,7 +7626,8 @@ async def generate_vless_link_with_options(
     query = urlencode(params)
     node_name = str(display_name or "").strip() or build_vless_display_name()
     resolved_port = server_port if isinstance(server_port, int) and server_port > 0 else SERVER_PORT
-    return f"vless://{user_uuid}@{SERVER_IP}:{resolved_port}?{query}#{quote(node_name, safe='')}"
+    resolved_ip = str(server_ip or SERVER_IP).strip() or SERVER_IP
+    return f"vless://{user_uuid}@{resolved_ip}:{resolved_port}?{query}#{quote(node_name, safe='')}"
 
 
 def build_vless_display_name() -> str:
@@ -7103,6 +7654,40 @@ def server_country_label() -> str:
     if flag and country and country.startswith(flag):
         return country
     return " ".join(part for part in (flag, country) if part) or "Global"
+
+
+def profile_server_labels() -> list[str]:
+    labels: list[str] = []
+
+    def add_label(value: str | None) -> None:
+        label = str(value or "").strip()
+        if label and label not in labels:
+            labels.append(label)
+
+    add_label(server_country_label())
+    if SPEED_PROFILE_ENABLED:
+        add_label(speed_profile_display_name())
+
+    reserve_enabled = ROUTE_RESERVE_PROFILE_ENABLED and (
+        bool(ROUTE_RESERVE_XUI_URL)
+        or ROUTE_RESERVE_INBOUND_ID > 0
+        or bool(ROUTE_RESERVE_SERVER_IP)
+    )
+    if reserve_enabled:
+        add_label(reserve_profile_display_name())
+
+    if YOUTUBE_PROFILE_ENABLED:
+        add_label(youtube_profile_display_name())
+
+    return labels or ["Global"]
+
+
+def profile_servers_text_block() -> str:
+    labels = profile_server_labels()
+    if len(labels) == 1:
+        return f"🖥 Сервер: {labels[0]}"
+    list_text = "\n".join(f"• {label}" for label in labels)
+    return f"🖥 Серверы:\n{list_text}"
 
 
 def as_copyable_key(link: str) -> str:
@@ -8975,10 +9560,36 @@ async def subscription_feed(request: web.Request) -> web.Response:
                 link_map["speed"] = speed_link
 
         reserve_link = ""
+        reserve_profile_enabled = ROUTE_RESERVE_PROFILE_ENABLED
         reserve_inbound_id = ROUTE_RESERVE_INBOUND_ID
-        if reserve_inbound_id > 0 and reserve_inbound_id != INBOUND_ID:
-            if speed_inbound_synced and reserve_inbound_id == SPEED_INBOUND_ID and speed_link:
-                reserve_link = speed_link
+        reserve_has_custom_endpoint = bool(ROUTE_RESERVE_XUI_URL)
+        reserve_xui_url = ROUTE_RESERVE_XUI_URL if reserve_has_custom_endpoint else XUI_URL
+        reserve_xui_username = (
+            ROUTE_RESERVE_XUI_USERNAME if reserve_has_custom_endpoint else XUI_USERNAME
+        )
+        reserve_xui_password = (
+            ROUTE_RESERVE_XUI_PASSWORD if reserve_has_custom_endpoint else XUI_PASSWORD
+        )
+        reserve_server_ip = (ROUTE_RESERVE_SERVER_IP or SERVER_IP).strip()
+        reserve_server_port_fallback = (
+            ROUTE_RESERVE_SERVER_PORT if ROUTE_RESERVE_SERVER_PORT > 0 else SERVER_PORT
+        )
+        reserve_uuid = user_uuid
+        reserve_profile: dict[str, str] | None = None
+        reserve_port = reserve_server_port_fallback
+        reserve_synced = False
+        if reserve_inbound_id > 0 and (reserve_has_custom_endpoint or reserve_inbound_id != INBOUND_ID):
+            if (
+                not reserve_has_custom_endpoint
+                and speed_inbound_synced
+                and reserve_inbound_id == SPEED_INBOUND_ID
+            ):
+                reserve_uuid = speed_uuid
+                reserve_profile = speed_profile
+                reserve_port = speed_port
+                reserve_synced = True
+                if reserve_profile_enabled and speed_link:
+                    reserve_link = speed_link
             else:
                 try:
                     reserve_uuid, reserve_inbound_obj = await xui_upsert_client_for_inbound(
@@ -8989,19 +9600,25 @@ async def subscription_feed(request: web.Request) -> web.Response:
                         flow_override=XUI_FLOW if XUI_FLOW != "" else None,
                         cache_main_reality=False,
                         email_override=reserve_inbound_email(telegram_id),
+                        xui_url=reserve_xui_url,
+                        xui_username=reserve_xui_username,
+                        xui_password=reserve_xui_password,
                     )
                     reserve_profile = extract_reality_profile_from_inbound(reserve_inbound_obj)
-                    reserve_port = non_negative_int(reserve_inbound_obj.get("port")) or SERVER_PORT
-                    reserve_link = await generate_vless_link_with_options(
-                        user_uuid=reserve_uuid,
-                        display_name=reserve_profile_display_name(),
-                        flow_override=XUI_FLOW if XUI_FLOW else None,
-                        reality_profile=reserve_profile,
-                        server_port=reserve_port,
-                    )
+                    reserve_port = non_negative_int(reserve_inbound_obj.get("port")) or reserve_server_port_fallback
+                    reserve_synced = True
+                    if reserve_profile_enabled:
+                        reserve_link = await generate_vless_link_with_options(
+                            user_uuid=reserve_uuid,
+                            display_name=reserve_profile_display_name(),
+                            flow_override=XUI_FLOW if XUI_FLOW else None,
+                            reality_profile=reserve_profile,
+                            server_port=reserve_port,
+                            server_ip=reserve_server_ip,
+                        )
                 except Exception as exc:  # noqa: BLE001
                     print(f"[xui] Failed to sync reserve inbound for {telegram_id}: {exc}")
-        elif speed_link:
+        elif speed_link and reserve_profile_enabled:
             reserve_link = speed_link
         if reserve_link:
             link_map["reserve"] = reserve_link
@@ -9011,8 +9628,38 @@ async def subscription_feed(request: web.Request) -> web.Response:
             yt_uuid = user_uuid
             yt_profile: dict[str, str] | None = None
             yt_port = SERVER_PORT
+            yt_server_ip = SERVER_IP
 
             if (
+                YOUTUBE_INBOUND_ID > 0
+                and YOUTUBE_INBOUND_ID == reserve_inbound_id
+                and (reserve_has_custom_endpoint or reserve_inbound_id != INBOUND_ID)
+            ):
+                if reserve_synced:
+                    yt_uuid = reserve_uuid
+                    yt_profile = reserve_profile
+                    yt_port = reserve_port
+                    yt_server_ip = reserve_server_ip
+                else:
+                    try:
+                        yt_uuid, yt_inbound_obj = await xui_upsert_client_for_inbound(
+                            inbound_id=YOUTUBE_INBOUND_ID,
+                            telegram_id=telegram_id,
+                            preferred_uuid=user_uuid,
+                            subscription_end=user["subscription_end"],
+                            flow_override=yt_flow if YOUTUBE_PROFILE_FLOW != "" else None,
+                            cache_main_reality=False,
+                            email_override=youtube_inbound_email(telegram_id),
+                            xui_url=reserve_xui_url,
+                            xui_username=reserve_xui_username,
+                            xui_password=reserve_xui_password,
+                        )
+                        yt_profile = extract_reality_profile_from_inbound(yt_inbound_obj)
+                        yt_port = non_negative_int(yt_inbound_obj.get("port")) or reserve_server_port_fallback
+                        yt_server_ip = reserve_server_ip
+                    except Exception as exc:  # noqa: BLE001
+                        print(f"[xui] Failed to sync youtube reserve inbound for {telegram_id}: {exc}")
+            elif (
                 speed_inbound_synced
                 and YOUTUBE_INBOUND_ID > 0
                 and YOUTUBE_INBOUND_ID == SPEED_INBOUND_ID
@@ -9042,6 +9689,7 @@ async def subscription_feed(request: web.Request) -> web.Response:
                 flow_override=yt_flow if yt_flow else None,
                 reality_profile=yt_profile,
                 server_port=yt_port,
+                server_ip=yt_server_ip,
             )
             if yt_link:
                 link_map["youtube"] = yt_link
@@ -9403,6 +10051,12 @@ async def webapp_create_order_api(request: web.Request) -> web.Response:
 
     retry_after, retry_reason = order_create_retry_state(telegram_id)
     if retry_after > 0:
+        apply_order_retry_penalty(
+            telegram_id,
+            retry_reason,
+            retry_after,
+            context="webapp",
+        )
         log_suspicious_flag(
             telegram_id,
             "order_rate_limited",
@@ -9412,7 +10066,9 @@ async def webapp_create_order_api(request: web.Request) -> web.Response:
             {
                 "ok": False,
                 "error": "order_rate_limited",
+                "message": order_create_retry_message(retry_after, retry_reason),
                 "retry_after_seconds": retry_after,
+                "retry_reason": retry_reason,
             },
             status=429,
         )
@@ -9608,6 +10264,12 @@ async def webapp_repeat_order_api(request: web.Request) -> web.Response:
 
     retry_after, retry_reason = order_create_retry_state(telegram_id)
     if retry_after > 0:
+        apply_order_retry_penalty(
+            telegram_id,
+            retry_reason,
+            retry_after,
+            context="webapp_repeat",
+        )
         log_suspicious_flag(
             telegram_id,
             "order_rate_limited",
@@ -9617,7 +10279,9 @@ async def webapp_repeat_order_api(request: web.Request) -> web.Response:
             {
                 "ok": False,
                 "error": "order_rate_limited",
+                "message": order_create_retry_message(retry_after, retry_reason),
                 "retry_after_seconds": retry_after,
+                "retry_reason": retry_reason,
             },
             status=429,
         )
@@ -9758,6 +10422,7 @@ def webapp_admin_runtime_state_payload() -> dict[str, Any]:
     return {
         "update_notify_mode": get_update_notify_mode(),
         "maintenance_mode": maintenance_mode_enabled(),
+        "antiabuse_config": get_antiabuse_runtime_config(),
     }
 
 
@@ -9851,6 +10516,91 @@ async def webapp_admin_set_maintenance_api(request: web.Request) -> web.Response
             "changed": changed,
             "sent": sent,
             "failed": failed,
+            **webapp_admin_runtime_state_payload(),
+        }
+    )
+
+
+def normalize_antiabuse_runtime_update(raw: Any) -> tuple[dict[str, Any] | None, str]:
+    if not isinstance(raw, dict):
+        return None, "bad_antiabuse_payload"
+
+    current = get_antiabuse_runtime_config()
+    normalized = dict(current)
+    touched = False
+
+    if "soft_block_enabled" in raw:
+        normalized["soft_block_enabled"] = _meta_to_bool(
+            raw.get("soft_block_enabled"),
+            default=bool(current.get("soft_block_enabled")),
+        )
+        touched = True
+
+    for key, limits in ANTIABUSE_INT_LIMITS.items():
+        if key not in raw:
+            continue
+        value = _safe_int(raw.get(key), int(current.get(key, limits[0])))
+        normalized[key] = _clamp(value, limits[0], limits[1])
+        touched = True
+
+    if not touched:
+        return None, "antiabuse_payload_empty"
+
+    return normalized, ""
+
+
+async def webapp_admin_set_antiabuse_api(request: web.Request) -> web.Response:
+    try:
+        body = await request.json()
+    except Exception:  # noqa: BLE001
+        return webapp_error("invalid_json", 400)
+
+    ok, telegram_id, reason, status = validate_webapp_admin_init_data(
+        str(body.get("init_data") or "")
+    )
+    if not ok:
+        return webapp_error(reason, status)
+
+    raw_payload = body.get("antiabuse") if isinstance(body.get("antiabuse"), dict) else body
+    normalized, normalize_reason = normalize_antiabuse_runtime_update(raw_payload)
+    if not normalized:
+        return webapp_error(normalize_reason, 400)
+
+    applied = set_antiabuse_runtime_config(normalized)
+    print(
+        f"[admin] antiabuse_config set from webapp by {telegram_id}: "
+        f"{antiabuse_config_summary(applied)}"
+    )
+    return web.json_response(
+        {
+            "ok": True,
+            "antiabuse_config": applied,
+            **webapp_admin_runtime_state_payload(),
+        }
+    )
+
+
+async def webapp_admin_reset_antiabuse_api(request: web.Request) -> web.Response:
+    try:
+        body = await request.json()
+    except Exception:  # noqa: BLE001
+        return webapp_error("invalid_json", 400)
+
+    ok, telegram_id, reason, status = validate_webapp_admin_init_data(
+        str(body.get("init_data") or "")
+    )
+    if not ok:
+        return webapp_error(reason, status)
+
+    applied = clear_antiabuse_runtime_config()
+    print(
+        f"[admin] antiabuse_config reset from webapp by {telegram_id}: "
+        f"{antiabuse_config_summary(applied)}"
+    )
+    return web.json_response(
+        {
+            "ok": True,
+            "antiabuse_config": applied,
             **webapp_admin_runtime_state_payload(),
         }
     )
@@ -10063,6 +10813,8 @@ def make_web_app() -> web.Application:
     app.router.add_post("/webapp/api/admin/set-update-mode", webapp_admin_set_update_mode_api)
     app.router.add_post("/webapp/api/admin/send-update-notice", webapp_admin_send_update_notice_api)
     app.router.add_post("/webapp/api/admin/set-maintenance", webapp_admin_set_maintenance_api)
+    app.router.add_post("/webapp/api/admin/set-antiabuse", webapp_admin_set_antiabuse_api)
+    app.router.add_post("/webapp/api/admin/reset-antiabuse", webapp_admin_reset_antiabuse_api)
     app.router.add_post("/webapp/api/admin/promocodes", webapp_admin_promocodes_api)
     app.router.add_post("/webapp/api/admin/create-promocode", webapp_admin_create_promocode_api)
     app.router.add_post("/webapp/api/admin/flags", webapp_admin_flags_api)
@@ -10232,6 +10984,19 @@ async def rules_text_handler(message: Message) -> None:
     await rules_command_handler(message)
 
 
+@dp.message(Command("news"))
+async def news_command_handler(message: Message) -> None:
+    await message.answer(
+        NEWS_INFO_TEXT,
+        reply_markup=build_news_keyboard(),
+    )
+
+
+@dp.message(F.text == NEWS_BUTTON_TEXT)
+async def news_text_handler(message: Message) -> None:
+    await news_command_handler(message)
+
+
 async def activate_promocode_for_message(message: Message, raw_code: str) -> tuple[bool, str]:
     code = normalize_promo_code(raw_code)
     if not code:
@@ -10395,6 +11160,57 @@ async def flags_resolve_command_handler(message: Message) -> None:
         await message.answer(f"ℹ️ Флаг #{raw} не найден или уже обработан.")
 
 
+@dp.message(Command("antiabuse_state"))
+async def antiabuse_state_command_handler(message: Message) -> None:
+    if not await ensure_admin(message):
+        return
+    raw = command_args(message).strip()
+    if not re.fullmatch(r"-?\d+", raw):
+        await message.answer("Формат: /antiabuse_state <telegram_id>")
+        return
+    target_id = int(raw)
+
+    config = get_antiabuse_runtime_config()
+    strikes, window_start = read_antiabuse_strike_state(target_id)
+    now_at = dt.datetime.now()
+    window_left = 0
+    strike_window = int(config.get("strike_window_seconds") or ANTIABUSE_STRIKE_WINDOW_SECONDS)
+    if window_start:
+        elapsed = int((now_at - window_start).total_seconds())
+        window_left = max(0, strike_window - elapsed)
+        if window_left <= 0:
+            strikes = 0
+
+    block_left = antiabuse_soft_block_left_seconds(target_id)
+    block_until_raw = str(get_app_meta(antiabuse_soft_block_meta_key(target_id)) or "").strip()
+    block_until = parse_date(block_until_raw)
+    block_until_text = block_until.strftime("%Y-%m-%d %H:%M:%S") if block_until else "-"
+
+    lines = [
+        f"🛡 Антиабуз статус для {target_id}",
+        f"• Strikes: {strikes}/{int(config.get('soft_block_threshold') or ANTIABUSE_SOFT_BLOCK_THRESHOLD)}",
+        f"• Окно strikes: {strike_window} сек.",
+        f"• До конца окна: {window_left} сек.",
+        f"• Soft-block активен: {'да' if block_left > 0 else 'нет'}",
+        f"• Soft-block до: {block_until_text}",
+        f"• Осталось: {block_left} сек.",
+    ]
+    await message.answer("\n".join(lines))
+
+
+@dp.message(Command("antiabuse_reset"))
+async def antiabuse_reset_command_handler(message: Message) -> None:
+    if not await ensure_admin(message):
+        return
+    raw = command_args(message).strip()
+    if not re.fullmatch(r"-?\d+", raw):
+        await message.answer("Формат: /antiabuse_reset <telegram_id>")
+        return
+    target_id = int(raw)
+    clear_antiabuse_state(target_id)
+    await message.answer(f"✅ Антиабуз-статус пользователя {target_id} сброшен.")
+
+
 @dp.message(Command("backup_now"))
 async def backup_now_command_handler(message: Message) -> None:
     if not await ensure_admin(message):
@@ -10518,15 +11334,21 @@ async def buy_plan_callback(callback: CallbackQuery) -> None:
 
     retry_after, retry_reason = order_create_retry_state(callback.from_user.id)
     if retry_after > 0:
+        apply_order_retry_penalty(
+            callback.from_user.id,
+            retry_reason,
+            retry_after,
+            context="buy_callback",
+        )
         log_suspicious_flag(
             callback.from_user.id,
             "order_rate_limited",
             f"context=buy_callback reason={retry_reason} retry_after={retry_after}",
         )
-        await callback.answer(
-            f"Слишком часто. Повторите через {retry_after} сек.",
-            show_alert=True,
-        )
+        wait_text = order_create_retry_message(retry_after, retry_reason)
+        await callback.answer(wait_text, show_alert=True)
+        if callback.message:
+            await callback.message.answer(wait_text)
         return
 
     final_amount, promo = calculate_plan_price_for_user(callback.from_user.id, plan)
@@ -10733,15 +11555,21 @@ async def payment_repeat_callback(callback: CallbackQuery) -> None:
 
     retry_after, retry_reason = order_create_retry_state(callback.from_user.id)
     if retry_after > 0:
+        apply_order_retry_penalty(
+            callback.from_user.id,
+            retry_reason,
+            retry_after,
+            context="payrepeat",
+        )
         log_suspicious_flag(
             callback.from_user.id,
             "order_rate_limited",
             f"context=payrepeat reason={retry_reason} retry_after={retry_after}",
         )
-        await callback.answer(
-            f"Слишком часто. Повторите через {retry_after} сек.",
-            show_alert=True,
-        )
+        wait_text = order_create_retry_message(retry_after, retry_reason)
+        await callback.answer(wait_text, show_alert=True)
+        if callback.message:
+            await callback.message.answer(wait_text)
         return
 
     ok, reason, payload = recreate_payment_order_from_previous(
@@ -10907,12 +11735,7 @@ async def profile_handler(message: Message) -> None:
     subscription_end = user["subscription_end"] or "-"
     remaining = format_subscription_remaining(user["subscription_end"])
     user_uuid = user["vless_uuid"] or "-"
-    route_mode = get_user_route_mode(message.from_user.id)
-    route_mode_title = {
-        "auto": "Авто",
-        "main": "Основной",
-        "reserve": "Резерв",
-    }.get(route_mode, "Авто")
+    servers_block = profile_servers_text_block()
     role_line = "Роль: админ\n" if is_admin_user(message.from_user.id) else ""
     active_promo = get_user_active_promocode(message.from_user.id)
     promo_line = "Промокод: нет\n"
@@ -10926,8 +11749,7 @@ async def profile_handler(message: Message) -> None:
         "👤 Личный кабинет\n"
         f"Пользователь: {user_title(message)}\n"
         f"{role_line}"
-        f"🖥 Сервер: {server_country_label()}\n"
-        f"🛰 Режим маршрута: {route_mode_title}\n"
+        f"{servers_block}\n"
         f"Подписка: {status}\n"
         f"До: {subscription_end}\n"
         f"Осталось: {remaining}\n"
@@ -11027,16 +11849,7 @@ async def profile_promo_callback(callback: CallbackQuery) -> None:
 
 @dp.callback_query(F.data == "profile:toggle_route")
 async def profile_toggle_route_callback(callback: CallbackQuery) -> None:
-    current = get_user_route_mode(callback.from_user.id)
-    next_mode = "reserve" if current in {"auto", "main"} else "main"
-    set_user_route_mode(callback.from_user.id, next_mode)
-    title = "Резерв" if next_mode == "reserve" else "Основной"
-    if callback.message:
-        await callback.message.answer(
-            f"🛰 Режим маршрута переключен: {title}.\n"
-            "При следующей выдаче/обновлении ссылки профиль будет с новым приоритетом."
-        )
-    await callback.answer(f"Режим: {title}", show_alert=False)
+    await callback.answer("Ручное переключение режима отключено.", show_alert=True)
 
 
 async def create_order_from_profile_plan(
@@ -11054,12 +11867,21 @@ async def create_order_from_profile_plan(
     upsert_user(callback.from_user.id, callback.from_user.username)
     retry_after, retry_reason = order_create_retry_state(callback.from_user.id)
     if retry_after > 0:
+        apply_order_retry_penalty(
+            callback.from_user.id,
+            retry_reason,
+            retry_after,
+            context="profile_renew",
+        )
         log_suspicious_flag(
             callback.from_user.id,
             "order_rate_limited",
             f"context=profile_renew reason={retry_reason} retry_after={retry_after}",
         )
-        return False, f"Слишком часто. Повторите через {retry_after} сек."
+        wait_text = order_create_retry_message(retry_after, retry_reason)
+        if callback.message:
+            await callback.message.answer(wait_text)
+        return False, wait_text
 
     final_amount, promo = calculate_plan_price_for_user(callback.from_user.id, plan)
     order_id = create_payment_order(
@@ -11259,7 +12081,7 @@ async def onboarding_done_callback(callback: CallbackQuery) -> None:
     if callback.message:
         await callback.message.answer(
             "✅ Подключение подтверждено.\n"
-            "Если скорость/доступ нестабильны, используйте «👤 Личный кабинет» → «🛰 Переключить на резерв».",
+            "Если скорость/доступ нестабильны, откройте «👤 Личный кабинет» и выберите другой профиль сервера.",
             reply_markup=build_main_keyboard(callback.from_user.id),
         )
 
@@ -11625,12 +12447,34 @@ async def handle_trial_request_for_user(
         await answer("⛔ Доступ к боту ограничен. Обратитесь в поддержку.")
         return
 
+    antiabuse_config = get_antiabuse_runtime_config()
+    antiabuse_left = antiabuse_soft_block_left_seconds(telegram_id)
+    if antiabuse_left > 0:
+        log_suspicious_flag(
+            telegram_id,
+            "trial_soft_blocked",
+            f"retry_after={antiabuse_left}",
+            dedup_seconds=180,
+        )
+        await answer(
+            f"🛡 Защита от абуза: выдача теста временно ограничена. Повторите через {antiabuse_left} сек."
+        )
+        return
+
     retry_after = trial_request_cooldown_left(telegram_id)
     if retry_after > 0:
         log_suspicious_flag(
             telegram_id,
             "trial_rate_limited",
             f"retry_after={retry_after}",
+        )
+        register_antiabuse_strike(
+            telegram_id,
+            "trial_rate_limited",
+            weight=int(
+                antiabuse_config.get("strike_weight_order_spam") or ANTIABUSE_STRIKE_WEIGHT_ORDER_SPAM
+            ),
+            details=f"retry_after={retry_after}",
         )
         await answer(f"⏳ Слишком часто. Попробуйте снова через {retry_after} сек.")
         return
@@ -11646,45 +12490,154 @@ async def handle_trial_request_for_user(
         await answer("Пользователь не найден. Нажмите /start")
         return
 
+    normalized_username = normalize_username_value(username)
+    fingerprint = username_fingerprint(normalized_username)
+    username_patterns = suspicious_username_patterns(normalized_username)
+    if username_patterns:
+        details = (
+            f"patterns={','.join(username_patterns)} "
+            f"username={normalized_username or 'empty'} "
+            f"fp={fingerprint or 'empty'}"
+        )
+        log_suspicious_flag(
+            telegram_id,
+            "trial_username_pattern",
+            details,
+            dedup_seconds=900,
+        )
+        register_antiabuse_strike(
+            telegram_id,
+            "trial_username_pattern",
+            weight=int(
+                antiabuse_config.get("strike_weight_username_pattern")
+                or ANTIABUSE_STRIKE_WEIGHT_USERNAME_PATTERN
+            ),
+            details=details,
+        )
+        antiabuse_left = antiabuse_soft_block_left_seconds(telegram_id)
+        if antiabuse_left > 0:
+            await answer(
+                f"🛡 Защита от абуза: выдача теста временно ограничена. Повторите через {antiabuse_left} сек."
+            )
+            return
+
     if int(user["trial_used"] or 0) == 1:
         log_suspicious_flag(telegram_id, "trial_reuse_attempt", "trial_used=1")
+        register_antiabuse_strike(
+            telegram_id,
+            "trial_reuse_attempt",
+            weight=int(
+                antiabuse_config.get("strike_weight_trial_reuse") or ANTIABUSE_STRIKE_WEIGHT_TRIAL_REUSE
+            ),
+            details="trial_used=1",
+        )
         await answer("❌ Тест уже использован.")
         return
 
     if has_trial_claim(telegram_id):
         log_suspicious_flag(telegram_id, "trial_reuse_attempt", "existing_trial_claim")
+        register_antiabuse_strike(
+            telegram_id,
+            "trial_reuse_attempt",
+            weight=int(
+                antiabuse_config.get("strike_weight_trial_reuse") or ANTIABUSE_STRIKE_WEIGHT_TRIAL_REUSE
+            ),
+            details="existing_trial_claim",
+        )
         await answer("❌ Тест уже использован.")
         return
-    if TRIAL_USERNAME_UNIQUE and has_trial_claim_by_username(username):
+    if TRIAL_USERNAME_UNIQUE and has_trial_claim_by_username(normalized_username):
         log_suspicious_flag(
             telegram_id,
             "trial_reuse_attempt",
-            f"username_reused={str(username or '').strip().lower()}",
+            f"username_reused={normalized_username}",
+        )
+        register_antiabuse_strike(
+            telegram_id,
+            "trial_reuse_attempt",
+            weight=int(
+                antiabuse_config.get("strike_weight_trial_reuse") or ANTIABUSE_STRIKE_WEIGHT_TRIAL_REUSE
+            ),
+            details=f"username_reused={normalized_username}",
         )
         await answer("❌ Тест уже использован для этого username.")
+        return
+    if fingerprint and trial_fingerprint_reused_by_many_users(telegram_id, fingerprint):
+        details = (
+            f"fingerprint_reused={fingerprint} "
+            f"window_days={int(antiabuse_config.get('trial_fingerprint_window_days') or ANTIABUSE_TRIAL_FINGERPRINT_WINDOW_DAYS)} "
+            f"max_users={int(antiabuse_config.get('trial_fingerprint_max_users') or ANTIABUSE_TRIAL_FINGERPRINT_MAX_USERS)}"
+        )
+        log_suspicious_flag(
+            telegram_id,
+            "trial_fingerprint_reuse",
+            details,
+            dedup_seconds=900,
+        )
+        strike_count, blocked_left = register_antiabuse_strike(
+            telegram_id,
+            "trial_fingerprint_reuse",
+            weight=int(
+                antiabuse_config.get("strike_weight_trial_reuse") or ANTIABUSE_STRIKE_WEIGHT_TRIAL_REUSE
+            ),
+            details=details,
+        )
+        if blocked_left > 0:
+            await answer(
+                f"🛡 Защита от абуза: выдача теста временно ограничена. Повторите через {blocked_left} сек."
+            )
+            return
+        await answer(
+            "❌ Тест недоступен для этого профиля username. "
+            f"Подозрительная активность зафиксирована (strike: {strike_count})."
+        )
         return
 
     if user_has_paid_payment(telegram_id):
         log_suspicious_flag(telegram_id, "trial_reuse_attempt", "already_has_paid_order")
+        register_antiabuse_strike(
+            telegram_id,
+            "trial_reuse_attempt",
+            weight=int(
+                antiabuse_config.get("strike_weight_trial_reuse") or ANTIABUSE_STRIKE_WEIGHT_TRIAL_REUSE
+            ),
+            details="already_has_paid_order",
+        )
         await answer("❌ Тест доступен только до первой оплаты.")
         return
 
     if parse_date(user["subscription_end"]):
         log_suspicious_flag(telegram_id, "trial_reuse_attempt", "subscription_end_already_set")
+        register_antiabuse_strike(
+            telegram_id,
+            "trial_reuse_attempt",
+            weight=int(
+                antiabuse_config.get("strike_weight_trial_reuse") or ANTIABUSE_STRIKE_WEIGHT_TRIAL_REUSE
+            ),
+            details="subscription_end_already_set",
+        )
         await answer("❌ Тест уже был активирован ранее.")
         return
 
     conn = get_conn()
     inserted_trial_claim = conn.execute(
         """
-        INSERT OR IGNORE INTO trial_claims (telegram_id, username, claimed_at)
-        VALUES (?, ?, ?)
+        INSERT OR IGNORE INTO trial_claims (telegram_id, username, username_fingerprint, claimed_at)
+        VALUES (?, ?, ?, ?)
         """,
-        (telegram_id, username, now_str()),
+        (telegram_id, normalized_username or username, fingerprint, now_str()),
     )
     if int(inserted_trial_claim.rowcount or 0) == 0:
         conn.close()
         log_suspicious_flag(telegram_id, "trial_reuse_attempt", "insert_or_ignore_conflict")
+        register_antiabuse_strike(
+            telegram_id,
+            "trial_reuse_attempt",
+            weight=int(
+                antiabuse_config.get("strike_weight_trial_reuse") or ANTIABUSE_STRIKE_WEIGHT_TRIAL_REUSE
+            ),
+            details="insert_or_ignore_conflict",
+        )
         await answer("❌ Тест уже использован.")
         return
 
@@ -11700,6 +12653,7 @@ async def handle_trial_request_for_user(
     )
     conn.commit()
     conn.close()
+    update_trial_claim_fingerprint(telegram_id, normalized_username or username, fingerprint)
 
     fresh_user = get_user(telegram_id)
     if not fresh_user:

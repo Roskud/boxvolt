@@ -1,6 +1,11 @@
 .env
+.venv/
 __pycache__/
 *.pyc
 users.db
 *.log
-donationalerts_token.json
+backups/
+.env.bak_*
+inbound_*_before_*.json
+xray_*_backup_*.json
+fast
