@@ -1,0 +1,89 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>BoxVolt VPN</title>
+  <link rel="stylesheet" href="popup.css">
+  <script src="config.js"></script>
+  <script src="popup.js" defer></script>
+</head>
+<body>
+  <main class="app">
+    <header class="topbar">
+      <h1 class="brand"><span class="brand-my">Box</span><span class="brand-vpn">Volt</span></h1>
+      <button id="themeToggleBtn" class="theme-btn" type="button" title="Сменить тему">☀</button>
+    </header>
+
+    <section id="authCard" class="panel auth-panel">
+      <p class="auth-title">Вход через Telegram</p>
+      <p class="auth-desc">Авторизуйтесь, чтобы получить доступ к серверам и подключению.</p>
+      <button id="loginBtn" class="btn login-btn" type="button">Войти через Telegram</button>
+      <p id="loginHelp" class="hint hidden"></p>
+    </section>
+
+    <section id="controlCard" class="panel control-panel hidden">
+      <div id="serverSelectWrap" class="server-select-wrap">
+        <button id="serverPickerBtn" class="server-picker" type="button">
+          <span class="server-picker-main">
+            <span id="serverPickerFlag" class="server-flag">🌐</span>
+            <span id="serverPickerLabel">Выберите сервер</span>
+          </span>
+          <span id="serverPickerChevron" class="server-chevron">▾</span>
+        </button>
+        <div id="serverMenu" class="server-menu hidden"></div>
+      </div>
+
+      <p id="runtimeStatus" class="connection-state">Не подключено</p>
+
+      <div class="world-stage" aria-hidden="true">
+        <div class="world-map"></div>
+        <button id="powerBtn" class="power-btn" type="button" disabled aria-label="Переключить подключение">
+          <span class="power-ring"></span>
+          <span class="power-core">
+            <span class="power-glyph">⏻</span>
+          </span>
+        </button>
+      </div>
+
+      <p id="powerHint" class="power-hint">Нажмите, чтобы подключиться</p>
+
+      <button id="manageBtn" class="btn offer-btn" type="button">Открыть бота</button>
+
+      <div class="mini-actions">
+        <button id="refreshBtn" class="btn mini-btn" type="button">Обновить</button>
+        <button id="logoutBtn" class="btn mini-btn" type="button">Выйти</button>
+      </div>
+
+      <p id="statusText" class="status">Подготовка...</p>
+    </section>
+
+    <section id="accountCard" class="account-card hidden">
+      <h2>Аккаунт</h2>
+      <div class="account-row">
+        <span>Пользователь</span>
+        <strong id="userName">-</strong>
+      </div>
+      <div class="account-row">
+        <span>Подписка</span>
+        <strong id="subscriptionState">-</strong>
+      </div>
+      <div class="account-row">
+        <span>До</span>
+        <strong id="subscriptionEnd">-</strong>
+      </div>
+    </section>
+
+    <section class="panel footer-panel">
+      <div class="footer-actions">
+        <button id="supportBtn" class="btn footer-btn" type="button">🛟 Поддержка</button>
+        <button id="botFooterBtn" class="btn footer-btn" type="button">🤖 Бот</button>
+      </div>
+    </section>
+
+    <a id="renewLink" href="#" target="_blank" rel="noreferrer" class="hidden-link">bot</a>
+    <a id="webappLink" href="#" target="_blank" rel="noreferrer" class="hidden-link">webapp</a>
+    <a id="supportLink" href="#" target="_blank" rel="noreferrer" class="hidden-link">support</a>
+  </main>
+</body>
+</html>
