@@ -2132,6 +2132,16 @@
       return Number.isFinite(parsed) ? parsed : fallback;
     }
 
+    function escapeHtml(value) {
+      const text = String(value ?? "");
+      return text
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/"/g, "&quot;")
+        .replace(/'/g, "&#39;");
+    }
+
     function buildReferralUrl(telegramId) {
       const id = toInt(telegramId, 0);
       if (id <= 0) return "";
@@ -2414,24 +2424,29 @@
         const row = document.createElement("div");
         row.className = "admin-plan";
         row.dataset.code = plan.code || "";
+        const safeCode = escapeHtml(plan.code || "-");
+        const safeTitle = escapeHtml(plan.title || "");
+        const safeDays = toInt(plan.days, 1);
+        const safeAmount = toInt(plan.amount_rub, 1);
+        const safeDiscount = toInt(plan.discount_percent, 0);
         row.innerHTML = `
-          <div class="admin-plan-head">Код: ${plan.code || "-"}</div>
+          <div class="admin-plan-head">Код: ${safeCode}</div>
           <div class="admin-plan-grid">
             <div class="field">
               <label>Название</label>
-              <input class="admin-title" type="text" value="${plan.title || ""}">
+              <input class="admin-title" type="text" value="${safeTitle}">
             </div>
             <div class="field">
               <label>Дней</label>
-              <input class="admin-days" type="number" min="1" max="3650" value="${plan.days || 1}">
+              <input class="admin-days" type="number" min="1" max="3650" value="${safeDays}">
             </div>
             <div class="field">
               <label>Цена (₽)</label>
-              <input class="admin-amount" type="number" min="1" max="100000" value="${plan.amount_rub || 1}">
+              <input class="admin-amount" type="number" min="1" max="100000" value="${safeAmount}">
             </div>
             <div class="field">
               <label>Скидка плана (%)</label>
-              <input class="admin-discount" type="number" min="0" max="90" value="${plan.discount_percent || 0}">
+              <input class="admin-discount" type="number" min="0" max="90" value="${safeDiscount}">
             </div>
           </div>
         `;
@@ -2852,8 +2867,14 @@
       plans.forEach((plan) => {
         const item = document.createElement("div");
         item.className = "plan";
-        const isBestValue = !!bestValueCode && String(plan.code || "") === bestValueCode;
-        const isPopular = !!popularCode && String(plan.code || "") === popularCode;
+        const planCode = String(plan.code || "");
+        const planTitle = String(plan.title || "");
+        const planAmount = Number(plan.amount_rub || 0);
+        const planDays = Number(plan.days || 0);
+        const planBaseAmount = Number(plan.base_amount_rub || planAmount);
+        const planDiscountPercent = toInt(plan.discount_percent, 0);
+        const isBestValue = !!bestValueCode && planCode === bestValueCode;
+        const isPopular = !!popularCode && planCode === popularCode;
         if (isBestValue) item.classList.add("plan-best");
         if (isPopular) item.classList.add("plan-popular");
 
@@ -2864,30 +2885,28 @@
           ? `<div class="plan-badges">${badges.join("")}</div>`
           : "";
 
-        const days = Number(plan.days || 0);
-        const amount = Number(plan.amount_rub || 0);
-        const dayCost = days > 0 && amount > 0 ? amount / days : 0;
+        const dayCost = planDays > 0 && planAmount > 0 ? planAmount / planDays : 0;
         let dayCostText = "";
         if (dayCost > 0) {
           const normalized = dayCost >= 10 ? dayCost.toFixed(0) : dayCost.toFixed(1);
-          dayCostText = `<p>≈ ${normalized.replace(".", ",")} ₽ / день</p>`;
+          dayCostText = `<p>≈ ${escapeHtml(normalized.replace(".", ","))} ₽ / день</p>`;
         }
 
-        const discountLine = (plan.discount_percent > 0 && plan.base_amount_rub > plan.amount_rub)
-          ? `<p>Скидка: -${plan.discount_percent}% (было ${plan.base_amount_rub} ₽)</p>`
+        const discountLine = (planDiscountPercent > 0 && planBaseAmount > planAmount)
+          ? `<p>Скидка: -${escapeHtml(planDiscountPercent)}% (было ${escapeHtml(planBaseAmount)} ₽)</p>`
           : "";
         item.innerHTML = `
           <div>
             ${badgesLine}
-            <h3>${plan.title} • ${plan.amount_rub} ₽</h3>
-            <p>${plan.days} дней доступа</p>
+            <h3>${escapeHtml(planTitle)} • ${escapeHtml(planAmount)} ₽</h3>
+            <p>${escapeHtml(planDays)} дней доступа</p>
             ${dayCostText}
             ${discountLine}
           </div>
         `;
         const btn = document.createElement("button");
         btn.textContent = "Оплатить";
-        btn.onclick = () => createOrder(plan.code);
+        btn.onclick = () => createOrder(planCode);
         item.appendChild(btn);
         plansEl.appendChild(item);
       });

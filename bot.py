@@ -518,6 +518,9 @@ DONATEPAY_PROVIDER = "donatepay"
 CRYPTOBOT_PROVIDER = "cryptobot"
 LZT_PROVIDER = "lzt"
 DONATEPAY_LAST_TRANSACTION_ID = 0
+TEXT_FILE_CACHE: dict[Path, tuple[float | None, str]] = {}
+EDGE_MANIFEST_META_CACHE: dict[str, str] | None = None
+EDGE_MANIFEST_META_CACHE_MTIME: float | None = None
 PRICING_CACHE: dict[str, Any] | None = None
 PRICING_CACHE_MTIME: float | None = None
 REALITY_PROFILE_CACHE: dict[str, str] | None = None
@@ -568,9 +571,26 @@ dp = Dispatcher()
 
 
 def get_conn() -> sqlite3.Connection:
-    conn = sqlite3.connect(DB_PATH)
+    conn = sqlite3.connect(DB_PATH, timeout=10)
     conn.row_factory = sqlite3.Row
+    conn.execute("PRAGMA busy_timeout=10000")
+    conn.execute("PRAGMA foreign_keys=ON")
     return conn
+
+
+def read_cached_text(path: Path) -> str:
+    try:
+        mtime = path.stat().st_mtime
+    except OSError:
+        mtime = None
+
+    cached = TEXT_FILE_CACHE.get(path)
+    if cached and cached[0] == mtime:
+        return cached[1]
+
+    content = path.read_text(encoding="utf-8")
+    TEXT_FILE_CACHE[path] = (mtime, content)
+    return content
 
 
 def _column_exists(conn: sqlite3.Connection, table: str, column: str) -> bool:
@@ -10187,7 +10207,10 @@ def render_public_site_html(snapshot: dict[str, Any]) -> str:
     if not PUBLIC_SITE_TEMPLATE_PATH.exists():
         return ""
 
-    template = PUBLIC_SITE_TEMPLATE_PATH.read_text(encoding="utf-8")
+    try:
+        template = read_cached_text(PUBLIC_SITE_TEMPLATE_PATH)
+    except OSError:
+        return ""
     active_provider = get_active_payment_provider()
     active_provider_label = str(snapshot.get("payment_provider_label") or payment_provider_label(active_provider))
     active_provider_ready = bool(snapshot.get("payment_provider_ready"))
@@ -12748,7 +12771,10 @@ async def webapp_page(_: web.Request) -> web.Response:
     if not WEBAPP_TEMPLATE_PATH.exists():
         return web.Response(text="WebApp template not found", status=500)
 
-    html = WEBAPP_TEMPLATE_PATH.read_text(encoding="utf-8")
+    try:
+        html = read_cached_text(WEBAPP_TEMPLATE_PATH)
+    except OSError:
+        return web.Response(text="WebApp template not found", status=500)
     return web.Response(
         text=html,
         content_type="text/html",
@@ -13737,19 +13763,33 @@ async def edge_api_options_handler(_: web.Request) -> web.Response:
 
 
 def edge_extension_manifest_meta() -> dict[str, str]:
+    global EDGE_MANIFEST_META_CACHE, EDGE_MANIFEST_META_CACHE_MTIME
+
     fallback = {"name": "BoxVolt VPN", "version": "-"}
     manifest_path = BASE_DIR / "browser-extension" / "manifest.json"
     if not manifest_path.exists():
         return fallback
+
     try:
-        payload = json.loads(manifest_path.read_text(encoding="utf-8"))
+        manifest_mtime = manifest_path.stat().st_mtime
+    except OSError:
+        manifest_mtime = None
+
+    if EDGE_MANIFEST_META_CACHE is not None and EDGE_MANIFEST_META_CACHE_MTIME == manifest_mtime:
+        return EDGE_MANIFEST_META_CACHE
+
+    try:
+        payload = json.loads(read_cached_text(manifest_path))
     except Exception:  # noqa: BLE001
         return fallback
     if not isinstance(payload, dict):
         return fallback
     name = str(payload.get("name") or fallback["name"]).strip() or fallback["name"]
     version = str(payload.get("version") or fallback["version"]).strip() or fallback["version"]
-    return {"name": name, "version": version}
+    result = {"name": name, "version": version}
+    EDGE_MANIFEST_META_CACHE = result
+    EDGE_MANIFEST_META_CACHE_MTIME = manifest_mtime
+    return result
 
 
 def edge_extension_download_name(ext: str) -> str:
@@ -13763,7 +13803,10 @@ def edge_extension_download_name(ext: str) -> str:
 def render_edge_install_page() -> str:
     if not EDGE_INSTALL_TEMPLATE_PATH.exists():
         return ""
-    template = EDGE_INSTALL_TEMPLATE_PATH.read_text(encoding="utf-8")
+    try:
+        template = read_cached_text(EDGE_INSTALL_TEMPLATE_PATH)
+    except OSError:
+        return ""
     manifest_meta = edge_extension_manifest_meta()
     zip_ready = EDGE_EXTENSION_ZIP_PATH.exists() and EDGE_EXTENSION_ZIP_PATH.is_file()
 
@@ -13972,7 +14015,7 @@ async def edge_logout_api(request: web.Request) -> web.Response:
 
 
 def make_web_app() -> web.Application:
-    app = web.Application()
+    app = web.Application(client_max_size=4 * 1024 * 1024)
 
     donatepay_webhook_path = _normalize_http_path(DONATEPAY_WEBHOOK_PATH, "/donatepay/webhook")
     cryptobot_webhook_path = _normalize_http_path(CRYPTOBOT_WEBHOOK_PATH, "/cryptobot/webhook")
