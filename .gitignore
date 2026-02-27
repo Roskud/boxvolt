@@ -9,3 +9,11 @@ backups/
 inbound_*_before_*.json
 xray_*_backup_*.json
 fast
+.edge_proxy_secrets
+browser-extension-prod.zip
+firefox-extension-prod.zip
+opera-extension-upload.zip
+edge-extension-prod.zip
+edge-extension-test.zip
+edge-extension*.crx
+edge-extension-prod.pem

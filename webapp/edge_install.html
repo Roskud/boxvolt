@@ -1,0 +1,1370 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>BoxVolt Edge Install</title>
+  <link rel="icon" type="image/png" sizes="32x32" href="/icon.png?v=2">
+  <link rel="icon" type="image/png" sizes="192x192" href="/icon.png?v=2">
+  <link rel="shortcut icon" type="image/png" href="/icon.png?v=2">
+  <link rel="apple-touch-icon" href="/icon.png?v=2">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@500;700;800&family=Sora:wght@600;700;800&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg: #050505;
+      --panel: rgba(10, 10, 14, 0.62);
+      --panel-strong: rgba(7, 8, 12, 0.8);
+      --line: rgba(255, 255, 255, 0.12);
+      --line-soft: rgba(255, 255, 255, 0.08);
+      --text: #e5e5e5;
+      --muted: #a3a3a3;
+      --orange: #f97316;
+      --amber: #f59e0b;
+      --emerald: #34d399;
+      --rose: #fb7185;
+      --shadow: 0 22px 46px rgba(0, 0, 0, 0.45);
+      --radius-xl: 24px;
+      --radius-lg: 18px;
+      --radius-md: 12px;
+    }
+
+    * { box-sizing: border-box; }
+
+    html,
+    body {
+      margin: 0;
+      min-height: 100%;
+      background: var(--bg);
+      color: var(--text);
+      font-family: "Manrope", "Segoe UI", sans-serif;
+    }
+
+    body {
+      overflow-x: hidden;
+      position: relative;
+    }
+
+    .fx-bg {
+      position: fixed;
+      inset: 0;
+      pointer-events: none;
+      overflow: hidden;
+      z-index: 0;
+      background: #050505;
+    }
+
+    .fx-grid {
+      position: absolute;
+      inset: 0;
+      background-image:
+        linear-gradient(to right, rgba(255, 255, 255, 0.04) 1px, transparent 1px),
+        linear-gradient(to bottom, rgba(255, 255, 255, 0.04) 1px, transparent 1px);
+      background-size: 4rem 4rem;
+      mask-image: radial-gradient(ellipse 80% 50% at 50% 0%, #000 70%, transparent 100%);
+      -webkit-mask-image: radial-gradient(ellipse 80% 50% at 50% 0%, #000 70%, transparent 100%);
+      z-index: 2;
+    }
+
+    .fx-sparks {
+      position: absolute;
+      inset: 0;
+      z-index: 4;
+    }
+
+    .fx-spark {
+      position: absolute;
+      border-radius: 999px;
+      background: #fff;
+      animation: float-up linear infinite;
+      will-change: transform, opacity;
+    }
+
+    .fx-spotlight {
+      position: absolute;
+      inset: 0;
+      z-index: 5;
+      transition: opacity 0.25s ease;
+    }
+
+    .fx-blob {
+      position: absolute;
+      border-radius: 999px;
+      filter: blur(120px);
+      animation: blob 16s infinite alternate ease-in-out;
+      z-index: 1;
+    }
+
+    .fx-blob-1 {
+      top: 10%;
+      left: 20%;
+      width: 40vw;
+      height: 40vw;
+      background: rgba(234, 88, 12, 0.12);
+    }
+
+    .fx-blob-2 {
+      bottom: 8%;
+      right: 18%;
+      width: 32vw;
+      height: 32vw;
+      background: rgba(245, 158, 11, 0.12);
+      animation-delay: 2s;
+    }
+
+    .fx-noise {
+      position: absolute;
+      inset: 0;
+      background: url("https://grainy-gradients.vercel.app/noise.svg");
+      opacity: 0.2;
+      mix-blend-mode: overlay;
+      z-index: 7;
+    }
+
+    .wrap {
+      position: relative;
+      z-index: 10;
+      width: min(960px, 100%);
+      margin: 0 auto;
+      padding: 24px 16px 52px;
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+    }
+
+    .card {
+      border: 1px solid var(--line);
+      border-radius: var(--radius-xl);
+      background: linear-gradient(165deg, var(--panel), var(--panel-strong));
+      backdrop-filter: blur(20px) saturate(130%);
+      -webkit-backdrop-filter: blur(20px) saturate(130%);
+      box-shadow: var(--shadow);
+      padding: 22px;
+      animation: rise-in 0.7s ease both;
+    }
+
+    .head {
+      padding: 26px;
+      overflow: hidden;
+      position: relative;
+    }
+
+    .head::before {
+      content: "";
+      position: absolute;
+      inset: 0;
+      background:
+        radial-gradient(380px 240px at 10% -20%, rgba(249, 115, 22, 0.2), transparent 60%),
+        radial-gradient(360px 220px at 100% 0%, rgba(59, 130, 246, 0.15), transparent 62%);
+      pointer-events: none;
+      z-index: 0;
+    }
+
+    .head > * { position: relative; z-index: 1; }
+
+    .title-row {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      margin-bottom: 10px;
+    }
+
+    .title-icon {
+      width: 46px;
+      height: 46px;
+      border-radius: 14px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      background: linear-gradient(135deg, var(--orange), var(--amber));
+      box-shadow: 0 0 22px rgba(249, 115, 22, 0.34);
+      color: #fff;
+      font-family: "Sora", sans-serif;
+      font-size: 20px;
+      font-weight: 800;
+    }
+
+    .title {
+      margin: 0;
+      font-family: "Sora", "Manrope", sans-serif;
+      font-size: clamp(28px, 5vw, 42px);
+      line-height: 1.05;
+      letter-spacing: 0.01em;
+      background: linear-gradient(160deg, #fff 20%, #d4d4d8 60%, #737373 100%);
+      -webkit-background-clip: text;
+      background-clip: text;
+      color: transparent;
+    }
+
+    .lead {
+      margin: 0;
+      color: var(--muted);
+      font-size: 14px;
+      line-height: 1.6;
+      max-width: 720px;
+    }
+
+    .chips {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin: 14px 0 12px;
+    }
+
+    .chip {
+      border: 1px solid var(--line-soft);
+      border-radius: 999px;
+      padding: 7px 11px;
+      background: rgba(255, 255, 255, 0.06);
+      color: #e4e4e7;
+      font-size: 12px;
+      font-weight: 700;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .chip.dot::before {
+      content: "";
+      width: 7px;
+      height: 7px;
+      border-radius: 50%;
+      background: currentColor;
+      box-shadow: 0 0 8px currentColor;
+      animation: pulse 1.6s ease-in-out infinite;
+    }
+
+    .chip.orange {
+      color: #fdba74;
+      border-color: rgba(249, 115, 22, 0.28);
+      background: rgba(249, 115, 22, 0.12);
+    }
+
+    .chip.emerald {
+      color: #86efac;
+      border-color: rgba(16, 185, 129, 0.28);
+      background: rgba(16, 185, 129, 0.12);
+    }
+
+    .actions {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      margin-top: 6px;
+    }
+
+    .btn {
+      appearance: none;
+      border: 1px solid var(--line-soft);
+      border-radius: 12px;
+      background: rgba(255, 255, 255, 0.06);
+      color: #f3f4f6;
+      text-decoration: none;
+      min-height: 44px;
+      padding: 10px 13px;
+      font-size: 13px;
+      font-weight: 800;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 7px;
+      cursor: pointer;
+      transition: all 0.2s ease;
+    }
+
+    .btn:hover {
+      transform: translateY(-1px);
+      border-color: rgba(255, 255, 255, 0.25);
+      color: #fff;
+    }
+
+    .btn.primary {
+      background: linear-gradient(90deg, var(--orange), var(--amber));
+      border-color: rgba(249, 115, 22, 0.45);
+      box-shadow: 0 12px 24px rgba(249, 115, 22, 0.3);
+      color: #fff;
+    }
+
+    .btn.disabled,
+    .btn[aria-disabled="true"] {
+      opacity: 0.58;
+      pointer-events: none;
+      filter: saturate(0.75);
+    }
+
+    .small {
+      margin: 7px 0 0;
+      color: #a1a1aa;
+      font-size: 12px;
+      line-height: 1.45;
+    }
+
+    .small strong { color: #f3f4f6; }
+
+    .tabs {
+      display: grid;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      gap: 8px;
+      padding: 8px;
+      border: 1px solid var(--line);
+      border-radius: var(--radius-lg);
+      background: rgba(0, 0, 0, 0.34);
+      backdrop-filter: blur(16px);
+      -webkit-backdrop-filter: blur(16px);
+      animation: rise-in 0.75s ease 0.08s both;
+    }
+
+    .tab-btn {
+      appearance: none;
+      border: 1px solid transparent;
+      border-radius: 10px;
+      min-height: 40px;
+      padding: 8px 10px;
+      background: transparent;
+      color: #9ca3af;
+      font-size: 13px;
+      font-weight: 700;
+      cursor: pointer;
+      transition: all 0.22s ease;
+    }
+
+    .tab-btn:hover {
+      color: #f3f4f6;
+      background: rgba(255, 255, 255, 0.06);
+    }
+
+    .tab-btn.active {
+      color: #fff;
+      background: linear-gradient(90deg, var(--orange), var(--amber));
+      border-color: rgba(249, 115, 22, 0.45);
+      box-shadow: 0 0 16px rgba(249, 115, 22, 0.26);
+    }
+
+    .panel { display: none; }
+    .panel.active { display: block; animation: fade-in 0.35s ease both; }
+
+    .panel h2 {
+      margin: 0 0 10px;
+      font-family: "Sora", "Manrope", sans-serif;
+      font-size: 24px;
+      color: #fff;
+      letter-spacing: 0.01em;
+    }
+
+    .panel p.muted {
+      margin: 0;
+      color: #9ca3af;
+      font-size: 13px;
+      line-height: 1.55;
+    }
+
+    .select-row {
+      margin-top: 14px;
+      display: grid;
+      grid-template-columns: minmax(230px, 1fr) auto;
+      gap: 12px;
+      align-items: center;
+    }
+
+    .select-wrap {
+      border: 1px solid var(--line-soft);
+      border-radius: 12px;
+      background: rgba(255, 255, 255, 0.04);
+      padding: 9px 11px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      min-height: 44px;
+      position: relative;
+    }
+
+    .browser-icon {
+      width: 26px;
+      height: 26px;
+      border-radius: 8px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      background: rgba(255, 255, 255, 0.08);
+      font-size: 13px;
+    }
+
+    .select-wrap select {
+      width: 100%;
+      appearance: none;
+      border: 0;
+      outline: none;
+      background: transparent;
+      color: #fff;
+      font-size: 14px;
+      font-weight: 700;
+      cursor: pointer;
+      padding-right: 20px;
+    }
+
+    .select-wrap::after {
+      content: "⌄";
+      position: absolute;
+      right: 12px;
+      top: 50%;
+      transform: translateY(-55%);
+      color: #9ca3af;
+      pointer-events: none;
+    }
+
+    .chip-list {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      justify-content: flex-end;
+    }
+
+    .browser-chip {
+      appearance: none;
+      border: 1px solid var(--line-soft);
+      border-radius: 10px;
+      background: rgba(255, 255, 255, 0.05);
+      color: #9ca3af;
+      font-size: 12px;
+      font-weight: 700;
+      min-height: 34px;
+      padding: 7px 10px;
+      cursor: pointer;
+      transition: all 0.2s ease;
+    }
+
+    .browser-chip:hover {
+      color: #e5e7eb;
+      border-color: rgba(255, 255, 255, 0.24);
+      background: rgba(255, 255, 255, 0.1);
+    }
+
+    .browser-chip.active {
+      color: #fff;
+      border-color: rgba(255, 255, 255, 0.26);
+      background: rgba(255, 255, 255, 0.15);
+    }
+
+    .browser-grid {
+      margin-top: 14px;
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 10px;
+    }
+
+    .browser-card {
+      appearance: none;
+      border: 1px solid var(--line-soft);
+      border-radius: 12px;
+      background: rgba(255, 255, 255, 0.04);
+      color: #e5e7eb;
+      cursor: pointer;
+      padding: 12px;
+      text-align: left;
+      transition: all 0.22s ease;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+      min-height: 56px;
+    }
+
+    .browser-card:hover {
+      border-color: rgba(255, 255, 255, 0.26);
+      background: rgba(255, 255, 255, 0.08);
+      transform: translateY(-1px);
+    }
+
+    .browser-card.active {
+      border-color: rgba(249, 115, 22, 0.55);
+      background: linear-gradient(90deg, rgba(249, 115, 22, 0.12), rgba(245, 158, 11, 0.08));
+      box-shadow: 0 0 0 1px rgba(249, 115, 22, 0.28);
+    }
+
+    .browser-card-main {
+      display: flex;
+      align-items: center;
+      gap: 9px;
+      min-width: 0;
+    }
+
+    .browser-card-emoji {
+      width: 26px;
+      height: 26px;
+      border-radius: 8px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      background: rgba(255, 255, 255, 0.1);
+      font-size: 13px;
+      flex-shrink: 0;
+    }
+
+    .browser-card-name {
+      font-size: 14px;
+      font-weight: 800;
+      color: #fff;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .browser-action {
+      margin-top: 12px;
+      border: 1px solid var(--line-soft);
+      border-radius: 12px;
+      background: rgba(255, 255, 255, 0.03);
+      padding: 10px;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    .browser-action .btn {
+      width: 100%;
+    }
+
+    .browser-action-hint {
+      margin: 0;
+      color: #9ca3af;
+      font-size: 12px;
+      line-height: 1.45;
+      text-align: center;
+    }
+
+    .subgrid {
+      margin-top: 14px;
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 12px;
+    }
+
+    .block {
+      border: 1px solid var(--line-soft);
+      border-radius: var(--radius-lg);
+      background: rgba(255, 255, 255, 0.03);
+      padding: 14px;
+    }
+
+    .block h3 {
+      margin: 0 0 10px;
+      font-size: 17px;
+      color: #fff;
+      letter-spacing: 0.01em;
+    }
+
+    .steps {
+      margin: 0;
+      padding: 0;
+      list-style: none;
+      display: grid;
+      gap: 8px;
+    }
+
+    .step {
+      border: 1px solid var(--line-soft);
+      border-radius: 10px;
+      background: rgba(255, 255, 255, 0.03);
+      padding: 9px;
+      display: grid;
+      grid-template-columns: 22px 1fr;
+      gap: 8px;
+      align-items: flex-start;
+      color: #d4d4d8;
+      font-size: 13px;
+      line-height: 1.5;
+    }
+
+    .idx {
+      width: 22px;
+      height: 22px;
+      border-radius: 7px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      background: rgba(255, 255, 255, 0.12);
+      color: #fff;
+      font-size: 11px;
+      font-weight: 800;
+      margin-top: 1px;
+    }
+
+    .addr {
+      margin-top: 10px;
+      border: 1px solid var(--line-soft);
+      border-radius: 10px;
+      background: rgba(255, 255, 255, 0.04);
+      padding: 4px;
+      display: flex;
+      gap: 6px;
+      align-items: center;
+    }
+
+    .addr-code {
+      flex: 1;
+      min-width: 0;
+      font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+      font-size: 12px;
+      color: #e5e7eb;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      background: rgba(0, 0, 0, 0.24);
+      border-radius: 8px;
+      padding: 10px 11px;
+    }
+
+    .copy-btn {
+      appearance: none;
+      border: 1px solid var(--line-soft);
+      border-radius: 8px;
+      background: rgba(255, 255, 255, 0.1);
+      color: #fff;
+      font-size: 12px;
+      font-weight: 700;
+      min-height: 36px;
+      padding: 8px 10px;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      white-space: nowrap;
+    }
+
+    .copy-btn:hover {
+      border-color: rgba(255, 255, 255, 0.22);
+      background: rgba(255, 255, 255, 0.16);
+    }
+
+    .copy-btn.done {
+      border-color: rgba(16, 185, 129, 0.36);
+      background: rgba(16, 185, 129, 0.2);
+      color: #6ee7b7;
+    }
+
+    .warn {
+      border: 1px solid rgba(245, 158, 11, 0.28);
+      border-radius: 10px;
+      background: rgba(245, 158, 11, 0.12);
+      padding: 10px;
+      color: #fde68a;
+      font-size: 12px;
+      line-height: 1.5;
+      margin-top: 10px;
+    }
+
+    .warn code {
+      padding: 1px 5px;
+      border-radius: 6px;
+      background: rgba(0, 0, 0, 0.24);
+      font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+    }
+
+    .faq-list {
+      margin-top: 10px;
+      border: 1px solid var(--line-soft);
+      border-radius: var(--radius-lg);
+      background: rgba(255, 255, 255, 0.03);
+      overflow: hidden;
+    }
+
+    .faq-item + .faq-item { border-top: 1px solid var(--line-soft); }
+
+    .faq-btn {
+      width: 100%;
+      border: 0;
+      background: transparent;
+      color: #e5e7eb;
+      text-align: left;
+      font-size: 13px;
+      font-weight: 700;
+      cursor: pointer;
+      padding: 12px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+    }
+
+    .faq-btn .arrow {
+      color: #9ca3af;
+      transition: transform 0.2s ease;
+      flex-shrink: 0;
+    }
+
+    .faq-item.open .faq-btn .arrow {
+      transform: rotate(180deg);
+      color: #fff;
+    }
+
+    .faq-answer {
+      max-height: 0;
+      opacity: 0;
+      overflow: hidden;
+      transition: all 0.24s ease;
+      padding: 0 12px;
+      color: #9ca3af;
+      font-size: 13px;
+      line-height: 1.55;
+    }
+
+    .faq-item.open .faq-answer {
+      max-height: 140px;
+      opacity: 1;
+      padding: 0 12px 12px;
+    }
+
+    .status-list {
+      margin-top: 8px;
+      display: grid;
+      gap: 8px;
+    }
+
+    .status-item {
+      border: 1px solid var(--line-soft);
+      border-radius: 10px;
+      background: rgba(255, 255, 255, 0.03);
+      padding: 9px 10px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .status-item b {
+      color: #fff;
+      font-size: 13px;
+    }
+
+    .status-pill {
+      border-radius: 999px;
+      padding: 4px 8px;
+      font-size: 11px;
+      font-weight: 800;
+      border: 1px solid;
+      white-space: nowrap;
+    }
+
+    .status-pill.ok {
+      color: #6ee7b7;
+      border-color: rgba(16, 185, 129, 0.35);
+      background: rgba(16, 185, 129, 0.14);
+    }
+
+    .status-pill.pending {
+      color: #fcd34d;
+      border-color: rgba(245, 158, 11, 0.35);
+      background: rgba(245, 158, 11, 0.14);
+    }
+
+    .status-pill.off {
+      color: #fda4af;
+      border-color: rgba(244, 63, 94, 0.35);
+      background: rgba(244, 63, 94, 0.14);
+    }
+
+    .api {
+      margin-top: 10px;
+      border-top: 1px solid var(--line-soft);
+      padding-top: 10px;
+      color: #6ee7b7;
+      font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+      font-size: 12px;
+      line-height: 1.6;
+      word-break: break-word;
+    }
+
+    .footer {
+      margin: 4px 0 0;
+      text-align: center;
+      color: #737373;
+      font-size: 12px;
+      animation: rise-in 0.8s ease 0.32s both;
+    }
+
+    @keyframes blob {
+      0% { transform: translate(0, 0) scale(1); }
+      33% { transform: translate(30px, -50px) scale(1.1); }
+      66% { transform: translate(-20px, 20px) scale(0.9); }
+      100% { transform: translate(0, 0) scale(1); }
+    }
+
+    @keyframes float-up {
+      0% { transform: translateY(0) scale(1); opacity: 0; }
+      20% { opacity: 1; }
+      80% { opacity: 1; }
+      100% { transform: translateY(-100vh) scale(0); opacity: 0; }
+    }
+
+    @keyframes rise-in {
+      from {
+        opacity: 0;
+        transform: translateY(10px);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    @keyframes fade-in {
+      from {
+        opacity: 0;
+        transform: translateY(8px);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    @keyframes pulse {
+      0%, 100% { opacity: 0.6; }
+      50% { opacity: 1; }
+    }
+
+    @media (max-width: 860px) {
+      .tabs { grid-template-columns: 1fr 1fr; }
+      .subgrid { grid-template-columns: 1fr; }
+      .select-row { grid-template-columns: 1fr; }
+      .chip-list { justify-content: flex-start; }
+      .browser-grid { grid-template-columns: 1fr; }
+    }
+
+    @media (max-width: 560px) {
+      .wrap {
+        padding: 14px 12px 34px;
+        gap: 10px;
+      }
+
+      .head,
+      .card {
+        border-radius: 20px;
+        padding: 16px;
+      }
+
+      .actions {
+        flex-direction: column;
+      }
+
+      .actions .btn {
+        width: 100%;
+      }
+
+      .addr {
+        flex-direction: column;
+        align-items: stretch;
+      }
+
+      .copy-btn {
+        width: 100%;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="fx-bg" aria-hidden="true">
+    <div class="fx-grid"></div>
+    <div id="fxSparks" class="fx-sparks"></div>
+    <div id="fxSpotlight" class="fx-spotlight"></div>
+    <div class="fx-blob fx-blob-1"></div>
+    <div class="fx-blob fx-blob-2"></div>
+    <div class="fx-noise"></div>
+  </div>
+
+  <main class="wrap">
+    <section class="card head">
+      <div class="title-row">
+        <div class="title-icon">B</div>
+        <h1 class="title">BoxVolt Edge Install</h1>
+      </div>
+
+      <p class="lead">
+        Установка расширения BoxVolt VPN для Chrome и Edge с единым стилем интерфейса.
+        Opera готовится, Firefox находится на проверке в AMO.
+      </p>
+
+      <div class="chips">
+        <span class="chip orange">Пакет: <strong>%%EXT_NAME%%</strong></span>
+        <span class="chip">Версия: <strong>%%EXT_VERSION%%</strong></span>
+        <span class="chip emerald dot">Edge API: <strong>%%EDGE_ENABLED%%</strong></span>
+        <span class="chip">Серверов: <strong>%%SERVERS_COUNT%%</strong></span>
+      </div>
+
+      <div class="actions">
+        <a id="recommendedActionBtn" class="btn primary" href="/edge/download/zip">Скачать ZIP для этого браузера</a>
+        <a class="btn" href="/edge/install">Обновить статус</a>
+        <a class="btn" href="https://telegra.ph/Ustanovka-rasshireniya-BoxVolt-VPN-v-Microsoft-Edge-02-25" target="_blank" rel="noopener">Инструкция с картинками</a>
+      </div>
+
+      <p class="small">ZIP: <strong>%%ZIP_STATUS%%</strong></p>
+      <p class="small">
+        Обнаружен браузер: <strong id="detectedBrowser">Определяется...</strong> • выбран: <strong id="selectedBrowser">Определяется...</strong>
+      </p>
+    </section>
+
+    <nav class="tabs">
+      <button class="tab-btn active" type="button" data-tab-btn="install">Установка</button>
+      <button class="tab-btn" type="button" data-tab-btn="browsers">Браузеры</button>
+      <button class="tab-btn" type="button" data-tab-btn="faq">FAQ</button>
+      <button class="tab-btn" type="button" data-tab-btn="after">После установки</button>
+    </nav>
+
+    <section class="card panel active" data-tab-panel="install">
+      <h2 id="installTitle">Установка в Microsoft Edge</h2>
+      <p class="muted">Выберите браузер, затем выполните шаги ниже.</p>
+
+      <div class="subgrid">
+        <article class="block">
+          <h3>Шаги</h3>
+          <ol id="installSteps" class="steps"></ol>
+
+          <div id="extensionsRow" class="addr">
+            <div id="extensionsAddress" class="addr-code">edge://extensions</div>
+            <button id="copyAddressBtn" class="copy-btn" type="button">Скопировать адрес</button>
+          </div>
+
+          <div id="extraLinkWrap" style="margin-top:10px;display:none;">
+            <a id="extraLink" class="btn" href="#" target="_blank" rel="noopener">Открыть ссылку</a>
+          </div>
+        </article>
+
+        <article class="block">
+          <h3>Важно</h3>
+          <ol class="steps">
+            <li class="step"><span class="idx">1</span><span>Используйте ZIP-установку через «Загрузить распакованное».</span></li>
+            <li class="step"><span class="idx">2</span><span>Выбирайте папку, где находится <code>manifest.json</code>.</span></li>
+            <li class="step"><span class="idx">3</span><span>Если архив блокируется, подтвердите загрузку вручную.</span></li>
+          </ol>
+          <div class="warn">
+            Браузеры блокируют прямой переход к <code>chrome://</code> и <code>edge://</code> со сторонних сайтов.
+            Нажмите «Скопировать адрес» и вставьте его в новую вкладку вручную.
+          </div>
+        </article>
+      </div>
+    </section>
+
+    <section class="card panel" data-tab-panel="browsers">
+      <h2>Выбор браузера</h2>
+      <p class="muted">Можно вручную выбрать нужный сценарий установки.</p>
+
+      <div id="browserGrid" class="browser-grid">
+        <button class="browser-card" type="button" data-browser-card="edge">
+          <span class="browser-card-main">
+            <span class="browser-card-emoji">🟦</span>
+            <span class="browser-card-name">Microsoft Edge</span>
+          </span>
+          <span class="status-pill ok">доступен</span>
+        </button>
+        <button class="browser-card" type="button" data-browser-card="chrome">
+          <span class="browser-card-main">
+            <span class="browser-card-emoji">🟨</span>
+            <span class="browser-card-name">Google Chrome</span>
+          </span>
+          <span class="status-pill ok">доступен</span>
+        </button>
+        <button class="browser-card" type="button" data-browser-card="opera">
+          <span class="browser-card-main">
+            <span class="browser-card-emoji">🟥</span>
+            <span class="browser-card-name">Opera</span>
+          </span>
+          <span class="status-pill pending">в разработке</span>
+        </button>
+        <button class="browser-card" type="button" data-browser-card="firefox">
+          <span class="browser-card-main">
+            <span class="browser-card-emoji">🟧</span>
+            <span class="browser-card-name">Firefox (AMO)</span>
+          </span>
+          <span class="status-pill pending">на проверке</span>
+        </button>
+      </div>
+
+      <div class="browser-action">
+        <button id="browserActionBtn" class="btn primary" type="button">Открыть инструкцию установки</button>
+        <p id="browserActionHint" class="browser-action-hint">Выберите браузер, чтобы перейти к инструкции или к странице расширения.</p>
+      </div>
+    </section>
+
+    <section class="card panel" data-tab-panel="faq">
+      <h2>FAQ</h2>
+      <p class="muted">Ответы на частые вопросы по установке расширения.</p>
+
+      <div class="faq-list">
+        <div class="faq-item">
+          <button class="faq-btn" type="button">Архив скачался, что делать дальше?<span class="arrow">⌄</span></button>
+          <div class="faq-answer">Распакуйте ZIP в отдельную папку и откройте страницу расширений браузера. Далее включите режим разработчика и загрузите распакованную папку.</div>
+        </div>
+        <div class="faq-item">
+          <button class="faq-btn" type="button">Почему не открывается chrome://extensions по кнопке?<span class="arrow">⌄</span></button>
+          <div class="faq-answer">Это ограничение браузера. Скопируйте адрес кнопкой и вставьте его вручную в новую вкладку.</div>
+        </div>
+        <div class="faq-item">
+          <button class="faq-btn" type="button">Будет ли отдельная версия для Opera/Firefox?<span class="arrow">⌄</span></button>
+          <div class="faq-answer">Opera пока в разработке. Firefox уже загружен в AMO и ожидает проверки перед публикацией.</div>
+        </div>
+      </div>
+    </section>
+
+    <section class="card panel" data-tab-panel="after">
+      <h2>После установки</h2>
+      <p class="muted">Проверьте авторизацию и подключение в расширении.</p>
+
+      <div class="subgrid" style="margin-top:10px;">
+        <article class="block">
+          <h3>Дальше по шагам</h3>
+          <ol class="steps">
+            <li class="step"><span class="idx">1</span><span>Откройте расширение BoxVolt VPN в панели браузера.</span></li>
+            <li class="step"><span class="idx">2</span><span>Нажмите «Войти через Telegram» и подтвердите вход в боте.</span></li>
+            <li class="step"><span class="idx">3</span><span>Выберите сервер и включите подключение.</span></li>
+            <li class="step"><span class="idx">4</span><span>При конфликте с VPN на ПК временно отключите его.</span></li>
+          </ol>
+        </article>
+
+        <article class="block">
+          <h3>API статусы</h3>
+          <div class="status-list">
+            <div class="status-item"><b>POST /edge/api/auth/start</b><span class="status-pill ok">ok</span></div>
+            <div class="status-item"><b>POST /edge/api/auth/poll</b><span class="status-pill ok">ok</span></div>
+            <div class="status-item"><b>GET /edge/api/me</b><span class="status-pill ok">ok</span></div>
+            <div class="status-item"><b>POST /edge/api/logout</b><span class="status-pill ok">ok</span></div>
+          </div>
+          <div class="api">Для установки используйте только /edge/download/zip</div>
+        </article>
+      </div>
+    </section>
+
+    <p class="footer">BoxVolt VPN • Страница установки расширения • Chrome/Edge доступны сейчас.</p>
+  </main>
+
+  <script>
+    const BROWSER_CONFIG = {
+      edge: {
+        label: "Microsoft Edge",
+        emoji: "🟦",
+        installTitle: "Установка в Microsoft Edge",
+        steps: [
+          "Скачайте ZIP и распакуйте архив.",
+          "Откройте менеджер расширений Edge.",
+          "Включите «Режим разработчика».",
+          "Нажмите «Загрузить распакованное» и выберите папку расширения.",
+        ],
+        extensionsAddress: "edge://extensions",
+        action: {
+          mode: "install",
+          text: "Скачать ZIP для этого браузера",
+          href: "/edge/download/zip",
+          disabled: false,
+          hint: "Откроем блок с инструкцией для Edge и вы сможете сразу скачать ZIP.",
+        },
+      },
+      chrome: {
+        label: "Google Chrome",
+        emoji: "🟨",
+        installTitle: "Установка в Google Chrome",
+        steps: [
+          "Скачайте ZIP и распакуйте в отдельную папку.",
+          "Откройте страницу расширений Chrome.",
+          "Включите режим разработчика.",
+          "Нажмите «Загрузить распакованное» и выберите папку расширения.",
+        ],
+        extensionsAddress: "chrome://extensions",
+        action: {
+          mode: "install",
+          text: "Скачать ZIP для этого браузера",
+          href: "/edge/download/zip",
+          disabled: false,
+          hint: "Откроем блок с инструкцией для Chrome и покажем шаги установки.",
+        },
+      },
+      opera: {
+        label: "Opera",
+        emoji: "🟥",
+        installTitle: "Установка в Opera",
+        steps: [
+          "Версия расширения для Opera сейчас в разработке.",
+          "После готовности здесь появится кнопка быстрой установки.",
+          "Пока используйте Chrome/Edge сценарий через ZIP.",
+        ],
+        extensionsAddress: "",
+        action: {
+          mode: "coming",
+          text: "Opera версия в разработке",
+          href: "#",
+          disabled: true,
+          hint: "Для Opera отдельная страница появится позже. Пока используйте Edge/Chrome версию.",
+        },
+      },
+      firefox: {
+        label: "Mozilla Firefox",
+        emoji: "🟧",
+        installTitle: "Установка в Mozilla Firefox",
+        steps: [
+          "Страница дополнения в AMO уже создана.",
+          "Сейчас расширение проходит модерацию Mozilla.",
+          "После одобрения установка будет доступна через AMO.",
+        ],
+        extensionsAddress: "",
+        extraLink: {
+          text: "Firefox AMO (на проверке)",
+          href: "https://addons.mozilla.org/en-US/firefox/addon/boxvolt-vpn/",
+        },
+        action: {
+          mode: "external",
+          text: "Открыть Firefox AMO (на проверке)",
+          href: "https://addons.mozilla.org/en-US/firefox/addon/boxvolt-vpn/",
+          disabled: false,
+          hint: "Откроем внешнюю страницу AMO, где будет доступна установка после модерации.",
+        },
+      },
+    };
+
+    function detectBrowser() {
+      const ua = String(navigator.userAgent || "").toLowerCase();
+      if (ua.includes("edg/")) return "edge";
+      if (ua.includes("opr/") || ua.includes("opera")) return "opera";
+      if (ua.includes("firefox/")) return "firefox";
+      if (ua.includes("chrome/")) return "chrome";
+      return "edge";
+    }
+
+    function createStep(index, text) {
+      const li = document.createElement("li");
+      li.className = "step";
+
+      const i = document.createElement("span");
+      i.className = "idx";
+      i.textContent = String(index + 1);
+
+      const value = document.createElement("span");
+      value.textContent = text;
+
+      li.appendChild(i);
+      li.appendChild(value);
+      return li;
+    }
+
+    async function copyAddress(value, button) {
+      if (!value) return;
+      const initial = button.textContent;
+      try {
+        await navigator.clipboard.writeText(value);
+        button.textContent = "Скопировано";
+        button.classList.add("done");
+      } catch (_err) {
+        button.textContent = "Скопируйте вручную";
+      }
+      setTimeout(() => {
+        button.textContent = initial;
+        button.classList.remove("done");
+      }, 1700);
+    }
+
+    (function setupBackgroundFx() {
+      const sparksHost = document.getElementById("fxSparks");
+      const spotlight = document.getElementById("fxSpotlight");
+      if (!sparksHost || !spotlight) return;
+
+      for (let i = 0; i < 30; i += 1) {
+        const spark = document.createElement("div");
+        const size = Math.random() * 3 + 1;
+        spark.className = "fx-spark";
+        spark.style.left = `${Math.random() * 100}%`;
+        spark.style.top = `${Math.random() * 100}%`;
+        spark.style.width = `${size}px`;
+        spark.style.height = `${size}px`;
+        spark.style.opacity = String(Math.random() * 0.5 + 0.1);
+        spark.style.animationDelay = `${Math.random() * 15}s`;
+        spark.style.animationDuration = `${10 + Math.random() * 20}s`;
+        spark.style.boxShadow = `0 0 ${size * 2}px rgba(255,255,255,0.5)`;
+        sparksHost.appendChild(spark);
+      }
+
+      let rafId = 0;
+      window.addEventListener("mousemove", (event) => {
+        if (rafId) cancelAnimationFrame(rafId);
+        rafId = requestAnimationFrame(() => {
+          spotlight.style.background = `radial-gradient(600px circle at ${event.clientX}px ${event.clientY}px, rgba(249,115,22,0.06), transparent 40%)`;
+          rafId = 0;
+        });
+      }, { passive: true });
+    })();
+
+    (function setupFaq() {
+      const items = Array.from(document.querySelectorAll(".faq-item"));
+      for (const item of items) {
+        const btn = item.querySelector(".faq-btn");
+        if (!btn) continue;
+        btn.addEventListener("click", () => {
+          const isOpen = item.classList.contains("open");
+          for (const other of items) other.classList.remove("open");
+          if (!isOpen) item.classList.add("open");
+        });
+      }
+    })();
+
+    (function setupTabs() {
+      const tabButtons = Array.from(document.querySelectorAll("[data-tab-btn]"));
+      const panels = Array.from(document.querySelectorAll("[data-tab-panel]"));
+
+      function activate(tabId) {
+        for (const btn of tabButtons) {
+          btn.classList.toggle("active", String(btn.getAttribute("data-tab-btn")) === tabId);
+        }
+        for (const panel of panels) {
+          panel.classList.toggle("active", String(panel.getAttribute("data-tab-panel")) === tabId);
+        }
+      }
+
+      for (const btn of tabButtons) {
+        btn.addEventListener("click", () => {
+          const next = String(btn.getAttribute("data-tab-btn") || "install");
+          activate(next);
+        });
+      }
+
+      window.__edgeInstallActivateTab = activate;
+      activate("install");
+    })();
+
+    (function setupBrowserState() {
+      const browserCards = Array.from(document.querySelectorAll("[data-browser-card]"));
+      const detectedBrowser = document.getElementById("detectedBrowser");
+      const selectedBrowser = document.getElementById("selectedBrowser");
+
+      const installTitle = document.getElementById("installTitle");
+      const installSteps = document.getElementById("installSteps");
+      const extensionsRow = document.getElementById("extensionsRow");
+      const extensionsAddress = document.getElementById("extensionsAddress");
+      const copyAddressBtn = document.getElementById("copyAddressBtn");
+      const extraLinkWrap = document.getElementById("extraLinkWrap");
+      const extraLink = document.getElementById("extraLink");
+      const actionBtn = document.getElementById("recommendedActionBtn");
+      const browserActionBtn = document.getElementById("browserActionBtn");
+      const browserActionHint = document.getElementById("browserActionHint");
+
+      const detected = detectBrowser();
+      let selected = BROWSER_CONFIG[detected] ? detected : "edge";
+
+      function activateInstallTab() {
+        const activate = window.__edgeInstallActivateTab;
+        if (typeof activate === "function") {
+          activate("install");
+        }
+      }
+
+      function runBrowserAction(cfg) {
+        const mode = String(cfg.action.mode || "install");
+        if (mode === "install") {
+          activateInstallTab();
+          const panel = document.querySelector('[data-tab-panel="install"]');
+          if (panel) {
+            panel.scrollIntoView({ behavior: "smooth", block: "start" });
+          }
+          return;
+        }
+        if (mode === "external" && cfg.action.href) {
+          window.open(cfg.action.href, "_blank", "noopener");
+          return;
+        }
+      }
+
+      function renderAction(cfg) {
+        actionBtn.textContent = cfg.action.text;
+        actionBtn.href = cfg.action.href;
+        actionBtn.classList.toggle("disabled", Boolean(cfg.action.disabled));
+        actionBtn.setAttribute("aria-disabled", cfg.action.disabled ? "true" : "false");
+
+        if (cfg.action.href.startsWith("http")) {
+          actionBtn.target = "_blank";
+          actionBtn.rel = "noopener";
+        } else {
+          actionBtn.removeAttribute("target");
+          actionBtn.removeAttribute("rel");
+        }
+
+        if (browserActionBtn) {
+          const mode = String(cfg.action.mode || "install");
+          browserActionBtn.classList.remove("disabled");
+          browserActionBtn.removeAttribute("aria-disabled");
+          if (mode === "install") {
+            browserActionBtn.textContent = `Открыть инструкцию для ${cfg.label}`;
+          } else if (mode === "external") {
+            browserActionBtn.textContent = "Открыть страницу расширения";
+          } else {
+            browserActionBtn.textContent = cfg.action.text;
+            browserActionBtn.classList.add("disabled");
+            browserActionBtn.setAttribute("aria-disabled", "true");
+          }
+        }
+
+        if (browserActionHint) {
+          browserActionHint.textContent = String(cfg.action.hint || "");
+        }
+      }
+
+      function renderInstall(cfg) {
+        installTitle.textContent = cfg.installTitle;
+
+        installSteps.innerHTML = "";
+        for (let i = 0; i < cfg.steps.length; i += 1) {
+          installSteps.appendChild(createStep(i, cfg.steps[i]));
+        }
+
+        if (cfg.extensionsAddress) {
+          extensionsAddress.textContent = cfg.extensionsAddress;
+          copyAddressBtn.textContent = "Скопировать адрес";
+          copyAddressBtn.classList.remove("done");
+          copyAddressBtn.onclick = () => copyAddress(cfg.extensionsAddress, copyAddressBtn);
+          extensionsRow.style.display = "flex";
+        } else {
+          extensionsRow.style.display = "none";
+        }
+
+        if (cfg.extraLink && cfg.extraLink.href) {
+          extraLink.textContent = cfg.extraLink.text;
+          extraLink.href = cfg.extraLink.href;
+          extraLinkWrap.style.display = "block";
+        } else {
+          extraLinkWrap.style.display = "none";
+        }
+      }
+
+      function renderMeta(cfg) {
+        detectedBrowser.textContent = (BROWSER_CONFIG[detected] || BROWSER_CONFIG.edge).label;
+        selectedBrowser.textContent = cfg.label;
+
+        for (const card of browserCards) {
+          const key = String(card.getAttribute("data-browser-card") || "").toLowerCase();
+          card.classList.toggle("active", key === selected);
+        }
+      }
+
+      function renderAll() {
+        const cfg = BROWSER_CONFIG[selected] || BROWSER_CONFIG.edge;
+        renderMeta(cfg);
+        renderInstall(cfg);
+        renderAction(cfg);
+      }
+
+      for (const card of browserCards) {
+        card.addEventListener("click", () => {
+          const key = String(card.getAttribute("data-browser-card") || "").toLowerCase();
+          if (!BROWSER_CONFIG[key]) return;
+          selected = key;
+          renderAll();
+          runBrowserAction(BROWSER_CONFIG[key]);
+        });
+      }
+
+      if (browserActionBtn) {
+        browserActionBtn.addEventListener("click", () => {
+          const cfg = BROWSER_CONFIG[selected] || BROWSER_CONFIG.edge;
+          if (cfg.action.disabled) return;
+          runBrowserAction(cfg);
+        });
+      }
+
+      renderAll();
+    })();
+  </script>
+</body>
+</html>

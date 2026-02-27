@@ -8,28 +8,28 @@
       "title": "7 дней",
       "days": 7,
       "amount_rub": 35,
-      "discount_percent": 5
+      "discount_percent": 0
     },
     {
       "code": "m1",
       "title": "30 дней",
       "days": 30,
       "amount_rub": 110,
-      "discount_percent": 5
+      "discount_percent": 0
     },
     {
       "code": "m3",
       "title": "90 дней",
       "days": 90,
       "amount_rub": 300,
-      "discount_percent": 10
+      "discount_percent": 0
     },
     {
       "code": "y1",
       "title": "365 дней",
       "days": 365,
       "amount_rub": 1200,
-      "discount_percent": 20
+      "discount_percent": 0
     }
   ]
 }

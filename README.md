@@ -198,6 +198,29 @@ WEBAPP_INITDATA_MAX_AGE_SECONDS=86400
 2. Выберите `Web App` и укажите `WEBAPP_PUBLIC_URL`.
 3. (Опционально) добавьте через `/setdomain` этот же домен.
 
+## Browser Extension API
+
+Для браузерного расширения (Chrome/Edge/Opera) доступны роуты:
+
+- `POST /edge/api/auth/start` — создать запрос входа (возвращает `bot_start_url` + `request_id/poll_token`).
+- `POST /edge/api/auth/poll` — дождаться подтверждения через `/start edgeauth_<code>`.
+- `GET /edge/api/me` — получить профиль, статус подписки и BR/RU proxy-конфиги.
+- `POST /edge/api/logout` — завершить сессию расширения.
+
+Новые переменные `.env` для расширения:
+
+- `EDGE_EXTENSION_ENABLED`, `EDGE_AUTH_PREFIX`, `EDGE_AUTH_REQUEST_TTL_SECONDS`
+- `EDGE_SESSION_TTL_SECONDS`, `EDGE_MAX_ACTIVE_SESSIONS_PER_USER`
+- `EDGE_SERVER_BR_*`, `EDGE_SERVER_RU_*`
+
+Шаблон MV3-расширения для Chrome/Edge/Opera лежит в папке `browser-extension/`.
+Шаблон Firefox (AMO) лежит в папке `firefox-extension/`.
+
+Безопасный прод-план (отдельные SOCKS5 порты, без изменений x-ui/443):
+- `docs/EDGE_EXTENSION_PROD_SETUP.md`
+- `scripts/install_edge_socks5.sh`
+- `scripts/check_edge_socks5.sh`
+
 ## Домен и HTTPS
 
 Для webhook нужен публичный HTTPS.

@@ -1,0 +1,1363 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>BoxVolt VPN</title>
+  <link rel="icon" type="image/png" sizes="32x32" href="/icon.png?v=2">
+  <link rel="icon" type="image/png" sizes="192x192" href="/icon.png?v=2">
+  <link rel="shortcut icon" type="image/png" href="/icon.png?v=2">
+  <link rel="apple-touch-icon" href="/icon.png?v=2">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@500;700;800&display=swap" rel="stylesheet">
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          fontFamily: {
+            sans: ['Manrope', 'ui-sans-serif', 'system-ui', 'sans-serif']
+          }
+        }
+      }
+    };
+  </script>
+  <style>
+    @keyframes blob {
+      0% { transform: translate(0px, 0px) scale(1); }
+      33% { transform: translate(30px, -50px) scale(1.1); }
+      66% { transform: translate(-20px, 20px) scale(0.9); }
+      100% { transform: translate(0px, 0px) scale(1); }
+    }
+
+    @keyframes float-up {
+      0% { transform: translateY(0) scale(1); opacity: 0; }
+      20% { opacity: 1; }
+      80% { opacity: 1; }
+      100% { transform: translateY(-100vh) scale(0); opacity: 0; }
+    }
+
+    .animate-blob {
+      animation: blob 15s infinite alternate ease-in-out;
+    }
+
+    .spark {
+      animation: float-up linear infinite;
+    }
+
+    .animation-delay-2000 {
+      animation-delay: 2s;
+    }
+
+    .animation-delay-4000 {
+      animation-delay: 4s;
+    }
+
+    .no-scrollbar::-webkit-scrollbar {
+      display: none;
+    }
+
+    .no-scrollbar {
+      -ms-overflow-style: none;
+      scrollbar-width: none;
+    }
+
+    .custom-scrollbar::-webkit-scrollbar {
+      width: 4px;
+    }
+
+    .custom-scrollbar::-webkit-scrollbar-track {
+      background: transparent;
+    }
+
+    .custom-scrollbar::-webkit-scrollbar-thumb {
+      background: rgba(255, 255, 255, 0.1);
+      border-radius: 4px;
+    }
+
+    .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+      background: rgba(255, 255, 255, 0.2);
+    }
+
+    .template-hidden {
+      display: none !important;
+    }
+  </style>
+</head>
+<body>
+  <div
+    id="app"
+    data-bot-start-url="%%BOT_START_URL%%"
+    data-status-url="%%STATUS_URL%%"
+    data-channel-url="%%CHANNEL_URL%%"
+    data-news-url="%%NEWS_URL%%"
+    data-support-url="%%SUPPORT_URL%%"
+    data-support-contact="%%SUPPORT_CONTACT%%"
+    data-required-channel-display="%%REQUIRED_CHANNEL_DISPLAY%%"
+    data-updated-at="%%UPDATED_AT%%"
+    data-news-info="%%NEWS_INFO%%"
+    data-app-version="%%APP_VERSION%%"
+    data-rules-url="%%RULES_URL%%"
+  ></div>
+
+  <template id="tpl-maintenance" class="template-hidden">%%MAINTENANCE_BADGE%%</template>
+  <template id="tpl-payment" class="template-hidden">%%PAYMENT_BADGE%%</template>
+  <template id="tpl-sale" class="template-hidden">%%SALE_BLOCK%%</template>
+  <template id="tpl-plans" class="template-hidden">%%PLANS_BLOCK%%</template>
+  <template id="tpl-providers" class="template-hidden">%%PROVIDER_CARDS%%</template>
+  <template id="tpl-rules" class="template-hidden">%%RULES_ITEMS%%</template>
+
+  <script src="https://unpkg.com/react@18/umd/react.production.min.js" crossorigin></script>
+  <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js" crossorigin></script>
+  <script>window.react = window.React;</script>
+  <script src="https://unpkg.com/lucide-react@latest/dist/umd/lucide-react.min.js" crossorigin></script>
+  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+
+  <script type="text/babel">
+    const { useEffect, useMemo, useState } = React;
+    const {
+      Shield,
+      CreditCard,
+      User,
+      Bot,
+      Zap,
+      Link: LinkIcon,
+      Activity,
+      Server,
+      MessageCircle,
+      Newspaper,
+      LifeBuoy,
+      ChevronRight,
+      Clock,
+      Sparkles,
+      Send,
+      Loader2,
+      LogIn,
+      LogOut,
+      Ban,
+      CheckCircle2,
+      AlertCircle,
+      BookOpen,
+      Globe,
+    } = window.LucideReact || {};
+
+    const AUTH_TOKEN_KEY = "boxvolt_site_session";
+
+    function readTpl(id) {
+      const el = document.getElementById(id);
+      return el ? String(el.innerHTML || "").trim() : "";
+    }
+
+    function parseBadge(html) {
+      const host = document.createElement("div");
+      host.innerHTML = String(html || "");
+      const badge = host.querySelector(".badge");
+      if (!badge) return { text: String(host.textContent || "-").trim() || "-", tone: "neutral" };
+      let tone = "neutral";
+      if (badge.classList.contains("ok")) tone = "emerald";
+      if (badge.classList.contains("bad")) tone = "rose";
+      return {
+        text: String(badge.textContent || "-").trim() || "-",
+        tone,
+      };
+    }
+
+    function parsePlans(html) {
+      const host = document.createElement("div");
+      host.innerHTML = String(html || "");
+      return Array.from(host.querySelectorAll(".plan-card[data-plan-code]")).map((node) => ({
+        code: String(node.dataset.planCode || "").trim().toLowerCase(),
+        title: String(node.dataset.planTitle || "").trim() || "Тариф",
+        amount_rub: String(node.dataset.planAmount || "").trim() || "0",
+        days_text: String(node.querySelector(".plan-days")?.textContent || "").trim(),
+        discount_text: String(node.querySelector(".plan-discount")?.textContent || "").trim(),
+      }));
+    }
+
+    function parseProviders(html) {
+      const host = document.createElement("div");
+      host.innerHTML = String(html || "");
+      return Array.from(host.querySelectorAll(".provider")).map((node) => {
+        const stateNode = node.querySelector(".state");
+        return {
+          name: String(node.querySelector(".name")?.textContent || "").trim() || "Провайдер",
+          meta: String(node.querySelector(".meta")?.textContent || "").trim() || "-",
+          state: String(stateNode?.textContent || "").trim() || "-",
+          ok: !!stateNode?.classList.contains("ok"),
+        };
+      });
+    }
+
+    function parseRules(html) {
+      const host = document.createElement("ul");
+      host.innerHTML = String(html || "");
+      return Array.from(host.querySelectorAll("li"))
+        .map((item) => String(item.textContent || "").trim())
+        .filter(Boolean);
+    }
+
+    function parseBootstrap() {
+      const root = document.getElementById("app");
+      const ds = root ? root.dataset : {};
+      const saleHost = document.createElement("div");
+      saleHost.innerHTML = readTpl("tpl-sale");
+      return {
+        botStartUrl: String(ds.botStartUrl || "/").trim() || "/",
+        statusUrl: String(ds.statusUrl || "/status").trim() || "/status",
+        channelUrl: String(ds.channelUrl || "https://t.me/BoxVoltVPN").trim() || "https://t.me/BoxVoltVPN",
+        newsUrl: String(ds.newsUrl || "https://t.me/BoxVoltVPN").trim() || "https://t.me/BoxVoltVPN",
+        supportUrl: String(ds.supportUrl || "https://t.me/boxvolt_support").trim() || "https://t.me/boxvolt_support",
+        supportContact: String(ds.supportContact || "@boxvolt_support").trim() || "@boxvolt_support",
+        requiredChannelDisplay: String(ds.requiredChannelDisplay || "@BoxVoltVPN").trim() || "@BoxVoltVPN",
+        updatedAt: String(ds.updatedAt || "-").trim() || "-",
+        newsInfo: String(ds.newsInfo || "").trim(),
+        appVersion: String(ds.appVersion || "-").trim() || "-",
+        rulesUrl: String(ds.rulesUrl || "https://telegra.ph").trim() || "https://telegra.ph",
+        maintenance: parseBadge(readTpl("tpl-maintenance")),
+        payment: parseBadge(readTpl("tpl-payment")),
+        plans: parsePlans(readTpl("tpl-plans")),
+        providers: parseProviders(readTpl("tpl-providers")),
+        rules: parseRules(readTpl("tpl-rules")),
+        saleText: String(saleHost.textContent || "").trim(),
+      };
+    }
+
+    const bootstrap = parseBootstrap();
+
+    function parseTelegramId(raw) {
+      const clean = String(raw || "").trim();
+      return /^\d{5,20}$/.test(clean) ? clean : "";
+    }
+
+    function tabFromHash() {
+      const raw = String(window.location.hash || "").trim();
+      if (!raw.startsWith("#tab=")) return "main";
+      const value = raw.slice(5).toLowerCase();
+      return ["main", "payment", "account", "about", "legal"].includes(value) ? value : "main";
+    }
+
+    function mapStatus(status) {
+      const normalized = String(status || "").toLowerCase();
+      if (normalized === "paid") return "✅ Оплачен";
+      if (normalized === "pending") return "⏳ Ожидает оплату";
+      if (normalized === "cancelled") return "❌ Отменён";
+      return normalized || "-";
+    }
+
+    function buildLinks(order) {
+      if (!order) return [];
+      const links = [];
+      const pushLink = (label, url, primary = false) => {
+        const clean = String(url || "").trim();
+        if (!clean) return;
+        links.push({ label, url: clean, primary });
+      };
+      pushLink(`Оплатить в ${order.provider_label || "провайдере"}`, order.payment_url, true);
+      pushLink(order.cryptobot_payment_label || "CryptoBot", order.cryptobot_payment_url, false);
+      pushLink(order.lzt_payment_label || "LZT Market", order.lzt_payment_url, false);
+      pushLink(order.secondary_payment_label || "Резервная оплата", order.secondary_payment_url, false);
+      return links;
+    }
+
+    function errorText(code) {
+      const map = {
+        bad_telegram_id: "Укажите корректный Telegram ID (только цифры).",
+        telegram_id_mismatch: "ID не совпадает с аккаунтом в авторизованной сессии.",
+        unknown_plan: "Этот тариф сейчас недоступен. Обновите страницу.",
+        missing_promo_code: "Введите промокод.",
+        promo_not_found: "Промокод не найден.",
+        promo_inactive: "Промокод отключен.",
+        promo_expired: "Срок действия промокода истек.",
+        promo_limit_reached: "Лимит активаций промокода исчерпан.",
+        promo_already_activated: "Вы уже активировали этот промокод.",
+        payment_not_configured: "Оплата временно недоступна.",
+        user_blacklisted: "Для этого аккаунта операции ограничены.",
+        order_rate_limited: "Слишком много запросов. Подождите и повторите.",
+        order_not_found: "Заказ не найден.",
+        order_not_pending: "Отменить можно только заказ в статусе pending.",
+        bad_order_id: "Некорректный ID заказа.",
+        missing_token: "Нужна авторизация через бота.",
+        invalid_session: "Сессия истекла. Войдите через бота снова.",
+        auth_request_expired: "Время входа истекло, запустите авторизацию заново.",
+        auth_timeout: "Не получили подтверждение от бота. Попробуйте снова.",
+        ai_disabled: "ИИ-помощник временно отключён.",
+        ai_not_configured: "ИИ-помощник не настроен на сервере.",
+        ai_rate_limited: "Слишком часто. Подождите несколько секунд.",
+        ai_unavailable: "Gemini временно недоступен. Попробуйте позже.",
+        question_too_long: "Вопрос слишком длинный.",
+        missing_question: "Введите вопрос.",
+        request_failed: "Не удалось выполнить запрос.",
+      };
+      return map[String(code || "").trim()] || `Ошибка: ${String(code || "request_failed")}`;
+    }
+
+    async function fetchJson(url, { payload = {}, method = "POST", token = "" } = {}) {
+      const headers = {};
+      const normalized = String(method || "POST").toUpperCase();
+      if (token) headers.Authorization = `Bearer ${token}`;
+      if (normalized !== "GET") headers["Content-Type"] = "application/json";
+      const res = await fetch(url, {
+        method: normalized,
+        headers,
+        body: normalized === "GET" ? undefined : JSON.stringify(payload || {}),
+      });
+      let data = {};
+      try {
+        data = await res.json();
+      } catch (_) {
+        throw new Error("request_failed");
+      }
+      if (!res.ok || data.ok === false) {
+        throw new Error(String(data.error || "request_failed"));
+      }
+      return data;
+    }
+
+    const StatusBadge = ({ icon, text, color }) => {
+      const colorMap = {
+        emerald: "bg-emerald-500/10 text-emerald-400 border-emerald-500/20",
+        indigo: "bg-indigo-500/10 text-indigo-400 border-indigo-500/20",
+        neutral: "bg-neutral-500/10 text-neutral-400 border-neutral-500/20",
+        rose: "bg-rose-500/10 text-rose-300 border-rose-500/20",
+      };
+
+      return (
+        <div className={`flex items-center gap-2 px-3 py-1.5 rounded-full border text-xs font-medium backdrop-blur-md ${colorMap[color] || colorMap.neutral}`}>
+          {icon}
+          <span>{text}</span>
+        </div>
+      );
+    };
+
+    const PricingCard = ({ title, price, period, features, badge, isPopular, onClick }) => (
+      <div className={`relative p-8 rounded-3xl transition-all duration-500 hover:-translate-y-2 flex flex-col h-full backdrop-blur-md ${isPopular ? "bg-gradient-to-b from-orange-500/10 to-black/60 border border-orange-500/50 shadow-[0_0_30px_rgba(249,115,22,0.15)] md:-mt-8 md:mb-8" : "bg-black/40 border border-white/10 hover:border-white/20"}`}>
+        {badge ? (
+          <div className="absolute -top-3 left-1/2 -translate-x-1/2 px-3 py-1 bg-gradient-to-r from-orange-500 to-amber-500 text-white text-xs font-bold rounded-full shadow-lg whitespace-nowrap">
+            {badge}
+          </div>
+        ) : null}
+
+        <div className="mb-6">
+          <h3 className="text-xl font-medium text-white mb-2">{title}</h3>
+          <div className="flex items-baseline gap-1">
+            <span className="text-4xl font-bold text-white">{price} ₽</span>
+            <span className="text-neutral-500 text-sm">{period}</span>
+          </div>
+        </div>
+
+        <ul className="space-y-4 mb-8 flex-1">
+          {features.map((feature, index) => (
+            <li key={`${feature}-${index}`} className="flex items-start gap-3 text-sm text-neutral-300">
+              <CheckCircle2 className={`w-5 h-5 shrink-0 ${isPopular ? "text-orange-400" : "text-indigo-400"}`} />
+              <span>{feature}</span>
+            </li>
+          ))}
+        </ul>
+
+        <button
+          type="button"
+          onClick={onClick}
+          className={`w-full py-3 px-4 rounded-xl font-medium transition-all duration-300 ${isPopular ? "bg-gradient-to-r from-orange-500 to-amber-500 text-white hover:shadow-[0_0_20px_rgba(249,115,22,0.4)] hover:scale-[1.02]" : "bg-white/5 border border-white/10 text-white hover:bg-white/10"}`}
+        >
+          Выбрать тариф
+        </button>
+      </div>
+    );
+
+    const FeatureCard = ({ icon, title, desc }) => (
+      <div className="group relative p-5 bg-white/[0.04] hover:bg-white/[0.08] border border-white/5 hover:border-white/20 rounded-2xl transition-all duration-500 hover:-translate-y-1 overflow-hidden backdrop-blur-md">
+        <div className="absolute inset-0 bg-gradient-to-br from-white/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
+        <div className="relative z-10">
+          <div className="w-10 h-10 rounded-xl bg-black/40 border border-white/10 flex items-center justify-center mb-4 group-hover:scale-110 transition-transform duration-500 ease-out shadow-lg">
+            {icon}
+          </div>
+          <h3 className="text-white font-semibold text-sm mb-2 group-hover:text-orange-400 transition-colors duration-300">{title}</h3>
+          <p className="text-neutral-500 text-xs leading-relaxed group-hover:text-neutral-300 transition-colors duration-300">{desc}</p>
+        </div>
+      </div>
+    );
+
+    const FooterLink = ({ icon, text, href }) => (
+      <a
+        href={href}
+        target="_blank"
+        rel="noopener"
+        className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-white/5 border border-white/5 hover:bg-white/10 hover:border-white/10 transition-colors text-xs font-medium text-neutral-300 group backdrop-blur-md"
+      >
+        {React.cloneElement(icon, { className: "w-3.5 h-3.5 text-neutral-400 group-hover:scale-110 transition-transform" })}
+        {text}
+      </a>
+    );
+
+    const App = () => {
+      const [mounted, setMounted] = useState(false);
+      const [mousePosition, setMousePosition] = useState({ x: 0, y: 0 });
+      const [tab, setTab] = useState(tabFromHash());
+
+      const [aiQuery, setAiQuery] = useState("");
+      const [aiResponse, setAiResponse] = useState("");
+      const [isAiLoading, setIsAiLoading] = useState(false);
+      const [aiError, setAiError] = useState("");
+
+      const [sparks] = useState(() =>
+        Array.from({ length: 30 }).map(() => ({
+          left: `${Math.random() * 100}%`,
+          top: `${Math.random() * 100}%`,
+          animationDelay: `${Math.random() * 15}s`,
+          animationDuration: `${10 + Math.random() * 20}s`,
+          size: `${Math.random() * 3 + 1}px`,
+          opacity: Math.random() * 0.5 + 0.1,
+        }))
+      );
+
+      const [authToken, setAuthToken] = useState("");
+      const [authUser, setAuthUser] = useState(null);
+      const [authBusy, setAuthBusy] = useState(false);
+      const [authHint, setAuthHint] = useState("Войдите через бота, чтобы не вводить Telegram ID вручную.");
+
+      const [payTelegramId, setPayTelegramId] = useState("");
+      const [payUsername, setPayUsername] = useState("");
+      const [payPromoCode, setPayPromoCode] = useState("");
+      const [selectedPlanCode, setSelectedPlanCode] = useState(bootstrap.plans[0]?.code || "");
+      const selectedPlan = useMemo(
+        () => bootstrap.plans.find((item) => item.code === selectedPlanCode) || null,
+        [selectedPlanCode]
+      );
+
+      const [lastOrder, setLastOrder] = useState(null);
+      const [orderLinks, setOrderLinks] = useState([]);
+      const [orderInfo, setOrderInfo] = useState({ text: "После создания заказа здесь появятся данные оплаты.", tone: "neutral" });
+      const [orderBusy, setOrderBusy] = useState({ create: false, check: false, cancel: false });
+
+      const [accountTelegramId, setAccountTelegramId] = useState("");
+      const [accountBusy, setAccountBusy] = useState(false);
+      const [accountInfo, setAccountInfo] = useState({ text: "Данные кабинета ещё не загружены.", tone: "neutral" });
+      const [accountData, setAccountData] = useState(null);
+
+      useEffect(() => {
+        setMounted(true);
+
+        let frameId = null;
+        const handleMouseMove = (event) => {
+          if (frameId) {
+            cancelAnimationFrame(frameId);
+          }
+          frameId = requestAnimationFrame(() => {
+            setMousePosition({ x: event.clientX, y: event.clientY });
+            frameId = null;
+          });
+        };
+
+        window.addEventListener("mousemove", handleMouseMove);
+        return () => {
+          window.removeEventListener("mousemove", handleMouseMove);
+          if (frameId) {
+            cancelAnimationFrame(frameId);
+          }
+        };
+      }, []);
+
+      useEffect(() => {
+        const onHash = () => setTab(tabFromHash());
+        window.addEventListener("hashchange", onHash);
+        return () => window.removeEventListener("hashchange", onHash);
+      }, []);
+
+      useEffect(() => {
+        const authId = authUser ? parseTelegramId(authUser.id) : "";
+        if (!authId) return;
+        setPayTelegramId(authId);
+        setAccountTelegramId(authId);
+        if (authUser.username && !payUsername) {
+          setPayUsername(authUser.username);
+        }
+      }, [authUser]);
+
+      useEffect(() => {
+        (async () => {
+          let stored = "";
+          try {
+            stored = String(window.localStorage.getItem(AUTH_TOKEN_KEY) || "").trim();
+          } catch (_) {
+            stored = "";
+          }
+          if (!stored) return;
+
+          try {
+            const me = await fetchJson("/site/api/me", {
+              method: "GET",
+              token: stored,
+            });
+            const id = parseTelegramId(me?.user?.id);
+            if (!id) throw new Error("invalid_session");
+            setAuthToken(stored);
+            setAuthUser({
+              id,
+              username: String(me?.user?.username || "").trim(),
+            });
+            setAuthHint(`Telegram ID: ${id}${me?.user?.username ? ` • @${me.user.username}` : ""}`);
+          } catch (_) {
+            try {
+              window.localStorage.removeItem(AUTH_TOKEN_KEY);
+            } catch (_) {}
+          }
+        })();
+      }, []);
+
+      const setTabSafe = (nextTab) => {
+        const safe = ["main", "payment", "account", "about", "legal"].includes(nextTab) ? nextTab : "main";
+        setTab(safe);
+        const nextHash = `#tab=${safe}`;
+        if (window.location.hash !== nextHash) {
+          window.history.replaceState(null, "", nextHash);
+        }
+      };
+
+      const resetAuth = () => {
+        setAuthToken("");
+        setAuthUser(null);
+        setAuthHint("Войдите через бота, чтобы не вводить Telegram ID вручную.");
+        try {
+          window.localStorage.removeItem(AUTH_TOKEN_KEY);
+        } catch (_) {}
+      };
+
+      const applyAuth = (payload, sessionToken = "") => {
+        const id = parseTelegramId(payload?.user?.id);
+        if (!id) {
+          resetAuth();
+          return false;
+        }
+        const username = String(payload?.user?.username || "").trim();
+        setAuthUser({ id, username });
+        setAuthHint(`Telegram ID: ${id}${username ? ` • @${username}` : ""}`);
+        if (sessionToken) {
+          setAuthToken(sessionToken);
+          try {
+            window.localStorage.setItem(AUTH_TOKEN_KEY, sessionToken);
+          } catch (_) {}
+        }
+        return true;
+      };
+
+      const activeTelegramId = () => {
+        const byAuth = authUser ? parseTelegramId(authUser.id) : "";
+        if (byAuth) return byAuth;
+        return parseTelegramId(payTelegramId);
+      };
+
+      const accountActiveTelegramId = () => {
+        const byAuth = authUser ? parseTelegramId(authUser.id) : "";
+        if (byAuth) return byAuth;
+        return parseTelegramId(accountTelegramId);
+      };
+
+      const handleStartAuth = async () => {
+        if (authBusy) return;
+        setAuthBusy(true);
+        setAuthHint("Создаем запрос авторизации...");
+
+        try {
+          const start = await fetchJson("/site/api/auth/start", {
+            payload: {},
+            token: authToken,
+          });
+
+          const startUrl = String(start.bot_start_url || "").trim();
+          if (startUrl) {
+            window.open(startUrl, "_blank", "noopener");
+          }
+
+          setAuthHint("Подтвердите вход в боте. Ждём подтверждение...");
+
+          const requestId = String(start.request_id || "").trim();
+          const pollToken = String(start.poll_token || "").trim();
+          const pollInterval = Math.max(1200, Number(start.poll_interval_ms || 2500));
+          const started = Date.now();
+
+          while (Date.now() - started < 12 * 60 * 1000) {
+            const poll = await fetchJson("/site/api/auth/poll", {
+              payload: {
+                request_id: requestId,
+                poll_token: pollToken,
+              },
+            });
+            const status = String(poll.status || "").toLowerCase();
+
+            if (status === "approved" && poll.session_token) {
+              if (!applyAuth(poll, String(poll.session_token || "").trim())) {
+                throw new Error("invalid_session");
+              }
+              setAccountInfo({ text: "Вход подтверждён. Кабинет готов к загрузке.", tone: "ok" });
+              return;
+            }
+
+            if (status === "expired") {
+              throw new Error("auth_request_expired");
+            }
+
+            await new Promise((resolve) => setTimeout(resolve, pollInterval));
+          }
+
+          throw new Error("auth_timeout");
+        } catch (error) {
+          resetAuth();
+          const code = String(error?.message || "request_failed");
+          setAccountInfo({ text: errorText(code), tone: "error" });
+        } finally {
+          setAuthBusy(false);
+        }
+      };
+
+      const handleLogout = async () => {
+        const token = String(authToken || "").trim();
+        if (token) {
+          try {
+            await fetchJson("/site/api/logout", {
+              payload: {},
+              token,
+            });
+          } catch (_) {}
+        }
+        resetAuth();
+      };
+
+      const handleAskAi = async (e) => {
+        e.preventDefault();
+        if (!aiQuery.trim()) return;
+
+        setIsAiLoading(true);
+        setAiError("");
+        setAiResponse("");
+
+        try {
+          const payload = { question: aiQuery.trim() };
+          const id = authUser ? parseTelegramId(authUser.id) : "";
+          if (id) payload.telegram_id = id;
+
+          const data = await fetchJson("/site/api/ai", {
+            payload,
+            token: authToken,
+          });
+
+          const text = String(data?.answer || "").trim();
+          if (!text) throw new Error("ai_unavailable");
+          setAiResponse(text);
+        } catch (error) {
+          setAiError(errorText(error?.message || "ai_unavailable"));
+        } finally {
+          setIsAiLoading(false);
+        }
+      };
+
+      const handleCreateOrder = async () => {
+        const telegramId = activeTelegramId();
+        if (!telegramId) {
+          setOrderInfo({ text: "Войдите через бота или укажите корректный Telegram ID.", tone: "error" });
+          return;
+        }
+        if (!selectedPlan) {
+          setOrderInfo({ text: "Сначала выберите тариф.", tone: "error" });
+          return;
+        }
+
+        setOrderBusy((prev) => ({ ...prev, create: true }));
+        setOrderInfo({ text: "Создаём заказ...", tone: "neutral" });
+
+        try {
+          const payload = {
+            plan_code: selectedPlan.code,
+          };
+          if (!authUser) payload.telegram_id = telegramId;
+          const username = String(payUsername || "").trim();
+          if (username) payload.username = username;
+          const promoCode = String(payPromoCode || "").trim().toUpperCase();
+          if (promoCode) payload.promo_code = promoCode;
+
+          const data = await fetchJson("/site/api/create-order", {
+            payload,
+            token: authToken,
+          });
+          const order = data?.order || null;
+          if (!order?.order_id) throw new Error("order_not_found");
+
+          setLastOrder(order);
+          setOrderLinks(buildLinks(order));
+          setOrderInfo({
+            tone: "ok",
+            text: [
+              `Заказ: ${order.order_id}`,
+              `Статус: ${mapStatus(order.status)}`,
+              `Сумма: ${order.amount_rub} ₽`,
+              `Тариф: ${order.plan_title || selectedPlan.title}`,
+              order.promo_code ? `Промокод: ${order.promo_code}${Number(order.promo_discount_rub || 0) > 0 ? ` (-${order.promo_discount_rub} ₽)` : ""}` : null,
+              `Провайдер: ${order.provider_label || "-"}`,
+              `Оплатить до: ${order.expires_at || "-"}`,
+            ].filter(Boolean).join("\n"),
+          });
+
+          if (!accountTelegramId) setAccountTelegramId(telegramId);
+        } catch (error) {
+          setOrderLinks([]);
+          setOrderInfo({ text: errorText(error?.message || "request_failed"), tone: "error" });
+        } finally {
+          setOrderBusy((prev) => ({ ...prev, create: false }));
+        }
+      };
+
+      const handleCheckOrder = async () => {
+        const telegramId = activeTelegramId();
+        if (!telegramId) {
+          setOrderInfo({ text: "Войдите через бота или укажите Telegram ID.", tone: "error" });
+          return;
+        }
+        if (!lastOrder?.order_id) {
+          setOrderInfo({ text: "Сначала создайте заказ.", tone: "error" });
+          return;
+        }
+
+        setOrderBusy((prev) => ({ ...prev, check: true }));
+        setOrderInfo({ text: `Проверяем заказ ${lastOrder.order_id}...`, tone: "neutral" });
+
+        try {
+          const data = await fetchJson("/site/api/order-status", {
+            payload: {
+              telegram_id: telegramId,
+              order_id: String(lastOrder.order_id || ""),
+            },
+            token: authToken,
+          });
+
+          const order = data?.order || null;
+          if (!order?.order_id) throw new Error("order_not_found");
+
+          setLastOrder(order);
+          setOrderLinks(buildLinks(order));
+          setOrderInfo({
+            tone: order.status === "paid" ? "ok" : "neutral",
+            text: [
+              `Заказ: ${order.order_id}`,
+              `Статус: ${mapStatus(order.status)}`,
+              `Сумма: ${order.amount_rub} ₽`,
+              order.promo_code ? `Промокод: ${order.promo_code}${Number(order.promo_discount_rub || 0) > 0 ? ` (-${order.promo_discount_rub} ₽)` : ""}` : null,
+              `Провайдер: ${order.provider_label || "-"}`,
+              `Создан: ${order.created_at || "-"}`,
+              `Оплачен: ${order.paid_at || "-"}`,
+            ].filter(Boolean).join("\n"),
+          });
+        } catch (error) {
+          setOrderInfo({ text: errorText(error?.message || "request_failed"), tone: "error" });
+        } finally {
+          setOrderBusy((prev) => ({ ...prev, check: false }));
+        }
+      };
+
+      const handleCancelOrder = async () => {
+        if (!authUser) {
+          setOrderInfo({ text: "Для отмены заказа сначала выполните вход через бота.", tone: "error" });
+          return;
+        }
+        if (!lastOrder?.order_id) {
+          setOrderInfo({ text: "Нет активного заказа для отмены.", tone: "error" });
+          return;
+        }
+        if (String(lastOrder.status || "").toLowerCase() !== "pending") {
+          setOrderInfo({ text: "Отменить можно только заказ со статусом pending.", tone: "error" });
+          return;
+        }
+
+        setOrderBusy((prev) => ({ ...prev, cancel: true }));
+        try {
+          await fetchJson("/site/api/cancel-order", {
+            payload: { order_id: String(lastOrder.order_id || "") },
+            token: authToken,
+          });
+          const updated = { ...lastOrder, status: "cancelled" };
+          setLastOrder(updated);
+          setOrderLinks([]);
+          setOrderInfo({ text: `Заказ ${updated.order_id} отменён.`, tone: "ok" });
+        } catch (error) {
+          setOrderInfo({ text: errorText(error?.message || "request_failed"), tone: "error" });
+        } finally {
+          setOrderBusy((prev) => ({ ...prev, cancel: false }));
+        }
+      };
+
+      const handleLoadAccount = async () => {
+        const telegramId = accountActiveTelegramId();
+        if (!telegramId) {
+          setAccountInfo({ text: "Войдите через бота или укажите корректный Telegram ID.", tone: "error" });
+          return;
+        }
+
+        setAccountBusy(true);
+        setAccountInfo({ text: "Загружаем кабинет...", tone: "neutral" });
+
+        try {
+          const data = await fetchJson("/site/api/account", {
+            payload: { telegram_id: telegramId },
+            token: authToken,
+          });
+
+          const account = data?.account || {};
+          const stats = data?.stats || {};
+          const recentOrders = Array.isArray(data?.recent_orders) ? data.recent_orders : [];
+          const pendingOrder = data?.pending_order || null;
+
+          setAccountData({ account, stats, recentOrders, pendingOrder });
+          setAccountInfo({
+            tone: account.subscription_active ? "ok" : "neutral",
+            text: [
+              `Telegram ID: ${account.telegram_id || telegramId}`,
+              `Username: ${account.username ? `@${account.username}` : "-"}`,
+              `Подписка: ${account.subscription_active ? "активна" : "неактивна"}`,
+              `Остаток: ${account.subscription_remaining || "-"}`,
+              `Заказов в ожидании: ${stats.pending_orders || 0}`,
+            ].join("\n"),
+          });
+
+          if (pendingOrder?.order_id) {
+            setLastOrder(pendingOrder);
+            setOrderLinks(buildLinks(pendingOrder));
+          }
+
+          if (!authUser) setPayTelegramId(telegramId);
+        } catch (error) {
+          setAccountInfo({ text: errorText(error?.message || "request_failed"), tone: "error" });
+        } finally {
+          setAccountBusy(false);
+        }
+      };
+
+      const selectedPlanText = selectedPlan
+        ? [
+            `Выбран тариф: ${selectedPlan.title}`,
+            `Сумма: ${selectedPlan.amount_rub} ₽`,
+            `Код: ${selectedPlan.code}`,
+            String(payPromoCode || "").trim() ? `Промокод: ${String(payPromoCode || "").trim().toUpperCase()}` : null,
+          ].filter(Boolean).join("\n")
+        : "Тариф не выбран.";
+
+      const canCancel = !!(authUser && lastOrder?.order_id && String(lastOrder.status || "").toLowerCase() === "pending");
+
+      const account = accountData?.account || null;
+      const stats = accountData?.stats || null;
+      const recentOrders = Array.isArray(accountData?.recentOrders) ? accountData.recentOrders : [];
+      const homePricingPlans = bootstrap.plans.slice(0, 3);
+      const popularPlanCode = homePricingPlans.length > 1 ? homePricingPlans[1].code : (homePricingPlans[0]?.code || "");
+
+      return (
+        <div className="min-h-screen bg-[#050505] text-neutral-200 font-sans overflow-hidden relative selection:bg-orange-500/30">
+          <div className="fixed inset-0 z-0 pointer-events-none overflow-hidden bg-[#050505]">
+            <div className="absolute inset-0 bg-[linear-gradient(to_right,#ffffff0a_1px,transparent_1px),linear-gradient(to_bottom,#ffffff0a_1px,transparent_1px)] bg-[size:4rem_4rem] [mask-image:radial-gradient(ellipse_80%_50%_at_50%_0%,#000_70%,transparent_100%)]" />
+            <div className="absolute inset-0">
+              {sparks.map((spark, index) => (
+                <div
+                  key={index}
+                  className="absolute bg-white rounded-full spark"
+                  style={{
+                    left: spark.left,
+                    top: spark.top,
+                    width: spark.size,
+                    height: spark.size,
+                    opacity: spark.opacity,
+                    animationDelay: spark.animationDelay,
+                    animationDuration: spark.animationDuration,
+                    boxShadow: `0 0 ${parseFloat(spark.size) * 2}px rgba(255,255,255,0.5)`,
+                  }}
+                />
+              ))}
+            </div>
+            <div
+              className="absolute inset-0 transition-opacity duration-300 z-10"
+              style={{
+                background: `radial-gradient(600px circle at ${mousePosition.x}px ${mousePosition.y}px, rgba(249,115,22,0.06), transparent 40%)`,
+              }}
+            />
+            <div className="absolute top-[-10%] left-[-10%] w-[40vw] h-[40vw] bg-orange-600/10 rounded-full blur-[120px] animate-blob" />
+            <div className="absolute bottom-[-20%] right-[-10%] w-[50vw] h-[50vw] bg-indigo-600/10 rounded-full blur-[120px] animate-blob animation-delay-2000" />
+            <div className="absolute top-[40%] left-[60%] w-[30vw] h-[30vw] bg-emerald-600/5 rounded-full blur-[100px] animate-blob animation-delay-4000" />
+            <div className="absolute inset-0 bg-[url('https://grainy-gradients.vercel.app/noise.svg')] opacity-20 mix-blend-overlay z-20" />
+          </div>
+
+          <div className="relative z-20 container mx-auto px-4 py-8 sm:py-12 max-w-6xl flex flex-col items-center gap-8">
+            <nav className={`transition-all duration-1000 transform ${mounted ? "translate-y-0 opacity-100" : "-translate-y-10 opacity-0"} bg-white/5 border border-white/10 backdrop-blur-md rounded-full p-1.5 grid grid-cols-5 gap-1.5 w-full max-w-3xl`}>
+              {[
+                ["main", "Главная"],
+                ["payment", "Оплата"],
+                ["account", "Личный кабинет"],
+                ["about", "О проекте"],
+                ["legal", "Правила"],
+              ].map(([id, label]) => (
+                <button
+                  key={id}
+                  onClick={() => setTabSafe(id)}
+                  className={`whitespace-nowrap rounded-full text-sm font-medium transition-all duration-300 ${
+                    tab === id
+                      ? "bg-gradient-to-r from-orange-500 to-amber-500 text-white shadow-[0_0_15px_rgba(249,115,22,0.3)]"
+                      : "text-neutral-400 hover:text-white hover:bg-white/5"
+                  } min-w-0 h-10 px-3 flex items-center justify-center text-center truncate`}
+                >
+                  {label}
+                </button>
+              ))}
+            </nav>
+
+            <header className={`text-center space-y-8 max-w-4xl transition-all duration-1000 delay-150 transform ${mounted ? "translate-y-0 opacity-100" : "translate-y-10 opacity-0"}`}>
+              <div className="space-y-4 relative inline-block w-full">
+                <div className="absolute -inset-1 bg-gradient-to-r from-orange-500 to-indigo-500 rounded-[2rem] blur-2xl opacity-20" />
+                <div className="relative bg-black/40 border border-white/10 backdrop-blur-xl rounded-[2rem] p-8 sm:p-12 shadow-2xl">
+                  <h1 className="text-5xl sm:text-7xl font-extrabold tracking-tight mb-6">
+                    <span className="bg-clip-text text-transparent bg-gradient-to-br from-white via-neutral-200 to-neutral-600">
+                      BoxVolt VPN
+                    </span>
+                  </h1>
+
+                  <p className="text-neutral-400 text-lg sm:text-xl leading-relaxed max-w-2xl mx-auto font-light">
+                    Полноценный сайт с прямой оплатой, личным кабинетом и актуальными тарифами из бота.
+                    Вход через бота активирует кабинет автоматически.
+                  </p>
+
+                  <div className="flex flex-wrap justify-center gap-3 mt-8">
+                    <StatusBadge
+                      icon={<div className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse shadow-[0_0_8px_rgba(52,211,153,0.8)]" />}
+                      text={bootstrap.maintenance.text}
+                      color={bootstrap.maintenance.tone === "rose" ? "rose" : "emerald"}
+                    />
+                    <StatusBadge
+                      icon={<CreditCard className="w-3.5 h-3.5" />}
+                      text={bootstrap.payment.text}
+                      color="indigo"
+                    />
+                    <StatusBadge
+                      icon={<Clock className="w-3.5 h-3.5" />}
+                      text={`Обновлено: ${bootstrap.updatedAt}`}
+                      color="neutral"
+                    />
+                  </div>
+
+                  <div className="flex flex-wrap justify-center gap-4 mt-10">
+                    <button
+                      onClick={() => setTabSafe("payment")}
+                      className="group relative inline-flex items-center justify-center gap-2 px-8 py-3.5 text-sm font-semibold text-white bg-gradient-to-r from-orange-500 to-amber-500 rounded-full overflow-hidden transition-all duration-300 hover:scale-105 hover:shadow-[0_0_30px_rgba(249,115,22,0.4)]"
+                    >
+                      <div className="absolute inset-0 bg-white/20 transform -skew-x-12 -translate-x-full group-hover:translate-x-full transition-transform duration-700 ease-out" />
+                      <CreditCard className="w-4 h-4" />
+                      Перейти к оплате
+                      <ChevronRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
+                    </button>
+
+                    <button
+                      onClick={() => setTabSafe("account")}
+                      className="inline-flex items-center justify-center gap-2 px-8 py-3.5 text-sm font-medium text-neutral-200 bg-white/5 border border-white/10 rounded-full hover:bg-white/10 hover:text-white transition-all duration-300 backdrop-blur-sm"
+                    >
+                      <User className="w-4 h-4 text-indigo-400" />
+                      Личный кабинет
+                    </button>
+
+                    <a
+                      href={bootstrap.botStartUrl}
+                      target="_blank"
+                      rel="noopener"
+                      className="inline-flex items-center justify-center gap-2 px-8 py-3.5 text-sm font-medium text-neutral-200 bg-white/5 border border-white/10 rounded-full hover:bg-white/10 hover:text-white transition-all duration-300 backdrop-blur-sm"
+                    >
+                      <Bot className="w-4 h-4 text-neutral-400" />
+                      Открыть бота
+                    </a>
+
+                    {!authUser ? (
+                      <button
+                        onClick={handleStartAuth}
+                        disabled={authBusy}
+                        className="inline-flex items-center justify-center gap-2 px-8 py-3.5 text-sm font-medium text-neutral-200 bg-white/5 border border-white/10 rounded-full hover:bg-white/10 hover:text-white transition-all duration-300 backdrop-blur-sm disabled:opacity-60"
+                      >
+                        <LogIn className="w-4 h-4 text-emerald-400" />
+                        {authBusy ? "Вход..." : "Войти через бота"}
+                      </button>
+                    ) : (
+                      <button
+                        onClick={handleLogout}
+                        className="inline-flex items-center justify-center gap-2 px-8 py-3.5 text-sm font-medium text-neutral-200 bg-white/5 border border-white/10 rounded-full hover:bg-white/10 hover:text-white transition-all duration-300 backdrop-blur-sm"
+                      >
+                        <LogOut className="w-4 h-4 text-rose-400" />
+                        Выйти
+                      </button>
+                    )}
+                  </div>
+
+                  <div className="mt-5 flex flex-wrap justify-center gap-2 text-xs text-neutral-400">
+                    <span className="px-3 py-1 rounded-full bg-white/5 border border-white/10">{authUser ? "Вход выполнен" : "Вход не выполнен"}</span>
+                    <span className="px-3 py-1 rounded-full bg-white/5 border border-white/10">{authHint}</span>
+                  </div>
+                </div>
+              </div>
+            </header>
+
+            {tab === "main" && (
+              <>
+                <section className={`w-full max-w-5xl transition-all duration-1000 delay-200 transform ${mounted ? "translate-y-0 opacity-100" : "translate-y-10 opacity-0"}`}>
+                  <div className="relative group">
+                    <div className="absolute -inset-0.5 bg-gradient-to-r from-indigo-500 to-purple-500 rounded-3xl blur opacity-20 group-hover:opacity-30 transition duration-1000 group-hover:duration-200" />
+                    <div className="relative bg-black/40 border border-white/10 backdrop-blur-xl rounded-3xl p-6 sm:p-8 shadow-xl flex flex-col md:flex-row gap-8 items-start">
+                      <div className="flex-1 space-y-4">
+                        <h2 className="text-2xl font-bold text-white flex items-center gap-3">
+                          <Sparkles className="w-6 h-6 text-purple-400" />
+                          Умный Помощник BoxVolt
+                        </h2>
+                        <p className="text-neutral-400 text-sm leading-relaxed">
+                          Не знаете, какой тариф выбрать? Нужна помощь с оплатой, подключением или правилами? ИИ-помощник на Gemini ответит по текущему контексту проекта.
+                        </p>
+
+                        <form onSubmit={handleAskAi} className="relative mt-4">
+                          <input
+                            type="text"
+                            value={aiQuery}
+                            onChange={(e) => setAiQuery(e.target.value)}
+                            placeholder="Например: как оплатить и где посмотреть правила?"
+                            className="w-full bg-black/60 border border-white/10 rounded-xl py-3.5 pl-4 pr-14 text-sm text-white placeholder-neutral-500 focus:outline-none focus:border-purple-500/50 focus:ring-1 focus:ring-purple-500/50 transition-all backdrop-blur-md"
+                            disabled={isAiLoading}
+                          />
+                          <button
+                            type="submit"
+                            disabled={isAiLoading || !aiQuery.trim()}
+                            className="absolute right-2 top-2 bottom-2 aspect-square flex items-center justify-center bg-purple-500 hover:bg-purple-600 disabled:bg-neutral-700 text-white rounded-lg transition-colors"
+                          >
+                            {isAiLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4 ml-0.5" />}
+                          </button>
+                        </form>
+                      </div>
+
+                      <div className="flex-1 w-full bg-black/40 border border-white/5 rounded-2xl p-5 min-h-[160px] flex flex-col backdrop-blur-sm z-10">
+                        <div className="flex items-center gap-2 mb-3 text-xs font-semibold text-purple-400 uppercase tracking-wider">
+                          <Bot className="w-4 h-4" /> Ответ ИИ
+                        </div>
+                        <div className="text-sm text-neutral-300 leading-relaxed overflow-y-auto max-h-[220px] flex-1 custom-scrollbar">
+                          {isAiLoading ? (
+                            <div className="flex items-center gap-2 text-neutral-500 h-full">
+                              <Sparkles className="w-4 h-4 animate-pulse" /> Gemini генерирует ответ...
+                            </div>
+                          ) : aiError ? (
+                            <div className="text-rose-400">{aiError}</div>
+                          ) : aiResponse ? (
+                            <div className="whitespace-pre-wrap">{aiResponse}</div>
+                          ) : (
+                            <div className="text-neutral-500 italic h-full flex items-center">
+                              Здесь появится ответ помощника... Задайте свой вопрос.
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </section>
+
+                <section className={`w-full max-w-5xl transition-all duration-1000 delay-300 transform ${mounted ? "translate-y-0 opacity-100" : "translate-y-10 opacity-0"}`}>
+                  <div className="text-center mb-10">
+                    <h2 className="text-3xl font-bold text-white mb-4 flex items-center justify-center gap-3">
+                      <Globe className="w-8 h-8 text-blue-400" />
+                      Выберите свой тариф
+                    </h2>
+                    <p className="text-neutral-400 max-w-xl mx-auto">
+                      Цены синхронизируются с ботом. Выберите подходящий период и перейдите к оплате.
+                    </p>
+                  </div>
+
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-6 lg:gap-8 items-center z-10 relative">
+                    {homePricingPlans.length ? homePricingPlans.map((plan) => {
+                      const isPopular = plan.code === popularPlanCode;
+                      return (
+                        <PricingCard
+                          key={plan.code}
+                          title={plan.title}
+                          price={plan.amount_rub}
+                          period={`/ ${plan.days_text || "период"}`}
+                          badge={isPopular ? "Самый популярный" : ""}
+                          isPopular={isPopular}
+                          features={[
+                            "Безлимитный трафик",
+                            `Период: ${plan.days_text || plan.title}`,
+                            "Автоматическая выдача доступа",
+                            "Поддержка через Telegram",
+                          ]}
+                          onClick={() => {
+                            setSelectedPlanCode(plan.code);
+                            setTabSafe("payment");
+                          }}
+                        />
+                      );
+                    }) : (
+                      <div className="col-span-full rounded-2xl border border-white/10 bg-black/30 p-6 text-center text-neutral-400">
+                        Тарифы временно недоступны.
+                      </div>
+                    )}
+                  </div>
+                </section>
+
+                <section className={`w-full max-w-5xl transition-all duration-1000 delay-400 transform ${mounted ? "translate-y-0 opacity-100" : "translate-y-10 opacity-0"}`}>
+                  <div className="bg-black/40 border border-white/10 backdrop-blur-xl rounded-3xl p-8 shadow-xl">
+                    <div className="mb-8">
+                      <h2 className="text-2xl font-bold text-white flex items-center gap-3">
+                        <Shield className="w-6 h-6 text-orange-500" />
+                        Основная информация
+                      </h2>
+                      <p className="text-neutral-500 mt-2 text-sm">
+                        Сайт работает отдельно от Mini App: здесь можно создать заказ, оплатить и проверить статус без открытия Telegram WebApp.
+                      </p>
+                    </div>
+
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 z-10 relative">
+                      <FeatureCard icon={<Zap className="w-5 h-5 text-orange-400" />} title="Прямая оплата" desc="Выберите тариф, создайте заказ и оплатите удобным способом." />
+                      <FeatureCard icon={<User className="w-5 h-5 text-indigo-400" />} title="Личный кабинет" desc="Показывает подписку, историю заказов и сумму успешных оплат." />
+                      <FeatureCard icon={<Activity className="w-5 h-5 text-emerald-400" />} title="Актуальные цены" desc="Тарифы подгружаются из текущей конфигурации бота." />
+                      <FeatureCard icon={<LinkIcon className="w-5 h-5 text-blue-400" />} title="Официальные ссылки" desc="Правила, канал и поддержка берутся из тех же источников, что в боте." />
+                    </div>
+
+                    <div className="flex flex-wrap items-center justify-between gap-4 mt-8 pt-8 border-t border-white/5 relative z-10">
+                      <div className="flex flex-wrap gap-2">
+                        <FooterLink icon={<Server />} text="Статус сервиса" href={bootstrap.statusUrl} />
+                        <FooterLink icon={<MessageCircle />} text={`Канал (${bootstrap.requiredChannelDisplay})`} href={bootstrap.channelUrl} />
+                        <FooterLink icon={<Newspaper />} text="Новости" href={bootstrap.newsUrl} />
+                        <FooterLink icon={<LifeBuoy />} text="Поддержка" href={bootstrap.supportUrl} />
+                      </div>
+                      <div className="flex flex-col items-end text-xs text-neutral-600">
+                        <p>{bootstrap.newsInfo}</p>
+                        <p className="font-mono mt-1 opacity-50">Версия: {bootstrap.appVersion}</p>
+                      </div>
+                    </div>
+                  </div>
+                </section>
+              </>
+            )}
+
+            {tab === "payment" && (
+              <section className="w-full max-w-5xl">
+                <div className="bg-white/5 border border-white/10 backdrop-blur-xl rounded-3xl p-6 sm:p-8 shadow-xl">
+                  <h2 className="text-2xl font-bold text-white flex items-center gap-2">
+                    <CreditCard className="w-5 h-5 text-orange-400" /> Оплата
+                  </h2>
+                  <p className="text-neutral-400 text-sm mt-2">
+                    Цены подтягиваются из бота. После входа через бота Telegram ID подставляется автоматически.
+                  </p>
+
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mt-5">
+                    <div>
+                      <label className="text-xs text-neutral-400 block mb-2">Telegram ID</label>
+                      <input
+                        type="text"
+                        inputMode="numeric"
+                        value={payTelegramId}
+                        onChange={(e) => setPayTelegramId(e.target.value)}
+                        disabled={!!authUser}
+                        placeholder="Например: 123456789"
+                        className="w-full bg-black/40 border border-white/10 rounded-xl py-3 px-4 text-sm text-white placeholder-neutral-500 focus:outline-none focus:border-orange-500/50"
+                      />
+                    </div>
+                    <div>
+                      <label className="text-xs text-neutral-400 block mb-2">@username (опционально)</label>
+                      <input
+                        type="text"
+                        value={payUsername}
+                        onChange={(e) => setPayUsername(e.target.value)}
+                        placeholder="Например: your_username"
+                        className="w-full bg-black/40 border border-white/10 rounded-xl py-3 px-4 text-sm text-white placeholder-neutral-500 focus:outline-none focus:border-orange-500/50"
+                      />
+                    </div>
+                    <div>
+                      <label className="text-xs text-neutral-400 block mb-2">Промокод (опционально)</label>
+                      <input
+                        type="text"
+                        value={payPromoCode}
+                        onChange={(e) => setPayPromoCode(String(e.target.value || "").toUpperCase())}
+                        placeholder="Например: BOXVOLT100"
+                        className="w-full bg-black/40 border border-white/10 rounded-xl py-3 px-4 text-sm text-white placeholder-neutral-500 focus:outline-none focus:border-orange-500/50"
+                      />
+                    </div>
+                  </div>
+
+                  {bootstrap.saleText ? (
+                    <div className="mt-4 p-4 rounded-xl border border-orange-500/30 bg-orange-500/10 text-orange-200 text-sm whitespace-pre-wrap">
+                      {bootstrap.saleText}
+                    </div>
+                  ) : null}
+
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mt-5">
+                    {(bootstrap.plans.length ? bootstrap.plans : [{ code: "", title: "Тарифы временно недоступны", amount_rub: "-", days_text: "Проверьте позже", discount_text: "" }]).map((plan) => {
+                      const isSelected = selectedPlan?.code === plan.code;
+                      return (
+                        <div
+                          key={plan.code || plan.title}
+                          className={`rounded-2xl p-4 border bg-white/[0.02] transition-all ${isSelected ? "border-orange-400/70 shadow-[0_0_0_1px_rgba(251,146,60,0.35)]" : "border-white/10 hover:border-white/20"}`}
+                        >
+                          <div className="text-white font-semibold">{plan.title}</div>
+                          <div className="text-neutral-400 text-sm mt-1">{plan.days_text || "-"}</div>
+                          <div className="text-white text-2xl font-bold mt-3">{plan.amount_rub} ₽</div>
+                          <div className="text-orange-200/80 text-xs mt-2 min-h-[18px]">{plan.discount_text || "Без доп. скидки"}</div>
+                          <button
+                            disabled={!plan.code}
+                            onClick={() => setSelectedPlanCode(plan.code)}
+                            className="mt-4 w-full inline-flex items-center justify-center gap-2 px-4 py-2.5 text-sm font-medium text-neutral-200 bg-white/5 border border-white/10 rounded-xl hover:bg-white/10 hover:text-white transition-all disabled:opacity-40"
+                          >
+                            {isSelected ? <CheckCircle2 className="w-4 h-4 text-emerald-400" /> : <CreditCard className="w-4 h-4" />}
+                            {isSelected ? "Выбрано" : "Выбрать тариф"}
+                          </button>
+                        </div>
+                      );
+                    })}
+                  </div>
+
+                  <div className="flex flex-wrap gap-3 mt-5">
+                    <button onClick={handleCreateOrder} disabled={orderBusy.create || !selectedPlan} className="inline-flex items-center gap-2 px-5 py-3 rounded-xl bg-gradient-to-r from-orange-500 to-amber-500 text-white font-semibold hover:shadow-[0_0_20px_rgba(249,115,22,0.35)] transition-all disabled:opacity-60">
+                      <CreditCard className="w-4 h-4" /> {orderBusy.create ? "Создание..." : "Создать заказ"}
+                    </button>
+                    <button onClick={handleCheckOrder} disabled={orderBusy.check || !lastOrder?.order_id} className="inline-flex items-center gap-2 px-5 py-3 rounded-xl bg-white/5 border border-white/10 text-neutral-200 font-medium hover:bg-white/10 transition-all disabled:opacity-60">
+                      <CheckCircle2 className="w-4 h-4" /> {orderBusy.check ? "Проверка..." : "Проверить статус"}
+                    </button>
+                    <button onClick={handleCancelOrder} disabled={orderBusy.cancel || !canCancel} className="inline-flex items-center gap-2 px-5 py-3 rounded-xl bg-white/5 border border-white/10 text-neutral-200 font-medium hover:bg-white/10 transition-all disabled:opacity-60">
+                      <Ban className="w-4 h-4 text-rose-300" /> {orderBusy.cancel ? "Отмена..." : "Отменить заказ"}
+                    </button>
+                  </div>
+
+                  <div className={`mt-4 p-4 rounded-xl border text-sm whitespace-pre-wrap ${selectedPlan ? "bg-emerald-500/10 border-emerald-500/30 text-emerald-300" : "bg-white/5 border-white/10 text-neutral-400"}`}>
+                    {selectedPlanText}
+                  </div>
+
+                  <div className={`mt-3 p-4 rounded-xl border text-sm whitespace-pre-wrap ${orderInfo.tone === "ok" ? "bg-emerald-500/10 border-emerald-500/30 text-emerald-300" : orderInfo.tone === "error" ? "bg-rose-500/10 border-rose-500/30 text-rose-300" : "bg-white/5 border-white/10 text-neutral-400"}`}>
+                    {orderInfo.text}
+                  </div>
+
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3 mt-4">
+                    {orderLinks.length ? orderLinks.map((link) => (
+                      <a
+                        key={`${link.label}-${link.url}`}
+                        href={link.url}
+                        target="_blank"
+                        rel="noopener"
+                        className={`inline-flex items-center justify-center gap-2 px-4 py-3 rounded-xl text-sm font-medium transition-all ${link.primary ? "bg-gradient-to-r from-orange-500 to-amber-500 text-white" : "bg-white/5 border border-white/10 text-neutral-200 hover:bg-white/10"}`}
+                      >
+                        {link.label}
+                      </a>
+                    )) : (
+                      <div className="col-span-full text-sm text-neutral-500 bg-white/5 border border-white/10 rounded-xl p-3">
+                        Платёжные ссылки появятся после создания заказа.
+                      </div>
+                    )}
+                  </div>
+
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3 mt-5">
+                    {bootstrap.providers.map((provider, index) => (
+                      <div key={`${provider.name}-${index}`} className="bg-white/[0.03] border border-white/10 rounded-xl p-3">
+                        <div className="text-white text-sm font-semibold">{provider.name}</div>
+                        <div className="text-neutral-500 text-xs mt-1">{provider.meta}</div>
+                        <div className={`inline-flex mt-2 px-2 py-1 rounded-full text-[11px] font-semibold border ${provider.ok ? "text-emerald-400 border-emerald-500/30 bg-emerald-500/10" : "text-rose-300 border-rose-500/30 bg-rose-500/10"}`}>
+                          {provider.state}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </section>
+            )}
+
+            {tab === "account" && (
+              <section className="w-full max-w-5xl">
+                <div className="bg-white/5 border border-white/10 backdrop-blur-xl rounded-3xl p-6 sm:p-8 shadow-xl">
+                  <h2 className="text-2xl font-bold text-white flex items-center gap-2">
+                    <User className="w-5 h-5 text-indigo-400" /> Личный кабинет
+                  </h2>
+                  <p className="text-neutral-400 text-sm mt-2">
+                    Кабинет показывает подписку, статистику оплат и последние заказы.
+                  </p>
+
+                  <div className="grid grid-cols-1 md:grid-cols-[1fr_auto] gap-3 mt-5">
+                    <input
+                      type="text"
+                      inputMode="numeric"
+                      value={accountTelegramId}
+                      onChange={(e) => setAccountTelegramId(e.target.value)}
+                      disabled={!!authUser}
+                      placeholder="Telegram ID"
+                      className="w-full bg-black/40 border border-white/10 rounded-xl py-3 px-4 text-sm text-white placeholder-neutral-500 focus:outline-none focus:border-indigo-500/50"
+                    />
+                    <button onClick={handleLoadAccount} disabled={accountBusy} className="inline-flex items-center justify-center gap-2 px-5 py-3 rounded-xl bg-gradient-to-r from-indigo-500 to-purple-500 text-white font-semibold disabled:opacity-60">
+                      <Activity className="w-4 h-4" /> {accountBusy ? "Загрузка..." : "Загрузить кабинет"}
+                    </button>
+                  </div>
+
+                  <div className={`mt-4 p-4 rounded-xl border text-sm whitespace-pre-wrap ${accountInfo.tone === "ok" ? "bg-emerald-500/10 border-emerald-500/30 text-emerald-300" : accountInfo.tone === "error" ? "bg-rose-500/10 border-rose-500/30 text-rose-300" : "bg-white/5 border-white/10 text-neutral-400"}`}>
+                    {accountInfo.text}
+                  </div>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 mt-4">
+                    <div className="bg-white/[0.03] border border-white/10 rounded-xl p-3"><div className="text-neutral-500 text-xs">Статус подписки</div><div className="text-white font-semibold mt-1">{account ? (account.subscription_active ? "🟢 Активна" : "🔴 Неактивна") : "—"}</div></div>
+                    <div className="bg-white/[0.03] border border-white/10 rounded-xl p-3"><div className="text-neutral-500 text-xs">Подписка до</div><div className="text-white font-semibold mt-1">{account?.subscription_end || "—"}</div></div>
+                    <div className="bg-white/[0.03] border border-white/10 rounded-xl p-3"><div className="text-neutral-500 text-xs">Всего заказов</div><div className="text-white font-semibold mt-1">{stats?.total_orders || 0}</div></div>
+                    <div className="bg-white/[0.03] border border-white/10 rounded-xl p-3"><div className="text-neutral-500 text-xs">Успешных оплат</div><div className="text-white font-semibold mt-1">{stats?.paid_orders || 0}</div></div>
+                    <div className="bg-white/[0.03] border border-white/10 rounded-xl p-3"><div className="text-neutral-500 text-xs">Сумма оплат</div><div className="text-white font-semibold mt-1">{stats ? `${stats.total_paid_rub || 0} ₽` : "0 ₽"}</div></div>
+                    <div className="bg-white/[0.03] border border-white/10 rounded-xl p-3"><div className="text-neutral-500 text-xs">Последняя оплата</div><div className="text-white font-semibold mt-1">{stats?.last_paid_at || "—"}</div></div>
+                  </div>
+
+                  <div className="mt-4 bg-white/[0.03] border border-white/10 rounded-xl p-3 max-h-[380px] overflow-y-auto custom-scrollbar space-y-3">
+                    {recentOrders.length ? recentOrders.map((item) => (
+                      <div key={item.order_id} className="bg-black/20 border border-white/10 rounded-lg p-3 text-xs text-neutral-300 whitespace-pre-wrap leading-relaxed">
+                        {`#${item.order_id}\nСтатус: ${mapStatus(item.status)}\nТариф: ${item.plan_title || item.plan_code || "-"} (${item.days || 0} дн.)\nСумма: ${item.amount_rub || "-"} ₽\nПровайдер: ${item.provider_label || "-"}\nСоздан: ${item.created_at || "-"}\nОплачен: ${item.paid_at || "-"}`}
+                      </div>
+                    )) : (
+                      <div className="text-sm text-neutral-500">История заказов появится здесь после загрузки кабинета.</div>
+                    )}
+                  </div>
+                </div>
+              </section>
+            )}
+
+            {tab === "about" && (
+              <section className="w-full max-w-5xl">
+                <div className="bg-white/5 border border-white/10 backdrop-blur-xl rounded-3xl p-6 sm:p-8 shadow-xl">
+                  <h2 className="text-2xl font-bold text-white flex items-center gap-2">
+                    <BookOpen className="w-5 h-5 text-orange-400" /> О проекте
+                  </h2>
+                  <p className="text-neutral-400 text-sm mt-2">
+                    BoxVolt VPN это проект с автоматической выдачей доступа после оплаты и единым контуром тарифов между сайтом и ботом.
+                  </p>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-5">
+                    <FeatureCard icon={<Zap className="w-5 h-5 text-orange-400" />} title="Скорость" desc="Быстрая выдача доступа и прямые ссылки на оплату." />
+                    <FeatureCard icon={<Shield className="w-5 h-5 text-emerald-400" />} title="Стабильность" desc="Единая логика работы сайта и Telegram-бота." />
+                  </div>
+                  <div className="flex flex-wrap gap-3 mt-5">
+                    <a href={bootstrap.botStartUrl} target="_blank" rel="noopener" className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-gradient-to-r from-orange-500 to-amber-500 text-white text-sm font-semibold">Открыть бота</a>
+                    <a href={bootstrap.supportUrl} target="_blank" rel="noopener" className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-white/5 border border-white/10 text-neutral-200 text-sm font-medium">Поддержка ({bootstrap.supportContact})</a>
+                  </div>
+                </div>
+              </section>
+            )}
+
+            {tab === "legal" && (
+              <section className="w-full max-w-5xl">
+                <div className="bg-white/5 border border-white/10 backdrop-blur-xl rounded-3xl p-6 sm:p-8 shadow-xl">
+                  <h2 className="text-2xl font-bold text-white flex items-center gap-2">
+                    <AlertCircle className="w-5 h-5 text-rose-300" /> Правила и соглашение
+                  </h2>
+                  <p className="text-neutral-400 text-sm mt-2">
+                    Ниже краткая версия правил. Полный текст всегда доступен по официальной ссылке.
+                  </p>
+                  <ul className="mt-4 space-y-2 text-sm text-neutral-300 list-disc pl-5">
+                    {(bootstrap.rules.length ? bootstrap.rules : ["Правила временно недоступны."]).map((line, idx) => (
+                      <li key={`${idx}-${line}`}>{line}</li>
+                    ))}
+                  </ul>
+                  <div className="flex flex-wrap gap-3 mt-5">
+                    <a href={bootstrap.rulesUrl} target="_blank" rel="noopener" className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-white/5 border border-white/10 text-neutral-200 text-sm font-medium">Полная версия правил</a>
+                    <a href={bootstrap.supportUrl} target="_blank" rel="noopener" className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-white/5 border border-white/10 text-neutral-200 text-sm font-medium">Поддержка</a>
+                  </div>
+                </div>
+              </section>
+            )}
+          </div>
+        </div>
+      );
+    };
+
+    ReactDOM.createRoot(document.getElementById("app")).render(<App />);
+  </script>
+</body>
+</html>

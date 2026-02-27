@@ -124,6 +124,11 @@ SPEED_PROFILE_ENABLED = env("SPEED_PROFILE_ENABLED", "1") == "1"
 SPEED_PROFILE_NAME = env("SPEED_PROFILE_NAME", "Скоростной")
 SPEED_PROFILE_FLOW = env("SPEED_PROFILE_FLOW", "").strip()
 SPEED_INBOUND_ID = int(env("SPEED_INBOUND_ID", "0"))
+SPEED_PROFILE_XUI_URL = env("SPEED_PROFILE_XUI_URL", "").strip().rstrip("/")
+SPEED_PROFILE_XUI_USERNAME = env("SPEED_PROFILE_XUI_USERNAME", "").strip()
+SPEED_PROFILE_XUI_PASSWORD = env("SPEED_PROFILE_XUI_PASSWORD", "").strip()
+SPEED_PROFILE_SERVER_IP = env("SPEED_PROFILE_SERVER_IP", "").strip()
+SPEED_PROFILE_SERVER_PORT = max(0, int(env("SPEED_PROFILE_SERVER_PORT", "0")))
 YOUTUBE_PROFILE_ENABLED = env("YOUTUBE_PROFILE_ENABLED", "0") == "1"
 YOUTUBE_PROFILE_NAME = env("YOUTUBE_PROFILE_NAME", "Ютуб без рекламы")
 YOUTUBE_PROFILE_FLOW = env("YOUTUBE_PROFILE_FLOW", "").strip()
@@ -131,12 +136,13 @@ YOUTUBE_INBOUND_ID = int(env("YOUTUBE_INBOUND_ID", "0"))
 REALITY_PROFILE_CACHE_SECONDS = int(env("REALITY_PROFILE_CACHE_SECONDS", "300"))
 
 # DonatePay
+DONATEPAY_ENABLED = env("DONATEPAY_ENABLED", "0") == "1"
 DONATEPAY_API_KEY = env("DONATEPAY_API_KEY", "").strip()
 DONATEPAY_API_BASE = env("DONATEPAY_API_BASE", "https://donatepay.ru/api/v1").strip().rstrip("/")
 DONATEPAY_DONATE_BASE_URL = env("DONATEPAY_DONATE_BASE_URL", "").strip()
 DONATEPAY_WEBHOOK_SECRET = env("DONATEPAY_WEBHOOK_SECRET", "").strip()
 DONATEPAY_WEBHOOK_PATH = env("DONATEPAY_WEBHOOK_PATH", "/donatepay/webhook").strip()
-DONATEPAY_POLL_ENABLED = env("DONATEPAY_POLL_ENABLED", "1") == "1"
+DONATEPAY_POLL_ENABLED = env("DONATEPAY_POLL_ENABLED", "0") == "1"
 DONATEPAY_POLL_INTERVAL_SECONDS = int(env("DONATEPAY_POLL_INTERVAL_SECONDS", "20"))
 DONATEPAY_POLL_LIMIT = max(1, int(env("DONATEPAY_POLL_LIMIT", "50")))
 
@@ -181,6 +187,10 @@ UPDATE_NOTIFY_TEXT = env(
 
 # Bot settings
 SUPPORT_CONTACT = env("SUPPORT_CONTACT", "@boxvolt_support")
+RULES_PAGE_URL = env(
+    "RULES_PAGE_URL",
+    "https://telegra.ph/POLZOVATELSKOE-SOGLASHENIE-I-PRAVILA-ISPOLZOVANIYA-02-26",
+).strip()
 NEWS_BUTTON_TEXT = env("NEWS_BUTTON_TEXT", "Новости и обновления").strip() or "Новости и обновления"
 NEWS_INFO_TEXT = env(
     "NEWS_INFO_TEXT",
@@ -201,12 +211,38 @@ TRIAL_ENABLED = env("TRIAL_ENABLED", "0") == "1"
 TRIAL_DAYS = int(env("TRIAL_DAYS", "1"))
 WEBAPP_PUBLIC_URL = env("WEBAPP_PUBLIC_URL", "")
 WEBAPP_INITDATA_MAX_AGE_SECONDS = int(env("WEBAPP_INITDATA_MAX_AGE_SECONDS", "86400"))
+SITE_AI_ENABLED = env("SITE_AI_ENABLED", "1") == "1"
+GEMINI_API_KEY = env("GEMINI_API_KEY", "").strip()
+GEMINI_MODEL = (
+    env("GEMINI_MODEL", "gemini-1.5-flash").strip()
+    or "gemini-1.5-flash"
+)
+GEMINI_FALLBACK_MODELS = parse_csv_env(
+    env(
+        "GEMINI_FALLBACK_MODELS",
+        "gemini-1.5-flash,gemini-2.0-flash,gemini-2.5-flash,gemini-flash-latest",
+    ),
+    default=["gemini-2.0-flash", "gemini-2.5-flash"],
+)
+GEMINI_API_BASE = (
+    env("GEMINI_API_BASE", "https://generativelanguage.googleapis.com/v1beta").strip().rstrip("/")
+)
+SITE_AI_MAX_QUESTION_CHARS = max(64, min(4000, int(env("SITE_AI_MAX_QUESTION_CHARS", "900"))))
+SITE_AI_RATE_LIMIT_SECONDS = max(1, int(env("SITE_AI_RATE_LIMIT_SECONDS", "8")))
+SITE_AI_TIMEOUT_SECONDS = max(5, int(env("SITE_AI_TIMEOUT_SECONDS", "35")))
 PRICING_FILE = env("PRICING_FILE", str(BASE_DIR / "pricing.json"))
 ADMIN_TELEGRAM_IDS_RAW = env("ADMIN_TELEGRAM_IDS", "")
 ADMIN_NOTIFY_CHAT_IDS_RAW = env("ADMIN_NOTIFY_CHAT_IDS", "")
 ADMIN_NOTIFY_TOPIC_ID_RAW = env("ADMIN_NOTIFY_TOPIC_ID", "").strip()
+ADMIN_DAILY_REPORT_CHAT_ID_RAW = env("ADMIN_DAILY_REPORT_CHAT_ID", "").strip()
+ADMIN_DAILY_REPORT_TOPIC_ID_RAW = env("ADMIN_DAILY_REPORT_TOPIC_ID", "").strip()
 PAYMENT_PENDING_TTL_MINUTES = int(env("PAYMENT_PENDING_TTL_MINUTES", "15"))
 PAYMENT_CLEANUP_INTERVAL_SECONDS = int(env("PAYMENT_CLEANUP_INTERVAL_SECONDS", "60"))
+SUBSCRIPTION_INACTIVE_PURGE_ENABLED = env("SUBSCRIPTION_INACTIVE_PURGE_ENABLED", "1") == "1"
+SUBSCRIPTION_INACTIVE_PURGE_DAYS = max(1, int(env("SUBSCRIPTION_INACTIVE_PURGE_DAYS", "3")))
+SUBSCRIPTION_INACTIVE_PURGE_BATCH = max(1, min(500, int(env("SUBSCRIPTION_INACTIVE_PURGE_BATCH", "50"))))
+SUBSCRIPTION_INACTIVE_PURGE_XUI = env("SUBSCRIPTION_INACTIVE_PURGE_XUI", "1") == "1"
+SUBSCRIPTION_INACTIVE_PURGE_INCLUDE_PAYMENTS = env("SUBSCRIPTION_INACTIVE_PURGE_INCLUDE_PAYMENTS", "0") == "1"
 PENDING_ORDER_REMINDER_ENABLED = env("PENDING_ORDER_REMINDER_ENABLED", "1") == "1"
 PENDING_ORDER_REMINDER_MINUTES = parse_int_list_env(
     env("PENDING_ORDER_REMINDER_MINUTES", "10,30"),
@@ -305,6 +341,26 @@ SERVICE_MONITOR_INTERVAL_SECONDS = max(
 )
 SERVICE_MONITOR_NOTIFY_RECOVERY = env("SERVICE_MONITOR_NOTIFY_RECOVERY", "1") == "1"
 BOT_USERNAME = env("BOT_USERNAME", "").strip().lstrip("@")
+EDGE_EXTENSION_ENABLED = env("EDGE_EXTENSION_ENABLED", "1") == "1"
+EDGE_AUTH_REQUEST_TTL_SECONDS = max(60, int(env("EDGE_AUTH_REQUEST_TTL_SECONDS", "600")))
+EDGE_SESSION_TTL_SECONDS = max(300, int(env("EDGE_SESSION_TTL_SECONDS", "2592000")))
+EDGE_MAX_ACTIVE_SESSIONS_PER_USER = max(1, int(env("EDGE_MAX_ACTIVE_SESSIONS_PER_USER", "5")))
+EDGE_AUTH_PREFIX_RAW = env("EDGE_AUTH_PREFIX", "edgeauth").strip().lower()
+EDGE_AUTH_PREFIX = re.sub(r"[^a-z0-9]+", "", EDGE_AUTH_PREFIX_RAW) or "edgeauth"
+SITE_AUTH_PREFIX_RAW = env("SITE_AUTH_PREFIX", "siteauth").strip().lower()
+SITE_AUTH_PREFIX = re.sub(r"[^a-z0-9]+", "", SITE_AUTH_PREFIX_RAW) or "siteauth"
+EDGE_SERVER_BR_LABEL = env("EDGE_SERVER_BR_LABEL", "Бразилия").strip() or "Бразилия"
+EDGE_SERVER_BR_HOST = env("EDGE_SERVER_BR_HOST", "").strip()
+EDGE_SERVER_BR_PORT = max(0, int(env("EDGE_SERVER_BR_PORT", "0")))
+EDGE_SERVER_BR_SCHEME = (env("EDGE_SERVER_BR_SCHEME", "http").strip().lower() or "http")
+EDGE_SERVER_BR_USERNAME = env("EDGE_SERVER_BR_USERNAME", "").strip()
+EDGE_SERVER_BR_PASSWORD = env("EDGE_SERVER_BR_PASSWORD", "").strip()
+EDGE_SERVER_RU_LABEL = env("EDGE_SERVER_RU_LABEL", "Россия").strip() or "Россия"
+EDGE_SERVER_RU_HOST = env("EDGE_SERVER_RU_HOST", "").strip()
+EDGE_SERVER_RU_PORT = max(0, int(env("EDGE_SERVER_RU_PORT", "0")))
+EDGE_SERVER_RU_SCHEME = (env("EDGE_SERVER_RU_SCHEME", "http").strip().lower() or "http")
+EDGE_SERVER_RU_USERNAME = env("EDGE_SERVER_RU_USERNAME", "").strip()
+EDGE_SERVER_RU_PASSWORD = env("EDGE_SERVER_RU_PASSWORD", "").strip()
 REFERRAL_ENABLED = env("REFERRAL_ENABLED", "1") == "1"
 REFERRAL_REWARD_DAYS = max(1, int(env("REFERRAL_REWARD_DAYS", "3")))
 REFERRAL_MIN_PLAN_DAYS = max(1, int(env("REFERRAL_MIN_PLAN_DAYS", "14")))
@@ -443,9 +499,21 @@ ORDER_ID_RE = re.compile(r"\bBV-[A-Z0-9_-]{6,80}\b", re.IGNORECASE)
 START_ORDER_RE = re.compile(r"^(?:pay|order|oid)[_-]?(BV-[A-Z0-9_-]{6,80})$", re.IGNORECASE)
 PROMO_CODE_RE = re.compile(r"^[A-Z0-9_-]{3,32}$")
 REF_START_RE = re.compile(r"^(?:ref|r)[_-]?(\d{5,20})$", re.IGNORECASE)
+EDGE_AUTH_START_RE = re.compile(
+    rf"^(?:{re.escape(EDGE_AUTH_PREFIX)})[_-]?([A-Z0-9]{{8,64}})$",
+    re.IGNORECASE,
+)
+SITE_AUTH_START_RE = re.compile(
+    rf"^(?:{re.escape(SITE_AUTH_PREFIX)})[_-]?([A-Z0-9]{{8,64}})$",
+    re.IGNORECASE,
+)
 ORDER_STATUS_MARKER = "\n\n📌 Статус заказа:\n"
 PROCESS_LOCK = asyncio.Lock()
 WEBAPP_TEMPLATE_PATH = BASE_DIR / "webapp" / "index.html"
+EDGE_INSTALL_TEMPLATE_PATH = BASE_DIR / "webapp" / "edge_install.html"
+PUBLIC_SITE_TEMPLATE_PATH = BASE_DIR / "webapp" / "site.html"
+ICON_PNG_PATH = BASE_DIR / "icon.png"
+EDGE_EXTENSION_ZIP_PATH = BASE_DIR / "browser-extension-prod.zip"
 DONATEPAY_PROVIDER = "donatepay"
 CRYPTOBOT_PROVIDER = "cryptobot"
 LZT_PROVIDER = "lzt"
@@ -472,6 +540,16 @@ BLACKLIST_TELEGRAM_IDS = {
     if re.fullmatch(r"-?\d+", value.strip())
 }
 ADMIN_NOTIFY_TOPIC_ID = int(ADMIN_NOTIFY_TOPIC_ID_RAW) if re.fullmatch(r"\d+", ADMIN_NOTIFY_TOPIC_ID_RAW) else 0
+ADMIN_DAILY_REPORT_CHAT_ID = (
+    int(ADMIN_DAILY_REPORT_CHAT_ID_RAW)
+    if re.fullmatch(r"-?\d+", ADMIN_DAILY_REPORT_CHAT_ID_RAW)
+    else 0
+)
+ADMIN_DAILY_REPORT_TOPIC_ID = (
+    int(ADMIN_DAILY_REPORT_TOPIC_ID_RAW)
+    if re.fullmatch(r"\d+", ADMIN_DAILY_REPORT_TOPIC_ID_RAW)
+    else 0
+)
 SUPPORT_WAITING_USERS: set[int] = set()
 ADMIN_REPLY_TICKET_BY_ADMIN: dict[int, int] = {}
 USER_ACTIVE_TICKET_CHAT_BY_USER: dict[int, int] = {}
@@ -483,6 +561,7 @@ SUPPORT_EXIT_BUTTON = "✅ Выйти из тикета"
 PROMO_WAITING_USERS: set[int] = set()
 NPS_COMMENT_WAITING_USERS: set[int] = set()
 SUBSCRIPTION_PROMPT_LAST_SENT_AT: dict[int, dt.datetime] = {}
+SITE_AI_LAST_REQUEST_TS: dict[str, float] = {}
 
 bot = Bot(token=BOT_TOKEN)
 dp = Dispatcher()
@@ -535,6 +614,7 @@ def init_db() -> None:
         """,
         (now_str(),),
     )
+    cursor.execute("CREATE INDEX IF NOT EXISTS idx_users_subscription_end ON users (subscription_end)")
 
     cursor.execute(
         """
@@ -842,6 +922,42 @@ def init_db() -> None:
         )
         """
     )
+    cursor.execute(
+        """
+        CREATE TABLE IF NOT EXISTS edge_auth_requests (
+            id TEXT PRIMARY KEY,
+            code TEXT UNIQUE NOT NULL,
+            poll_token_hash TEXT NOT NULL,
+            status TEXT NOT NULL DEFAULT 'pending',
+            telegram_id INTEGER,
+            username TEXT,
+            created_at TEXT NOT NULL,
+            expires_at TEXT NOT NULL,
+            approved_at TEXT
+        )
+        """
+    )
+    cursor.execute("CREATE INDEX IF NOT EXISTS idx_edge_auth_code ON edge_auth_requests (code)")
+    cursor.execute("CREATE INDEX IF NOT EXISTS idx_edge_auth_status ON edge_auth_requests (status)")
+    cursor.execute("CREATE INDEX IF NOT EXISTS idx_edge_auth_expires ON edge_auth_requests (expires_at)")
+    cursor.execute(
+        """
+        CREATE TABLE IF NOT EXISTS edge_sessions (
+            token_hash TEXT PRIMARY KEY,
+            telegram_id INTEGER NOT NULL,
+            created_at TEXT NOT NULL,
+            expires_at TEXT NOT NULL,
+            last_seen_at TEXT NOT NULL,
+            revoked INTEGER NOT NULL DEFAULT 0,
+            revoked_at TEXT,
+            request_id TEXT,
+            user_agent TEXT
+        )
+        """
+    )
+    cursor.execute("CREATE INDEX IF NOT EXISTS idx_edge_sessions_tg ON edge_sessions (telegram_id)")
+    cursor.execute("CREATE INDEX IF NOT EXISTS idx_edge_sessions_expires ON edge_sessions (expires_at)")
+    cursor.execute("CREATE INDEX IF NOT EXISTS idx_edge_sessions_revoked ON edge_sessions (revoked)")
 
     conn.commit()
     conn.close()
@@ -906,12 +1022,13 @@ def build_rules_text() -> str:
         "3. География: Германия и Россия (доступные профили в личном кабинете).\n"
         "4. Оплата: сумма должна быть не ниже тарифа; комиссия платежного сервиса может быть сверху.\n"
         "5. Гарантия: на полный оплаченный срок аренды услуги.\n"
-        "6. Ограничения: 1 активное подключение на 1 ключ; безлимит по трафику в рамках fair-use.\n"
+        "6. Ограничения: 2 активных подключения на 1 ключ; безлимит по трафику в рамках fair-use.\n"
         "7. Возможные блокировки сервисов: P2P/Bittorrent может быть ограничен провайдером.\n"
         "8. Формат выдачи: Subscription URL, VLESS-конфиг и QR для импорта.\n"
         "9. Запрещено: брутфорс, сканирование, DDoS, спам и иные незаконные действия.\n"
-        "10. При нарушениях доступ может быть ограничен без компенсации.\n"
-        f"11. Техническая поддержка: {support_line}"
+        "10. Запрещено использовать сервис для доступа к ресурсам, ограниченным законодательством РФ.\n"
+        "11. При нарушениях доступ может быть ограничен без компенсации.\n"
+        f"12. Техническая поддержка: {support_line}"
     )
 
 
@@ -1288,6 +1405,23 @@ def news_channel_join_url() -> str:
     return required_channel_join_url()
 
 
+def rules_page_url() -> str:
+    source = str(RULES_PAGE_URL or "").strip()
+    if source.startswith("http://"):
+        source = source.replace("http://", "https://", 1)
+    if source.startswith("https://"):
+        return source
+    return "https://telegra.ph/POLZOVATELSKOE-SOGLASHENIE-I-PRAVILA-ISPOLZOVANIYA-02-26"
+
+
+def build_rules_keyboard() -> InlineKeyboardMarkup:
+    return InlineKeyboardMarkup(
+        inline_keyboard=[
+            [InlineKeyboardButton(text="📜 Открыть правила", url=rules_page_url())],
+        ]
+    )
+
+
 def build_news_keyboard() -> InlineKeyboardMarkup | None:
     target_url = news_channel_join_url()
     if not target_url:
@@ -1584,6 +1718,186 @@ def get_all_user_ids() -> list[int]:
     rows = conn.execute("SELECT telegram_id FROM users ORDER BY telegram_id").fetchall()
     conn.close()
     return [int(row["telegram_id"]) for row in rows]
+
+
+def subscription_inactive_for_days(subscription_end: str | None, inactive_days: int) -> bool:
+    expiry = parse_date(subscription_end)
+    if not expiry:
+        return False
+    cutoff = dt.datetime.now() - dt.timedelta(days=max(1, int(inactive_days)))
+    return expiry <= cutoff
+
+
+def get_inactive_subscription_users_for_purge(
+    inactive_days: int = 3,
+    limit: int = 50,
+) -> list[sqlite3.Row]:
+    days = max(1, int(inactive_days))
+    batch = max(1, min(int(limit), 500))
+    cutoff = (dt.datetime.now() - dt.timedelta(days=days)).strftime("%Y-%m-%d %H:%M:%S")
+
+    conn = get_conn()
+    rows = conn.execute(
+        """
+        SELECT telegram_id, username, subscription_end, vless_uuid
+        FROM users
+        WHERE subscription_end IS NOT NULL
+          AND TRIM(subscription_end) != ''
+          AND subscription_end <= ?
+        ORDER BY subscription_end ASC
+        LIMIT ?
+        """,
+        (cutoff, batch),
+    ).fetchall()
+    conn.close()
+    if not ADMIN_TELEGRAM_IDS:
+        return rows
+    return [row for row in rows if int(row["telegram_id"]) not in ADMIN_TELEGRAM_IDS]
+
+
+def user_still_eligible_for_inactive_purge(telegram_id: int, inactive_days: int) -> bool:
+    conn = get_conn()
+    row = conn.execute(
+        "SELECT subscription_end FROM users WHERE telegram_id = ? LIMIT 1",
+        (int(telegram_id),),
+    ).fetchone()
+    conn.close()
+    if not row:
+        return False
+    return subscription_inactive_for_days(str(row["subscription_end"] or "").strip() or None, inactive_days)
+
+
+def purge_user_local_state(
+    telegram_id: int,
+    *,
+    include_payments: bool = False,
+) -> dict[str, int]:
+    target_id = int(telegram_id or 0)
+    if target_id <= 0:
+        return {}
+
+    conn = get_conn()
+    stats: dict[str, int] = {}
+
+    def run_delete(name: str, query: str, params: tuple[Any, ...]) -> None:
+        cursor = conn.execute(query, params)
+        stats[name] = int(cursor.rowcount or 0)
+
+    run_delete(
+        "support_ticket_messages",
+        """
+        DELETE FROM support_ticket_messages
+        WHERE ticket_id IN (
+            SELECT id FROM support_tickets WHERE telegram_id = ?
+        )
+        """,
+        (target_id,),
+    )
+    run_delete(
+        "support_tickets",
+        "DELETE FROM support_tickets WHERE telegram_id = ?",
+        (target_id,),
+    )
+    run_delete(
+        "edge_auth_requests",
+        "DELETE FROM edge_auth_requests WHERE telegram_id = ?",
+        (target_id,),
+    )
+    run_delete(
+        "edge_sessions",
+        "DELETE FROM edge_sessions WHERE telegram_id = ?",
+        (target_id,),
+    )
+    run_delete(
+        "trial_claims",
+        "DELETE FROM trial_claims WHERE telegram_id = ?",
+        (target_id,),
+    )
+    run_delete(
+        "promo_activations",
+        "DELETE FROM promo_activations WHERE telegram_id = ?",
+        (target_id,),
+    )
+    run_delete(
+        "antiabuse_flags",
+        "DELETE FROM antiabuse_flags WHERE telegram_id = ?",
+        (target_id,),
+    )
+    run_delete(
+        "referrals_as_invited",
+        "DELETE FROM referrals WHERE invited_telegram_id = ?",
+        (target_id,),
+    )
+    run_delete(
+        "referrals_as_referrer",
+        "DELETE FROM referrals WHERE referrer_telegram_id = ?",
+        (target_id,),
+    )
+    run_delete(
+        "referral_links",
+        "DELETE FROM referral_links WHERE referrer_telegram_id = ?",
+        (target_id,),
+    )
+    run_delete(
+        "referral_rewards_as_invited",
+        "DELETE FROM referral_rewards WHERE invited_telegram_id = ?",
+        (target_id,),
+    )
+    run_delete(
+        "referral_rewards_as_referrer",
+        "DELETE FROM referral_rewards WHERE referrer_telegram_id = ?",
+        (target_id,),
+    )
+    run_delete(
+        "loyalty_rewards",
+        "DELETE FROM loyalty_rewards WHERE telegram_id = ?",
+        (target_id,),
+    )
+    run_delete(
+        "nps_feedback",
+        "DELETE FROM nps_feedback WHERE telegram_id = ?",
+        (target_id,),
+    )
+    run_delete(
+        "blacklisted_users",
+        "DELETE FROM blacklisted_users WHERE telegram_id = ?",
+        (target_id,),
+    )
+
+    meta_deleted = 0
+    for key in (
+        user_route_mode_meta_key(target_id),
+        antiabuse_strike_meta_key(target_id),
+        antiabuse_soft_block_meta_key(target_id),
+        trial_request_meta_key(target_id),
+    ):
+        cursor = conn.execute("DELETE FROM app_meta WHERE key = ?", (key,))
+        meta_deleted += int(cursor.rowcount or 0)
+
+    cursor = conn.execute(
+        "DELETE FROM app_meta WHERE key LIKE ?",
+        (f"sub_expiry_reminder:{target_id}:%",),
+    )
+    meta_deleted += int(cursor.rowcount or 0)
+    stats["app_meta"] = meta_deleted
+
+    if include_payments:
+        run_delete(
+            "payments",
+            "DELETE FROM payments WHERE telegram_id = ?",
+            (target_id,),
+        )
+
+    run_delete(
+        "users",
+        "DELETE FROM users WHERE telegram_id = ?",
+        (target_id,),
+    )
+
+    conn.commit()
+    conn.close()
+    stats["total_deleted"] = sum(int(value or 0) for value in stats.values())
+    return stats
 
 
 def get_blacklist_reason(telegram_id: int) -> str | None:
@@ -2764,6 +3078,25 @@ def get_admin_notification_targets() -> list[int]:
     return sorted(int(x) for x in ADMIN_TELEGRAM_IDS)
 
 
+def get_admin_daily_report_target() -> tuple[int, int]:
+    chat_id = int(ADMIN_DAILY_REPORT_CHAT_ID or 0)
+    topic_id = int(ADMIN_DAILY_REPORT_TOPIC_ID or 0)
+
+    if chat_id == 0:
+        if ADMIN_NOTIFY_CHAT_IDS:
+            chat_id = sorted(int(x) for x in ADMIN_NOTIFY_CHAT_IDS)[0]
+        elif ADMIN_TELEGRAM_IDS:
+            chat_id = sorted(int(x) for x in ADMIN_TELEGRAM_IDS)[0]
+
+    if topic_id <= 0:
+        topic_id = int(ADMIN_NOTIFY_TOPIC_ID or 0)
+
+    if chat_id > 0:
+        topic_id = 0
+
+    return chat_id, topic_id
+
+
 async def send_admin_notification_text(text: str, parse_mode: str | None = None) -> tuple[int, int]:
     targets = get_admin_notification_targets()
     if not targets:
@@ -2799,6 +3132,28 @@ async def send_admin_notification_text(text: str, parse_mode: str | None = None)
     return sent, failed
 
 
+async def send_admin_daily_report_text(text: str, parse_mode: str | None = None) -> tuple[int, int]:
+    target_chat_id, target_topic_id = get_admin_daily_report_target()
+    if target_chat_id == 0:
+        return 0, 0
+
+    send_kwargs: dict[str, Any] = {}
+    if parse_mode:
+        send_kwargs["parse_mode"] = parse_mode
+    if target_topic_id > 0 and target_chat_id < 0:
+        send_kwargs["message_thread_id"] = target_topic_id
+
+    try:
+        await bot.send_message(int(target_chat_id), text, **send_kwargs)
+        return 1, 0
+    except Exception as exc:  # noqa: BLE001
+        print(
+            "[admin-report] Failed to send daily report "
+            f"(chat={target_chat_id}, topic={target_topic_id or '-'}) : {exc}"
+        )
+        return 0, 1
+
+
 def admin_daily_report_meta_key() -> str:
     return "admin_daily_report_last_at"
 
@@ -2806,7 +3161,8 @@ def admin_daily_report_meta_key() -> str:
 async def maybe_send_admin_daily_report(force: bool = False) -> tuple[bool, str]:
     if not ADMIN_DAILY_REPORT_ENABLED and not force:
         return False, "disabled"
-    if not get_admin_notification_targets():
+    target_chat_id, _ = get_admin_daily_report_target()
+    if target_chat_id == 0:
         return False, "no_targets"
 
     now_at = dt.datetime.now()
@@ -2836,7 +3192,7 @@ async def maybe_send_admin_daily_report(force: bool = False) -> tuple[bool, str]
         f"{format_revenue_sources_lines(daily['sources'])}\n"
     )
 
-    sent, failed = await send_admin_notification_text(text)
+    sent, failed = await send_admin_daily_report_text(text)
     if sent > 0:
         set_app_meta(admin_daily_report_meta_key(), now_str())
         return True, f"sent={sent} failed={failed}"
@@ -2999,7 +3355,11 @@ def get_promocode_activation_stats(code: str) -> tuple[int, int]:
     return int(row["total_activations"] or 0), int(row["used_activations"] or 0)
 
 
-def get_promocodes_for_admin(limit: int = 50) -> list[dict[str, Any]]:
+def get_promocodes_for_admin(
+    limit: int = 50,
+    *,
+    include_archived: bool = False,
+) -> list[dict[str, Any]]:
     conn = get_conn()
     rows = conn.execute(
         """
@@ -3017,21 +3377,133 @@ def get_promocodes_for_admin(limit: int = 50) -> list[dict[str, Any]]:
     for row in rows:
         total, used = get_promocode_activation_stats(str(row["code"]))
         expires = parse_date(row["expires_at"])
+        max_activations = int(row["max_activations"] or 0)
+        is_active = int(row["is_active"] or 0) == 1
+        is_expired = bool(expires and expires <= now)
+        is_exhausted = bool(max_activations > 0 and total >= max_activations)
+        is_usable = bool(is_active and not is_expired and not is_exhausted)
+        if not include_archived and not is_usable:
+            continue
+
+        status = "active"
+        if is_expired:
+            status = "expired"
+        elif is_exhausted:
+            status = "limit_reached"
+        elif not is_active:
+            status = "inactive"
+
         result.append(
             {
                 "code": row["code"],
                 "discount_rub": int(row["discount_rub"] or 0),
                 "expires_at": row["expires_at"],
-                "max_activations": int(row["max_activations"] or 0),
-                "is_active": int(row["is_active"] or 0) == 1,
+                "max_activations": max_activations,
+                "is_active": is_active,
                 "created_at": row["created_at"],
                 "created_by": row["created_by"],
                 "total_activations": total,
                 "used_activations": used,
-                "is_expired": bool(expires and expires <= now),
+                "is_expired": is_expired,
+                "is_exhausted": is_exhausted,
+                "is_usable": is_usable,
+                "status": status,
             }
         )
     return result
+
+
+def delete_promocode(code: str) -> tuple[bool, str]:
+    normalized_code = normalize_promo_code(code)
+    if not PROMO_CODE_RE.fullmatch(normalized_code):
+        return False, "bad_code_format"
+
+    conn = get_conn()
+    row = conn.execute(
+        "SELECT code FROM promo_codes WHERE code = ? LIMIT 1",
+        (normalized_code,),
+    ).fetchone()
+    if not row:
+        conn.close()
+        return False, "promo_not_found"
+
+    conn.execute("DELETE FROM promo_activations WHERE code = ?", (normalized_code,))
+    conn.execute("DELETE FROM promo_codes WHERE code = ?", (normalized_code,))
+    conn.commit()
+    conn.close()
+    return True, "ok"
+
+
+def extend_promocode_expiry(code: str, days: int) -> tuple[bool, str]:
+    normalized_code = normalize_promo_code(code)
+    if not PROMO_CODE_RE.fullmatch(normalized_code):
+        return False, "bad_code_format"
+
+    extend_days = _clamp(_safe_int(days, 0), 0, 3650)
+    if extend_days <= 0:
+        return False, "bad_extend_days"
+
+    conn = get_conn()
+    row = conn.execute(
+        "SELECT expires_at FROM promo_codes WHERE code = ? LIMIT 1",
+        (normalized_code,),
+    ).fetchone()
+    if not row:
+        conn.close()
+        return False, "promo_not_found"
+
+    now = dt.datetime.now()
+    current_expiry = parse_date(row["expires_at"]) or now
+    base = current_expiry if current_expiry > now else now
+    new_expiry = base + dt.timedelta(days=extend_days)
+
+    conn.execute(
+        """
+        UPDATE promo_codes
+        SET expires_at = ?, is_active = 1
+        WHERE code = ?
+        """,
+        (new_expiry.strftime("%Y-%m-%d %H:%M:%S"), normalized_code),
+    )
+    conn.commit()
+    conn.close()
+    return True, "ok"
+
+
+def set_promocode_expiry(code: str, expires_at: str) -> tuple[bool, str]:
+    normalized_code = normalize_promo_code(code)
+    if not PROMO_CODE_RE.fullmatch(normalized_code):
+        return False, "bad_code_format"
+
+    parsed_expiry = parse_datetime_input(expires_at)
+    if not parsed_expiry:
+        return False, "bad_expiry_format"
+
+    conn = get_conn()
+    row = conn.execute(
+        "SELECT code FROM promo_codes WHERE code = ? LIMIT 1",
+        (normalized_code,),
+    ).fetchone()
+    if not row:
+        conn.close()
+        return False, "promo_not_found"
+
+    is_active = 1 if parsed_expiry > dt.datetime.now() else 0
+    conn.execute(
+        """
+        UPDATE promo_codes
+        SET expires_at = ?, is_active = ?
+        WHERE code = ?
+        """,
+        (
+            parsed_expiry.strftime("%Y-%m-%d %H:%M:%S"),
+            is_active,
+            normalized_code,
+        ),
+    )
+    conn.commit()
+    conn.close()
+    return True, "ok"
 
 
 def get_user_active_promocode(telegram_id: int) -> dict[str, Any] | None:
@@ -3492,6 +3964,556 @@ def build_bot_startapp_url(payload: str = "") -> str:
     if not clean_payload:
         return base
     return _append_query_params(base, {"startapp": clean_payload})
+
+
+def parse_edge_auth_start_code(start_token: str | None) -> str | None:
+    raw = str(start_token or "").strip()
+    if not raw:
+        return None
+    token = raw.split(maxsplit=1)[0].strip()
+    match = EDGE_AUTH_START_RE.fullmatch(token)
+    if not match:
+        return None
+    code = str(match.group(1) or "").strip().upper()
+    if not re.fullmatch(r"[A-Z0-9]{8,64}", code):
+        return None
+    return code
+
+
+def parse_site_auth_start_code(start_token: str | None) -> str | None:
+    raw = str(start_token or "").strip()
+    if not raw:
+        return None
+    token = raw.split(maxsplit=1)[0].strip()
+    match = SITE_AUTH_START_RE.fullmatch(token)
+    if not match:
+        return None
+    code = str(match.group(1) or "").strip().upper()
+    if not re.fullmatch(r"[A-Z0-9]{8,64}", code):
+        return None
+    return code
+
+
+def edge_hash_token(raw_token: str) -> str:
+    return hashlib.sha256(str(raw_token or "").encode("utf-8")).hexdigest()
+
+
+def edge_new_token() -> str:
+    return f"{uuid.uuid4().hex}{uuid.uuid4().hex}"
+
+
+def edge_auth_start_payload(auth_code: str) -> str:
+    return f"{EDGE_AUTH_PREFIX}_{str(auth_code or '').strip().upper()}"
+
+
+def site_auth_start_payload(auth_code: str) -> str:
+    return f"{SITE_AUTH_PREFIX}_{str(auth_code or '').strip().upper()}"
+
+
+def edge_status_code_for_error(reason: str) -> int:
+    mapping = {
+        "invalid_json": 400,
+        "missing_request_id": 400,
+        "missing_poll_token": 400,
+        "bad_request_id": 400,
+        "request_not_found": 404,
+        "bad_poll_token": 401,
+        "request_expired": 410,
+        "edge_disabled": 503,
+        "missing_token": 401,
+        "invalid_session": 401,
+        "session_expired": 401,
+        "session_revoked": 401,
+    }
+    return mapping.get(reason, 400)
+
+
+def edge_normalize_proxy_scheme(raw_scheme: str) -> str:
+    scheme = str(raw_scheme or "").strip().lower()
+    if scheme in {"http", "https", "socks4", "socks5"}:
+        return scheme
+    return "http"
+
+
+def edge_server_configs() -> list[dict[str, Any]]:
+    rows: list[dict[str, Any]] = [
+        {
+            "id": "br",
+            "country_code": "BR",
+            "title": EDGE_SERVER_BR_LABEL,
+            "host": EDGE_SERVER_BR_HOST,
+            "port": EDGE_SERVER_BR_PORT,
+            "scheme": edge_normalize_proxy_scheme(EDGE_SERVER_BR_SCHEME),
+            "username": EDGE_SERVER_BR_USERNAME,
+            "password": EDGE_SERVER_BR_PASSWORD,
+        },
+        {
+            "id": "ru",
+            "country_code": "RU",
+            "title": EDGE_SERVER_RU_LABEL,
+            "host": EDGE_SERVER_RU_HOST,
+            "port": EDGE_SERVER_RU_PORT,
+            "scheme": edge_normalize_proxy_scheme(EDGE_SERVER_RU_SCHEME),
+            "username": EDGE_SERVER_RU_USERNAME,
+            "password": EDGE_SERVER_RU_PASSWORD,
+        },
+    ]
+    result: list[dict[str, Any]] = []
+    for item in rows:
+        host = str(item["host"] or "").strip()
+        port = int(item["port"] or 0)
+        if not host or port <= 0:
+            continue
+        result.append(item)
+    return result
+
+
+def edge_servers_payload(
+    *,
+    subscription_active: bool,
+    include_credentials: bool,
+) -> list[dict[str, Any]]:
+    servers = edge_server_configs()
+    payload: list[dict[str, Any]] = []
+    for item in servers:
+        base_item = {
+            "id": str(item["id"]),
+            "country_code": str(item["country_code"]),
+            "title": str(item["title"]),
+            "available": bool(subscription_active),
+        }
+        if subscription_active and include_credentials:
+            username = str(item["username"] or "").strip()
+            password = str(item["password"] or "").strip()
+            base_item.update(
+                {
+                    "host": str(item["host"]),
+                    "port": int(item["port"]),
+                    "scheme": str(item["scheme"]),
+                    "auth_required": bool(username and password),
+                    "username": username or None,
+                    "password": password or None,
+                }
+            )
+        payload.append(base_item)
+    return payload
+
+
+def edge_cleanup_state() -> dict[str, int]:
+    now_at = now_str()
+    auth_cutoff = (dt.datetime.now() - dt.timedelta(days=2)).strftime("%Y-%m-%d %H:%M:%S")
+    session_cutoff = (dt.datetime.now() - dt.timedelta(days=7)).strftime("%Y-%m-%d %H:%M:%S")
+
+    conn = get_conn()
+    auth_expired = conn.execute(
+        """
+        UPDATE edge_auth_requests
+        SET status = 'expired'
+        WHERE status IN ('pending', 'approved')
+          AND expires_at <= ?
+        """,
+        (now_at,),
+    ).rowcount
+    auth_deleted = conn.execute(
+        "DELETE FROM edge_auth_requests WHERE expires_at <= ?",
+        (auth_cutoff,),
+    ).rowcount
+    sessions_revoked = conn.execute(
+        """
+        UPDATE edge_sessions
+        SET revoked = 1,
+            revoked_at = COALESCE(NULLIF(revoked_at, ''), ?)
+        WHERE revoked = 0
+          AND expires_at <= ?
+        """,
+        (now_at, now_at),
+    ).rowcount
+    sessions_deleted = conn.execute(
+        """
+        DELETE FROM edge_sessions
+        WHERE (revoked = 1 AND COALESCE(NULLIF(revoked_at, ''), expires_at, created_at) <= ?)
+           OR expires_at <= ?
+        """,
+        (session_cutoff, session_cutoff),
+    ).rowcount
+    conn.commit()
+    conn.close()
+    return {
+        "auth_expired": int(auth_expired or 0),
+        "auth_deleted": int(auth_deleted or 0),
+        "sessions_revoked": int(sessions_revoked or 0),
+        "sessions_deleted": int(sessions_deleted or 0),
+    }
+
+
+def edge_create_auth_request() -> dict[str, Any]:
+    now_at = dt.datetime.now()
+    expires_at = (now_at + dt.timedelta(seconds=EDGE_AUTH_REQUEST_TTL_SECONDS)).strftime(
+        "%Y-%m-%d %H:%M:%S"
+    )
+    created_at = now_at.strftime("%Y-%m-%d %H:%M:%S")
+
+    for _ in range(10):
+        request_id = uuid.uuid4().hex
+        code = uuid.uuid4().hex[:14].upper()
+        poll_token = edge_new_token()
+        conn = get_conn()
+        try:
+            conn.execute(
+                """
+                INSERT INTO edge_auth_requests (
+                    id,
+                    code,
+                    poll_token_hash,
+                    status,
+                    created_at,
+                    expires_at
+                )
+                VALUES (?, ?, ?, 'pending', ?, ?)
+                """,
+                (
+                    request_id,
+                    code,
+                    edge_hash_token(poll_token),
+                    created_at,
+                    expires_at,
+                ),
+            )
+            conn.commit()
+            conn.close()
+            return {
+                "request_id": request_id,
+                "code": code,
+                "poll_token": poll_token,
+                "created_at": created_at,
+                "expires_at": expires_at,
+            }
+        except sqlite3.IntegrityError:
+            conn.close()
+            continue
+    raise RuntimeError("edge_auth_request_create_failed")
+
+
+def edge_approve_auth_request(
+    auth_code: str,
+    telegram_id: int,
+    username: str | None,
+) -> tuple[bool, str]:
+    code = str(auth_code or "").strip().upper()
+    if not re.fullmatch(r"[A-Z0-9]{8,64}", code):
+        return False, "bad_code"
+    if int(telegram_id) <= 0:
+        return False, "bad_telegram_id"
+
+    now_at = now_str()
+    now_dt = dt.datetime.now()
+    conn = get_conn()
+    row = conn.execute(
+        """
+        SELECT id, status, telegram_id, expires_at
+        FROM edge_auth_requests
+        WHERE code = ?
+        LIMIT 1
+        """,
+        (code,),
+    ).fetchone()
+    if not row:
+        conn.close()
+        return False, "request_not_found"
+
+    status = str(row["status"] or "pending").strip().lower() or "pending"
+    expires_at_dt = parse_date(str(row["expires_at"] or ""))
+    if not expires_at_dt or expires_at_dt <= now_dt:
+        conn.execute(
+            "UPDATE edge_auth_requests SET status = 'expired' WHERE id = ?",
+            (str(row["id"]),),
+        )
+        conn.commit()
+        conn.close()
+        return False, "request_expired"
+
+    existing_telegram_id = int(row["telegram_id"] or 0)
+    if status == "approved" and existing_telegram_id > 0 and existing_telegram_id != int(telegram_id):
+        conn.close()
+        return False, "already_confirmed"
+    if status not in {"pending", "approved"}:
+        conn.close()
+        return False, f"not_pending:{status}"
+
+    conn.execute(
+        """
+        UPDATE edge_auth_requests
+        SET status = 'approved',
+            telegram_id = ?,
+            username = ?,
+            approved_at = ?
+        WHERE id = ?
+        """,
+        (int(telegram_id), str(username or "").strip() or None, now_at, str(row["id"])),
+    )
+    conn.commit()
+    conn.close()
+    return True, "approved"
+
+
+def edge_get_auth_request_for_poll(request_id: str, poll_token: str) -> tuple[dict[str, Any] | None, str]:
+    request_id_raw = str(request_id or "").strip().lower()
+    if not re.fullmatch(r"[0-9a-f]{16,64}", request_id_raw):
+        return None, "bad_request_id"
+    poll_token_raw = str(poll_token or "").strip()
+    if len(poll_token_raw) < 16:
+        return None, "missing_poll_token"
+
+    conn = get_conn()
+    row = conn.execute(
+        """
+        SELECT id, code, poll_token_hash, status, telegram_id, username, created_at, expires_at
+        FROM edge_auth_requests
+        WHERE id = ?
+        LIMIT 1
+        """,
+        (request_id_raw,),
+    ).fetchone()
+    if not row:
+        conn.close()
+        return None, "request_not_found"
+    if not hmac.compare_digest(str(row["poll_token_hash"] or ""), edge_hash_token(poll_token_raw)):
+        conn.close()
+        return None, "bad_poll_token"
+
+    status = str(row["status"] or "pending").strip().lower() or "pending"
+    expires_at_text = str(row["expires_at"] or "")
+    expires_at_dt = parse_date(expires_at_text)
+    if not expires_at_dt or expires_at_dt <= dt.datetime.now():
+        if status in {"pending", "approved"}:
+            conn.execute(
+                "UPDATE edge_auth_requests SET status = 'expired' WHERE id = ?",
+                (request_id_raw,),
+            )
+            conn.commit()
+        conn.close()
+        return None, "request_expired"
+
+    payload = {
+        "id": str(row["id"]),
+        "code": str(row["code"] or ""),
+        "status": status,
+        "telegram_id": int(row["telegram_id"] or 0),
+        "username": str(row["username"] or "").strip() or None,
+        "created_at": str(row["created_at"] or ""),
+        "expires_at": expires_at_text,
+    }
+    conn.close()
+    return payload, "ok"
+
+
+def edge_prune_user_sessions(conn: sqlite3.Connection, telegram_id: int, now_at: str) -> int:
+    rows = conn.execute(
+        """
+        SELECT token_hash
+        FROM edge_sessions
+        WHERE telegram_id = ?
+          AND revoked = 0
+          AND expires_at > ?
+        ORDER BY last_seen_at DESC, created_at DESC
+        """,
+        (int(telegram_id), now_at),
+    ).fetchall()
+    if len(rows) <= EDGE_MAX_ACTIVE_SESSIONS_PER_USER:
+        return 0
+
+    overflow = rows[EDGE_MAX_ACTIVE_SESSIONS_PER_USER :]
+    for row in overflow:
+        conn.execute(
+            """
+            UPDATE edge_sessions
+            SET revoked = 1,
+                revoked_at = COALESCE(NULLIF(revoked_at, ''), ?)
+            WHERE token_hash = ?
+            """,
+            (now_at, str(row["token_hash"])),
+        )
+    return len(overflow)
+
+
+def edge_create_session(
+    telegram_id: int,
+    *,
+    request_id: str | None = None,
+    user_agent: str | None = None,
+) -> dict[str, Any]:
+    if int(telegram_id) <= 0:
+        raise ValueError("bad_telegram_id")
+
+    now_at = now_str()
+    expires_at = (dt.datetime.now() + dt.timedelta(seconds=EDGE_SESSION_TTL_SECONDS)).strftime(
+        "%Y-%m-%d %H:%M:%S"
+    )
+
+    for _ in range(10):
+        token = edge_new_token()
+        token_hash = edge_hash_token(token)
+        conn = get_conn()
+        try:
+            conn.execute(
+                """
+                INSERT INTO edge_sessions (
+                    token_hash,
+                    telegram_id,
+                    created_at,
+                    expires_at,
+                    last_seen_at,
+                    revoked,
+                    request_id,
+                    user_agent
+                )
+                VALUES (?, ?, ?, ?, ?, 0, ?, ?)
+                """,
+                (
+                    token_hash,
+                    int(telegram_id),
+                    now_at,
+                    expires_at,
+                    now_at,
+                    str(request_id or "").strip() or None,
+                    str(user_agent or "").strip()[:256] or None,
+                ),
+            )
+            edge_prune_user_sessions(conn, int(telegram_id), now_at)
+            conn.commit()
+            conn.close()
+            return {"token": token, "expires_at": expires_at}
+        except sqlite3.IntegrityError:
+            conn.close()
+            continue
+    raise RuntimeError("edge_session_create_failed")
+
+
+def edge_extract_bearer_token(request: web.Request) -> str:
+    auth_header = str(request.headers.get("Authorization") or "").strip()
+    if auth_header.lower().startswith("bearer "):
+        return auth_header[7:].strip()
+    return ""
+
+
+def edge_get_session(session_token: str, *, touch_last_seen: bool = True) -> tuple[dict[str, Any] | None, str]:
+    raw_token = str(session_token or "").strip()
+    if len(raw_token) < 16:
+        return None, "missing_token"
+
+    token_hash = edge_hash_token(raw_token)
+    now_at = now_str()
+    now_dt = dt.datetime.now()
+
+    conn = get_conn()
+    row = conn.execute(
+        """
+        SELECT
+            s.token_hash,
+            s.telegram_id,
+            s.created_at,
+            s.expires_at,
+            s.last_seen_at,
+            s.revoked,
+            u.username,
+            u.subscription_end
+        FROM edge_sessions s
+        LEFT JOIN users u ON u.telegram_id = s.telegram_id
+        WHERE s.token_hash = ?
+        LIMIT 1
+        """,
+        (token_hash,),
+    ).fetchone()
+    if not row:
+        conn.close()
+        return None, "invalid_session"
+
+    if int(row["revoked"] or 0) == 1:
+        conn.close()
+        return None, "session_revoked"
+
+    expires_at_text = str(row["expires_at"] or "")
+    expires_at_dt = parse_date(expires_at_text)
+    if not expires_at_dt or expires_at_dt <= now_dt:
+        conn.execute(
+            """
+            UPDATE edge_sessions
+            SET revoked = 1,
+                revoked_at = COALESCE(NULLIF(revoked_at, ''), ?)
+            WHERE token_hash = ?
+            """,
+            (now_at, token_hash),
+        )
+        conn.commit()
+        conn.close()
+        return None, "session_expired"
+
+    if touch_last_seen:
+        conn.execute(
+            "UPDATE edge_sessions SET last_seen_at = ? WHERE token_hash = ?",
+            (now_at, token_hash),
+        )
+        conn.commit()
+
+    payload = {
+        "telegram_id": int(row["telegram_id"] or 0),
+        "username": str(row["username"] or "").strip() or None,
+        "subscription_end": str(row["subscription_end"] or "").strip() or None,
+        "created_at": str(row["created_at"] or ""),
+        "expires_at": expires_at_text,
+    }
+    conn.close()
+    return payload, "ok"
+
+
+def edge_revoke_session(session_token: str) -> bool:
+    raw_token = str(session_token or "").strip()
+    if not raw_token:
+        return False
+    token_hash = edge_hash_token(raw_token)
+    now_at = now_str()
+    conn = get_conn()
+    changed = conn.execute(
+        """
+        UPDATE edge_sessions
+        SET revoked = 1,
+            revoked_at = COALESCE(NULLIF(revoked_at, ''), ?)
+        WHERE token_hash = ?
+        """,
+        (now_at, token_hash),
+    ).rowcount
+    conn.commit()
+    conn.close()
+    return int(changed or 0) > 0
+
+
+def edge_build_me_payload(
+    telegram_id: int,
+    *,
+    include_server_credentials: bool,
+) -> dict[str, Any]:
+    user = get_user(telegram_id)
+    subscription_end = user["subscription_end"] if user else None
+    subscription_active = has_active_subscription(subscription_end)
+    servers = edge_servers_payload(
+        subscription_active=subscription_active,
+        include_credentials=include_server_credentials,
+    )
+    return {
+        "user": {
+            "id": int(telegram_id),
+            "username": user["username"] if user else None,
+            "is_admin": is_admin_user(telegram_id),
+        },
+        "subscription": {
+            "active": subscription_active,
+            "subscription_end": subscription_end,
+        },
+        "servers": servers,
+        "bot_start_url": build_bot_start_url(""),
+        "webapp_url": build_webapp_tab_url("plans"),
+        "support_contact": SUPPORT_CONTACT,
+    }
 
 
 async def build_referral_link(referrer_telegram_id: int) -> str:
@@ -4181,23 +5203,29 @@ def normalize_payment_provider(value: str | None) -> str:
     if raw in {"lzt", "lolz", "lolzpay", "lztmarket", LZT_PROVIDER}:
         return LZT_PROVIDER
     if raw in {"donatepay", DONATEPAY_PROVIDER}:
-        return DONATEPAY_PROVIDER
-    return DONATEPAY_PROVIDER
+        if DONATEPAY_ENABLED:
+            return DONATEPAY_PROVIDER
+        if CRYPTOBOT_ENABLED and CRYPTOBOT_API_TOKEN:
+            return CRYPTOBOT_PROVIDER
+        if LZT_ENABLED and LZT_API_TOKEN and LZT_MERCHANT_ID > 0:
+            return LZT_PROVIDER
+        if SECONDARY_PAYMENT_ENABLED and SECONDARY_PAYMENT_URL:
+            return SECONDARY_PROVIDER
+        return CRYPTOBOT_PROVIDER
+    for candidate in (CRYPTOBOT_PROVIDER, LZT_PROVIDER, SECONDARY_PROVIDER):
+        if payment_provider_is_ready(candidate):
+            return candidate
+    return CRYPTOBOT_PROVIDER
 
 
 def get_active_payment_provider() -> str:
     preferred = normalize_payment_provider(PAYMENT_PROVIDER_PREFERRED)
     if PAYMENT_PROVIDER_PREFERRED and payment_provider_is_ready(preferred):
         return preferred
-    if payment_provider_is_ready(DONATEPAY_PROVIDER):
-        return DONATEPAY_PROVIDER
-    if payment_provider_is_ready(CRYPTOBOT_PROVIDER):
-        return CRYPTOBOT_PROVIDER
-    if payment_provider_is_ready(LZT_PROVIDER):
-        return LZT_PROVIDER
-    if payment_provider_is_ready(SECONDARY_PROVIDER):
-        return SECONDARY_PROVIDER
-    return DONATEPAY_PROVIDER
+    for candidate in (CRYPTOBOT_PROVIDER, LZT_PROVIDER, SECONDARY_PROVIDER, DONATEPAY_PROVIDER):
+        if payment_provider_is_ready(candidate):
+            return candidate
+    return CRYPTOBOT_PROVIDER
 
 
 def payment_provider_label(provider: str | None = None) -> str:
@@ -4214,11 +5242,14 @@ def payment_provider_label(provider: str | None = None) -> str:
 def payment_provider_is_ready(provider: str | None = None) -> bool:
     if provider is None or str(provider).strip() == "":
         return bool(
-            (DONATEPAY_DONATE_BASE_URL and DONATEPAY_API_KEY)
-            or (CRYPTOBOT_ENABLED and CRYPTOBOT_API_TOKEN)
+            (CRYPTOBOT_ENABLED and CRYPTOBOT_API_TOKEN)
             or (LZT_ENABLED and LZT_API_TOKEN and LZT_MERCHANT_ID > 0)
             or (SECONDARY_PAYMENT_ENABLED and SECONDARY_PAYMENT_URL)
+            or (DONATEPAY_ENABLED and DONATEPAY_DONATE_BASE_URL and DONATEPAY_API_KEY)
         )
+    raw = str(provider or "").strip().lower()
+    if raw in {"donatepay", DONATEPAY_PROVIDER}:
+        return bool(DONATEPAY_ENABLED and DONATEPAY_DONATE_BASE_URL and DONATEPAY_API_KEY)
     normalized = normalize_payment_provider(provider)
     if normalized == SECONDARY_PROVIDER:
         return bool(SECONDARY_PAYMENT_ENABLED and SECONDARY_PAYMENT_URL)
@@ -4226,7 +5257,9 @@ def payment_provider_is_ready(provider: str | None = None) -> bool:
         return bool(CRYPTOBOT_ENABLED and CRYPTOBOT_API_TOKEN)
     if normalized == LZT_PROVIDER:
         return bool(LZT_ENABLED and LZT_API_TOKEN and LZT_MERCHANT_ID > 0)
-    return bool(DONATEPAY_DONATE_BASE_URL and DONATEPAY_API_KEY)
+    if normalized == DONATEPAY_PROVIDER:
+        return bool(DONATEPAY_ENABLED and DONATEPAY_DONATE_BASE_URL and DONATEPAY_API_KEY)
+    return False
 
 
 def payment_order_cooldown_left(telegram_id: int) -> int:
@@ -4653,10 +5686,8 @@ def build_main_keyboard(telegram_id: int | None = None) -> ReplyKeyboardMarkup:
         [KeyboardButton(text="👤 Личный кабинет"), KeyboardButton(text="📚 Инструкции")],
         [KeyboardButton(text="🛟 Поддержка"), KeyboardButton(text="📜 Правила")],
         [KeyboardButton(text=NEWS_BUTTON_TEXT)],
-        [KeyboardButton(text="🔥 Акции")],
+        [KeyboardButton(text="🔥 Акции"), KeyboardButton(text="🌐 Перейти на сайт")],
     ]
-    if REFERRAL_ENABLED:
-        keyboard_rows.append([KeyboardButton(text="👥 Реферальная программа")])
     if telegram_id is not None and is_admin_user(telegram_id):
         keyboard_rows.append([KeyboardButton(text="🛠 Админ")])
 
@@ -4702,6 +5733,21 @@ def build_sale_keyboard() -> InlineKeyboardMarkup:
     return InlineKeyboardMarkup(inline_keyboard=rows)
 
 
+def public_site_url() -> str:
+    base = resolved_public_base_url().rstrip("/")
+    if base:
+        return f"{base}/site"
+    return "https://web.boxvolt.shop/site"
+
+
+def build_public_site_open_keyboard() -> InlineKeyboardMarkup:
+    return InlineKeyboardMarkup(
+        inline_keyboard=[
+            [InlineKeyboardButton(text="🌐 Перейти на сайт", url=public_site_url())],
+        ]
+    )
+
+
 def build_referral_keyboard(referral_link: str) -> InlineKeyboardMarkup:
     return InlineKeyboardMarkup(
         inline_keyboard=[
@@ -4729,7 +5775,6 @@ def build_payment_keyboard(
     payment_url: str,
     order_id: str,
     provider: str | None = None,
-    donatepay_url: str = "",
     cryptobot_url: str = "",
     lzt_url: str = "",
     secondary_payment_url: str = "",
@@ -4737,10 +5782,9 @@ def build_payment_keyboard(
     rows: list[list[InlineKeyboardButton]] = []
     normalized_provider = normalize_payment_provider(provider)
     mini_app_url = build_webapp_order_url(order_id, auto_pay=False)
-    donatepay_url_clean = str(donatepay_url or "").strip()
     cryptobot_url_clean = str(cryptobot_url or "").strip()
     lzt_url_clean = str(lzt_url or "").strip()
-    if mini_app_url and (donatepay_url_clean or cryptobot_url_clean or lzt_url_clean):
+    if mini_app_url and (cryptobot_url_clean or lzt_url_clean):
         rows.append(
             [
                 InlineKeyboardButton(
@@ -4762,15 +5806,6 @@ def build_payment_keyboard(
                 InlineKeyboardButton(
                     text=f"💸 Оплатить в {primary_label}",
                     url=payment_url,
-                )
-            ]
-        )
-    if donatepay_url_clean and donatepay_url_clean != str(payment_url or "").strip():
-        rows.append(
-            [
-                InlineKeyboardButton(
-                    text="💸 Оплатить в DonatePay",
-                    url=donatepay_url_clean,
                 )
             ]
         )
@@ -4991,6 +6026,14 @@ def build_subscription_delivery_keyboard(telegram_id: int) -> InlineKeyboardMark
     profile_url = build_subscription_profile_url(telegram_id)
     if profile_url:
         rows.append([InlineKeyboardButton(text="🔗 Открыть Subscription URL", url=profile_url)])
+    rows.append(
+        [
+            InlineKeyboardButton(
+                text="🧩 Установка расширений",
+                url=build_edge_install_url(),
+            )
+        ]
+    )
     rows.append([InlineKeyboardButton(text="📚 Инструкции", callback_data="guides:open")])
     return InlineKeyboardMarkup(inline_keyboard=rows)
 
@@ -5083,7 +6126,7 @@ def build_payment_success_url(order_id: str, provider: str | None = None) -> str
     clean_order_id = str(order_id or "").strip().upper()
     base = resolved_public_base_url()
     if not base:
-        base = "https://connect.boxvolt.shop"
+        base = "https://web.boxvolt.shop"
 
     success_url = f"{base}/pay/success"
     params: dict[str, str] = {}
@@ -5580,7 +6623,7 @@ async def build_payment_links_for_order(
     cryptobot_url = ""
     lzt_url = ""
 
-    if payment_provider_is_ready(DONATEPAY_PROVIDER):
+    if DONATEPAY_ENABLED and payment_provider_is_ready(DONATEPAY_PROVIDER):
         donatepay_url = build_donatepay_url(
             order_id,
             amount_rub,
@@ -5612,13 +6655,13 @@ async def build_payment_links_for_order(
 
     payment_url = ""
     if normalized == CRYPTOBOT_PROVIDER:
-        payment_url = cryptobot_url or donatepay_url or lzt_url
+        payment_url = cryptobot_url or lzt_url
     elif normalized == LZT_PROVIDER:
-        payment_url = lzt_url or donatepay_url or cryptobot_url
+        payment_url = lzt_url or cryptobot_url
     elif normalized == SECONDARY_PROVIDER:
         payment_url = ""
     else:
-        payment_url = donatepay_url or cryptobot_url or lzt_url
+        payment_url = cryptobot_url or lzt_url
 
     secondary_url = (
         build_secondary_payment_url(
@@ -5775,6 +6818,13 @@ def build_subscription_profile_url(telegram_id: int) -> str:
     return f"{sub_url}/profile"
 
 
+def build_edge_install_url() -> str:
+    base = resolved_public_base_url()
+    if not base:
+        base = "https://web.boxvolt.shop"
+    return f"{base}/edge/install"
+
+
 def gigabytes_to_bytes(total_gb: int) -> int:
     if total_gb <= 0:
         return 0
@@ -5828,11 +6878,13 @@ def build_subscription_text_block(telegram_id: int) -> str:
     sub_url = build_subscription_url(telegram_id)
     if not sub_url:
         return ""
-    return (
-        "🔄 URL-подписка для Happ/V2rayTun (автообновление):\n"
-        f"{as_copyable_key(sub_url)}\n"
-        "Импортируйте как Subscription URL."
-    )
+
+    lines = [
+        "🔄 URL-подписка для Happ/V2rayTun (автообновление):",
+        as_copyable_key(sub_url),
+    ]
+    lines.append("Импортируйте как Subscription URL.")
+    return "\n".join(lines)
 
 
 def build_subscription_qr_data_url(subscription_url: str) -> str:
@@ -6497,7 +7549,7 @@ async def sync_pending_payment_order(order_id: str) -> tuple[bool, str]:
         return False, f"not_pending:{payment['status']}"
 
     sync_attempted = False
-    if DONATEPAY_API_KEY:
+    if DONATEPAY_ENABLED and DONATEPAY_API_KEY:
         sync_attempted = True
         await process_donatepay_sync(target_order_id=order_id)
     if payment_provider_is_ready(CRYPTOBOT_PROVIDER):
@@ -6517,6 +7569,60 @@ async def sync_pending_payment_order(order_id: str) -> tuple[bool, str]:
     return False, "not_paid"
 
 
+async def purge_inactive_subscriptions() -> dict[str, int]:
+    stats = {
+        "candidates": 0,
+        "users_deleted": 0,
+        "local_rows_deleted": 0,
+        "xui_targets": 0,
+        "xui_deleted": 0,
+        "xui_errors": 0,
+        "skipped": 0,
+    }
+    if not SUBSCRIPTION_INACTIVE_PURGE_ENABLED:
+        return stats
+
+    inactive_users = get_inactive_subscription_users_for_purge(
+        inactive_days=SUBSCRIPTION_INACTIVE_PURGE_DAYS,
+        limit=SUBSCRIPTION_INACTIVE_PURGE_BATCH,
+    )
+    if not inactive_users:
+        return stats
+
+    stats["candidates"] = len(inactive_users)
+    for row in inactive_users:
+        telegram_id = int(row["telegram_id"] or 0)
+        if telegram_id <= 0:
+            stats["skipped"] += 1
+            continue
+        if not user_still_eligible_for_inactive_purge(telegram_id, SUBSCRIPTION_INACTIVE_PURGE_DAYS):
+            stats["skipped"] += 1
+            continue
+
+        user_uuid = str(row["vless_uuid"] or "").strip() or None
+        if SUBSCRIPTION_INACTIVE_PURGE_XUI:
+            xui_stats = await xui_delete_inactive_user_clients(
+                telegram_id,
+                user_uuid=user_uuid,
+            )
+            stats["xui_targets"] += int(xui_stats.get("targets") or 0)
+            stats["xui_deleted"] += int(xui_stats.get("deleted") or 0)
+            stats["xui_errors"] += int(xui_stats.get("errors") or 0)
+
+        local_stats = purge_user_local_state(
+            telegram_id,
+            include_payments=SUBSCRIPTION_INACTIVE_PURGE_INCLUDE_PAYMENTS,
+        )
+        deleted_users = int(local_stats.get("users") or 0)
+        if deleted_users > 0:
+            stats["users_deleted"] += deleted_users
+            stats["local_rows_deleted"] += int(local_stats.get("total_deleted") or 0)
+        else:
+            stats["skipped"] += 1
+
+    return stats
+
+
 async def payments_cleanup_loop() -> None:
     interval = max(20, PAYMENT_CLEANUP_INTERVAL_SECONDS)
     while True:
@@ -6528,6 +7634,31 @@ async def payments_cleanup_loop() -> None:
                 cleaned = prune_old_suspicious_flags(ANTIABUSE_FLAG_RETENTION_DAYS)
                 if cleaned > 0:
                     print(f"[antiabuse] Pruned old resolved flags: {cleaned}")
+            edge_stats = edge_cleanup_state()
+            if any(int(value or 0) > 0 for value in edge_stats.values()):
+                print(
+                    "[edge] Cleanup: "
+                    f"auth_expired={edge_stats['auth_expired']} "
+                    f"auth_deleted={edge_stats['auth_deleted']} "
+                    f"sessions_revoked={edge_stats['sessions_revoked']} "
+                    f"sessions_deleted={edge_stats['sessions_deleted']}"
+                )
+            purge_stats = await purge_inactive_subscriptions()
+            if (
+                int(purge_stats["users_deleted"]) > 0
+                or int(purge_stats["xui_deleted"]) > 0
+                or int(purge_stats["xui_errors"]) > 0
+            ):
+                print(
+                    "[subscriptions] Purge: "
+                    f"candidates={purge_stats['candidates']} "
+                    f"users_deleted={purge_stats['users_deleted']} "
+                    f"local_rows_deleted={purge_stats['local_rows_deleted']} "
+                    f"xui_targets={purge_stats['xui_targets']} "
+                    f"xui_deleted={purge_stats['xui_deleted']} "
+                    f"xui_errors={purge_stats['xui_errors']} "
+                    f"skipped={purge_stats['skipped']}"
+                )
         except asyncio.CancelledError:
             raise
         except Exception as exc:  # noqa: BLE001
@@ -6616,7 +7747,6 @@ async def send_pending_payment_reminders() -> None:
                     links["payment_url"],
                     order_id,
                     provider,
-                    donatepay_url=links["donatepay_payment_url"],
                     cryptobot_url=links["cryptobot_payment_url"],
                     lzt_url=links["lzt_payment_url"],
                     secondary_payment_url=links["secondary_payment_url"],
@@ -7389,13 +8519,20 @@ async def xui_get_client_traffic_bytes(
     return upload_bytes, download_bytes, total_bytes
 
 
-async def xui_delete_client(
+async def xui_delete_client_for_inbound(
     client: httpx.AsyncClient,
     cookies: httpx.Cookies,
     client_uuid: str,
+    *,
+    inbound_id: int = INBOUND_ID,
+    xui_url: str | None = None,
 ) -> None:
+    endpoint = str(xui_url or XUI_URL).strip().rstrip("/")
+    target_inbound_id = int(inbound_id)
+    if target_inbound_id <= 0:
+        raise RuntimeError("3x-ui del client inbound id is invalid")
     resp = await client.post(
-        f"{XUI_URL}/panel/api/inbounds/{INBOUND_ID}/delClient/{client_uuid}",
+        f"{endpoint}/panel/api/inbounds/{target_inbound_id}/delClient/{client_uuid}",
         cookies=cookies,
     )
     resp.raise_for_status()
@@ -7405,6 +8542,20 @@ async def xui_delete_client(
         return
     if isinstance(body, dict) and body.get("success") is False:
         raise RuntimeError(f"3x-ui del client failed: {body}")
+
+
+async def xui_delete_client(
+    client: httpx.AsyncClient,
+    cookies: httpx.Cookies,
+    client_uuid: str,
+) -> None:
+    await xui_delete_client_for_inbound(
+        client,
+        cookies,
+        client_uuid,
+        inbound_id=INBOUND_ID,
+        xui_url=XUI_URL,
+    )
 
 
 def build_xui_client_payload(
@@ -7599,6 +8750,158 @@ def youtube_profile_display_name() -> str:
 
 def youtube_inbound_email(telegram_id: int) -> str:
     return f"{telegram_id}-yt"
+
+
+def build_xui_cleanup_targets() -> list[dict[str, Any]]:
+    targets: list[dict[str, Any]] = []
+    seen: set[tuple[str, int]] = set()
+
+    def add_target(
+        label: str,
+        inbound_id: int,
+        xui_url: str,
+        xui_username: str,
+        xui_password: str,
+    ) -> None:
+        endpoint = str(xui_url or "").strip().rstrip("/")
+        username = str(xui_username or "").strip()
+        password = str(xui_password or "").strip()
+        target_inbound = max(0, int(inbound_id))
+        if target_inbound <= 0 or not all([endpoint, username, password]):
+            return
+        dedupe_key = (endpoint, target_inbound)
+        if dedupe_key in seen:
+            return
+        seen.add(dedupe_key)
+        targets.append(
+            {
+                "label": label,
+                "inbound_id": target_inbound,
+                "xui_url": endpoint,
+                "xui_username": username,
+                "xui_password": password,
+            }
+        )
+
+    add_target("main", INBOUND_ID, XUI_URL, XUI_USERNAME, XUI_PASSWORD)
+
+    speed_has_custom_endpoint = bool(SPEED_PROFILE_XUI_URL)
+    add_target(
+        "speed",
+        SPEED_INBOUND_ID,
+        SPEED_PROFILE_XUI_URL if speed_has_custom_endpoint else XUI_URL,
+        SPEED_PROFILE_XUI_USERNAME if speed_has_custom_endpoint else XUI_USERNAME,
+        SPEED_PROFILE_XUI_PASSWORD if speed_has_custom_endpoint else XUI_PASSWORD,
+    )
+
+    reserve_has_custom_endpoint = bool(ROUTE_RESERVE_XUI_URL)
+    add_target(
+        "reserve",
+        ROUTE_RESERVE_INBOUND_ID,
+        ROUTE_RESERVE_XUI_URL if reserve_has_custom_endpoint else XUI_URL,
+        ROUTE_RESERVE_XUI_USERNAME if reserve_has_custom_endpoint else XUI_USERNAME,
+        ROUTE_RESERVE_XUI_PASSWORD if reserve_has_custom_endpoint else XUI_PASSWORD,
+    )
+
+    youtube_xui_url = XUI_URL
+    youtube_xui_username = XUI_USERNAME
+    youtube_xui_password = XUI_PASSWORD
+    if reserve_has_custom_endpoint and YOUTUBE_INBOUND_ID == ROUTE_RESERVE_INBOUND_ID and ROUTE_RESERVE_INBOUND_ID > 0:
+        youtube_xui_url = ROUTE_RESERVE_XUI_URL
+        youtube_xui_username = ROUTE_RESERVE_XUI_USERNAME
+        youtube_xui_password = ROUTE_RESERVE_XUI_PASSWORD
+    elif speed_has_custom_endpoint and YOUTUBE_INBOUND_ID == SPEED_INBOUND_ID and SPEED_INBOUND_ID > 0:
+        youtube_xui_url = SPEED_PROFILE_XUI_URL
+        youtube_xui_username = SPEED_PROFILE_XUI_USERNAME
+        youtube_xui_password = SPEED_PROFILE_XUI_PASSWORD
+    add_target(
+        "youtube",
+        YOUTUBE_INBOUND_ID,
+        youtube_xui_url,
+        youtube_xui_username,
+        youtube_xui_password,
+    )
+
+    return targets
+
+
+async def xui_delete_inactive_user_clients(
+    telegram_id: int,
+    *,
+    user_uuid: str | None = None,
+) -> dict[str, int]:
+    target_id = int(telegram_id)
+    if target_id <= 0:
+        return {"targets": 0, "deleted": 0, "errors": 0}
+
+    cleanup_targets = build_xui_cleanup_targets()
+    if not cleanup_targets:
+        return {"targets": 0, "deleted": 0, "errors": 0}
+
+    email_candidates = {
+        str(target_id),
+        speed_inbound_email(target_id),
+        reserve_inbound_email(target_id),
+        youtube_inbound_email(target_id),
+    }
+    uuid_candidates = {
+        str(user_uuid or "").strip(),
+    }
+    uuid_candidates = {item for item in uuid_candidates if item}
+
+    grouped_targets: dict[tuple[str, str, str], list[dict[str, Any]]] = {}
+    for target in cleanup_targets:
+        endpoint_key = (
+            str(target["xui_url"]),
+            str(target["xui_username"]),
+            str(target["xui_password"]),
+        )
+        grouped_targets.setdefault(endpoint_key, []).append(target)
+
+    stats = {"targets": len(cleanup_targets), "deleted": 0, "errors": 0}
+    for (endpoint, username, password), endpoint_targets in grouped_targets.items():
+        try:
+            async with httpx.AsyncClient(timeout=20.0) as client:
+                cookies = await xui_login_with_endpoint(
+                    client,
+                    xui_url=endpoint,
+                    xui_username=username,
+                    xui_password=password,
+                )
+                for target in endpoint_targets:
+                    inbound_id = int(target["inbound_id"])
+                    inbound_obj = await xui_get_inbound_by_id(
+                        client,
+                        cookies,
+                        inbound_id,
+                        xui_url=endpoint,
+                    )
+                    inbound_clients = parse_inbound_clients(inbound_obj)
+                    delete_targets: list[str] = []
+                    for item in inbound_clients:
+                        client_uuid = str(item.get("id") or "").strip()
+                        if not client_uuid:
+                            continue
+                        client_email = str(item.get("email") or "").strip()
+                        if client_uuid in uuid_candidates or client_email in email_candidates:
+                            if client_uuid not in delete_targets:
+                                delete_targets.append(client_uuid)
+
+                    for client_uuid in delete_targets:
+                        await xui_delete_client_for_inbound(
+                            client,
+                            cookies,
+                            client_uuid,
+                            inbound_id=inbound_id,
+                            xui_url=endpoint,
+                        )
+                        stats["deleted"] += 1
+        except Exception as exc:  # noqa: BLE001
+            labels = ", ".join(str(target.get("label") or "target") for target in endpoint_targets)
+            print(f"[xui] Cleanup failed for {target_id} ({labels}): {exc}")
+            stats["errors"] += 1
+
+    return stats
 
 
 async def generate_vless_link_with_options(
@@ -8181,7 +9484,10 @@ def save_user_uuid(telegram_id: int, user_uuid: str) -> None:
 
 def mark_payment_paid(order_id: str, payload: dict[str, Any]) -> None:
     provider_hint = normalize_payment_provider(payload.get("provider")) if isinstance(payload, dict) else ""
-    if provider_hint not in {DONATEPAY_PROVIDER, CRYPTOBOT_PROVIDER, LZT_PROVIDER, SECONDARY_PROVIDER}:
+    allowed_providers = {CRYPTOBOT_PROVIDER, LZT_PROVIDER, SECONDARY_PROVIDER}
+    if DONATEPAY_ENABLED:
+        allowed_providers.add(DONATEPAY_PROVIDER)
+    if provider_hint not in allowed_providers:
         provider_hint = ""
     conn = get_conn()
     if provider_hint:
@@ -8435,6 +9741,9 @@ async def process_paid_order(order_id: str, payload: dict[str, Any]) -> tuple[bo
         telegram_id = int(payment["telegram_id"])
         new_end = update_user_subscription(telegram_id, int(payment["days"]))
         mark_payment_paid(order_id, payload)
+        payment_after = get_payment(order_id, apply_expiry=False)
+        if payment_after:
+            payment = payment_after
         try:
             consume_promocode_for_paid_order(order_id)
         except Exception as exc:  # noqa: BLE001
@@ -8627,32 +9936,6 @@ async def healthcheck(_: web.Request) -> web.Response:
 
 def collect_public_status_snapshot() -> dict[str, Any]:
     now_at = dt.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-    conn = get_conn()
-    users_row = conn.execute("SELECT COUNT(*) AS cnt FROM users").fetchone()
-    active_row = conn.execute(
-        """
-        SELECT COUNT(*) AS cnt
-        FROM users
-        WHERE subscription_end IS NOT NULL
-          AND subscription_end != ''
-          AND subscription_end > ?
-        """,
-        (now_at,),
-    ).fetchone()
-    pending_row = conn.execute(
-        "SELECT COUNT(*) AS cnt FROM payments WHERE status = 'pending'"
-    ).fetchone()
-    paid_today_row = conn.execute(
-        """
-        SELECT COUNT(*) AS cnt, COALESCE(SUM(amount_rub), 0) AS revenue_rub
-        FROM payments
-        WHERE status = 'paid'
-          AND paid_at >= ?
-        """,
-        ((dt.datetime.now() - dt.timedelta(hours=24)).strftime("%Y-%m-%d %H:%M:%S"),),
-    ).fetchone()
-    conn.close()
-
     provider = get_active_payment_provider()
     provider_ready = payment_provider_is_ready(provider)
     backup_last_success = get_app_meta(auto_backup_last_success_key())
@@ -8667,11 +9950,6 @@ def collect_public_status_snapshot() -> dict[str, Any]:
         "payment_provider": provider,
         "payment_provider_label": payment_provider_label(provider),
         "payment_provider_ready": provider_ready,
-        "users_total": int(users_row["cnt"] or 0) if users_row else 0,
-        "active_subscriptions": int(active_row["cnt"] or 0) if active_row else 0,
-        "pending_orders": int(pending_row["cnt"] or 0) if pending_row else 0,
-        "paid_24h_count": int(paid_today_row["cnt"] or 0) if paid_today_row else 0,
-        "paid_24h_revenue_rub": float(paid_today_row["revenue_rub"] or 0.0) if paid_today_row else 0.0,
         "backup_last_success": backup_last_success,
         "backup_last_attempt": backup_last_attempt,
     }
@@ -8688,48 +9966,161 @@ def render_public_status_html(snapshot: dict[str, Any]) -> str:
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>BoxVolt Status</title>
+  <link rel="icon" type="image/png" sizes="32x32" href="/icon.png?v=2">
+  <link rel="icon" type="image/png" sizes="192x192" href="/icon.png?v=2">
+  <link rel="shortcut icon" type="image/png" href="/icon.png?v=2">
+  <link rel="apple-touch-icon" href="/icon.png?v=2">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@500;700;800&family=Sora:wght@600;700;800&display=swap" rel="stylesheet">
   <style>
     :root {{
-      --bg:#06131a;
-      --panel:#0e2430;
-      --line:#1b3c4d;
-      --text:#dff7ff;
-      --muted:#8db8c8;
-      --ok:#8ef7c4;
-      --bad:#ffb8b8;
+      --bg:#05070c;
+      --bg-soft:#0c111b;
+      --bg-mid:#11182a;
+      --panel:rgba(20, 27, 41, 0.72);
+      --panel-soft:rgba(14, 20, 33, 0.74);
+      --line:rgba(255, 255, 255, 0.16);
+      --line-soft:rgba(255, 255, 255, 0.1);
+      --text:#f3f5f8;
+      --muted:#aeb6c5;
+      --ok:#45d39c;
+      --bad:#ff7e79;
+      --accent:#ff9e1b;
+      --shadow:0 28px 56px rgba(0, 0, 0, 0.45);
     }}
     * {{ box-sizing:border-box; }}
     body {{
       margin:0;
-      font-family: "Segoe UI", "Trebuchet MS", sans-serif;
-      background: radial-gradient(1200px 600px at 10% -10%, #0f2e3d, transparent 60%), var(--bg);
+      font-family:"Manrope", "Segoe UI", sans-serif;
+      background:
+        radial-gradient(950px 480px at 18% -24%, rgba(255, 158, 27, 0.24), transparent 60%),
+        radial-gradient(820px 480px at 100% -18%, rgba(79, 161, 255, 0.16), transparent 58%),
+        radial-gradient(620px 360px at -4% 100%, rgba(69, 211, 156, 0.13), transparent 64%),
+        linear-gradient(160deg, var(--bg-mid), var(--bg-soft) 50%, var(--bg));
       color:var(--text);
       min-height:100vh;
       display:flex;
       align-items:flex-start;
       justify-content:center;
       padding:28px 12px;
+      overflow-x:hidden;
+      position:relative;
+    }}
+    body::before,
+    body::after {{
+      content:"";
+      position:fixed;
+      border-radius:999px;
+      pointer-events:none;
+      z-index:0;
+    }}
+    body::before {{
+      width:340px;
+      height:340px;
+      right:-120px;
+      top:-120px;
+      background:radial-gradient(circle, rgba(255, 158, 27, 0.18), transparent 70%);
+    }}
+    body::after {{
+      width:320px;
+      height:320px;
+      left:-120px;
+      bottom:-140px;
+      background:radial-gradient(circle, rgba(92, 160, 255, 0.17), transparent 70%);
     }}
     .card {{
       width:min(760px, 100%);
-      background:linear-gradient(180deg, rgba(14,36,48,.95), rgba(9,26,34,.95));
+      background:
+        linear-gradient(145deg, rgba(255, 255, 255, 0.07), rgba(255, 255, 255, 0.01)),
+        linear-gradient(165deg, var(--panel), var(--panel-soft));
       border:1px solid var(--line);
-      border-radius:16px;
-      padding:18px;
+      border-radius:24px;
+      padding:20px;
+      box-shadow:var(--shadow);
+      position:relative;
+      overflow:hidden;
+      z-index:1;
+      backdrop-filter:blur(18px) saturate(130%);
+      -webkit-backdrop-filter:blur(18px) saturate(130%);
+      isolation:isolate;
     }}
-    h1 {{ margin:0 0 8px; font-size:28px; }}
-    .meta {{ color:var(--muted); font-size:13px; margin-bottom:14px; }}
+    .card::before {{
+      content:"";
+      position:absolute;
+      inset:0;
+      border-radius:inherit;
+      border:1px solid rgba(255,255,255,0.08);
+      pointer-events:none;
+    }}
+    .head {{
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      gap:10px;
+      flex-wrap:wrap;
+      margin-bottom:6px;
+    }}
+    h1 {{
+      margin:0;
+      font-size:28px;
+      font-family:"Sora", "Manrope", sans-serif;
+      letter-spacing:.01em;
+    }}
+    .meta {{
+      display:inline-flex;
+      align-items:center;
+      padding:8px 12px;
+      border-radius:999px;
+      border:1px solid var(--line-soft);
+      background:rgba(255,255,255,.06);
+      color:var(--muted);
+      font-size:13px;
+      margin-bottom:14px;
+      backdrop-filter:blur(10px);
+      -webkit-backdrop-filter:blur(10px);
+    }}
+    .status-row {{
+      display:flex;
+      flex-wrap:wrap;
+      gap:8px;
+      margin-bottom:12px;
+    }}
+    .state-pill {{
+      display:inline-flex;
+      align-items:center;
+      border-radius:999px;
+      border:1px solid var(--line-soft);
+      background:rgba(255,255,255,.07);
+      padding:8px 12px;
+      font-size:14px;
+      font-weight:700;
+      backdrop-filter:blur(10px);
+      -webkit-backdrop-filter:blur(10px);
+    }}
+    .state-pill.ok {{
+      color:var(--ok);
+      border-color:rgba(69, 211, 156, 0.45);
+      background:rgba(10, 87, 63, 0.32);
+    }}
+    .state-pill.bad {{
+      color:var(--bad);
+      border-color:rgba(255, 126, 121, 0.5);
+      background:rgba(126, 33, 45, 0.32);
+    }}
     .grid {{
       display:grid;
       grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
-      gap:10px;
-      margin-top:12px;
+      gap:11px;
     }}
     .item {{
-      border:1px solid var(--line);
-      border-radius:12px;
-      padding:10px;
-      background:rgba(255,255,255,.02);
+      border:1px solid var(--line-soft);
+      border-radius:14px;
+      padding:11px;
+      background:rgba(255,255,255,.05);
+      box-shadow:inset 0 1px 0 rgba(255,255,255,0.05);
+      backdrop-filter:blur(10px);
+      -webkit-backdrop-filter:blur(10px);
     }}
     .k {{ color:var(--muted); font-size:12px; }}
     .v {{ font-size:16px; margin-top:4px; }}
@@ -8737,36 +10128,212 @@ def render_public_status_html(snapshot: dict[str, Any]) -> str:
     .bad {{ color:var(--bad); }}
     .json {{
       display:inline-block;
-      margin-top:14px;
+      margin-top:12px;
       color:var(--text);
       text-decoration:none;
-      border:1px solid var(--line);
+      border:1px solid var(--line-soft);
       border-radius:999px;
-      padding:8px 12px;
+      padding:10px 14px;
+      font-weight:800;
+      background:rgba(255,255,255,.07);
+      transition:transform .16s ease, border-color .16s ease, background .16s ease;
+      backdrop-filter:blur(10px);
+      -webkit-backdrop-filter:blur(10px);
+    }}
+    .json:hover {{
+      transform:translateY(-1px);
+      border-color:rgba(255, 158, 27, 0.52);
+      background:rgba(255,255,255,.12);
+    }}
+    @media (max-width: 640px) {{
+      h1 {{ font-size:24px; }}
+      .card {{ border-radius:18px; padding:16px; }}
     }}
   </style>
 </head>
 <body>
   <main class="card">
-    <h1>BoxVolt Status</h1>
+    <div class="head">
+      <h1>BoxVolt Status</h1>
+      <a class="json" href="/status.json" target="_blank" rel="noopener">Открыть JSON</a>
+    </div>
     <div class="meta">Обновлено: {html.escape(str(snapshot.get("timestamp") or "-"))}</div>
-    <div class="v {'bad' if maintenance else 'ok'}">{html.escape(maintenance_badge)}</div>
-    <div class="v {'ok' if provider_ready else 'bad'}">{html.escape(provider_badge)}</div>
+    <div class="status-row">
+      <div class="state-pill {'bad' if maintenance else 'ok'}">{html.escape(maintenance_badge)}</div>
+      <div class="state-pill {'ok' if provider_ready else 'bad'}">{html.escape(provider_badge)}</div>
+    </div>
     <div class="grid">
       <div class="item"><div class="k">Провайдер оплаты</div><div class="v">{html.escape(str(snapshot.get("payment_provider_label") or "-"))}</div></div>
-      <div class="item"><div class="k">Пользователи</div><div class="v">{int(snapshot.get("users_total") or 0)}</div></div>
-      <div class="item"><div class="k">Активные подписки</div><div class="v">{int(snapshot.get("active_subscriptions") or 0)}</div></div>
-      <div class="item"><div class="k">Ожидают оплаты</div><div class="v">{int(snapshot.get("pending_orders") or 0)}</div></div>
-      <div class="item"><div class="k">Оплат за 24ч</div><div class="v">{int(snapshot.get("paid_24h_count") or 0)}</div></div>
-      <div class="item"><div class="k">Выручка за 24ч</div><div class="v">{format_rub_value(float(snapshot.get("paid_24h_revenue_rub") or 0.0))} ₽</div></div>
       <div class="item"><div class="k">Последний backup</div><div class="v">{html.escape(str(snapshot.get("backup_last_success") or "-"))}</div></div>
       <div class="item"><div class="k">Режим update-уведомлений</div><div class="v">{html.escape(str(snapshot.get("update_notify_mode") or "-"))}</div></div>
     </div>
-    <a class="json" href="/status.json" target="_blank" rel="noopener">Открыть JSON</a>
   </main>
 </body>
 </html>
 """
+
+
+def _public_site_plans_url() -> str:
+    direct = build_webapp_tab_url("plans")
+    if direct:
+        return direct
+    base = resolved_public_base_url()
+    if base:
+        return f"{base}/webapp?tab=plans"
+    return "/webapp?tab=plans"
+
+
+def render_public_site_html(snapshot: dict[str, Any]) -> str:
+    if not PUBLIC_SITE_TEMPLATE_PATH.exists():
+        return ""
+
+    template = PUBLIC_SITE_TEMPLATE_PATH.read_text(encoding="utf-8")
+    active_provider = get_active_payment_provider()
+    active_provider_label = str(snapshot.get("payment_provider_label") or payment_provider_label(active_provider))
+    active_provider_ready = bool(snapshot.get("payment_provider_ready"))
+    maintenance_mode = bool(snapshot.get("maintenance_mode"))
+
+    webapp_url_raw = _public_site_plans_url()
+    bot_start_url_raw = build_bot_start_url("") or webapp_url_raw
+    base_url = resolved_public_base_url()
+    status_url_raw = f"{base_url}/status" if base_url else "/status"
+
+    support_source = str(SUPPORT_CONTACT or "").strip()
+    support_contact_label = support_source or "@boxvolt_support"
+    if support_source.startswith("http://") or support_source.startswith("https://"):
+        support_url_raw = support_source.replace("http://", "https://", 1)
+    else:
+        support_handle = support_source.lstrip("@") if support_source else "boxvolt_support"
+        support_url_raw = f"https://t.me/{support_handle}"
+        if support_contact_label and not support_contact_label.startswith("@"):
+            support_contact_label = f"@{support_contact_label}"
+
+    channel_url_raw = required_channel_join_url()
+    news_url_raw = news_channel_join_url()
+    rules_url_raw = rules_page_url()
+
+    plans = sorted(get_active_plans().values(), key=lambda item: int(item.days))
+    plan_cards: list[str] = []
+    for plan in plans:
+        plan_title = str(plan.title or "-")
+        plan_amount = format_rub_value(float(plan.amount_rub))
+        plan_discount = ""
+        if plan.discount_percent > 0 and plan.base_amount_rub > plan.amount_rub:
+            plan_discount = (
+                '<div class="plan-discount">'
+                f"-{int(plan.discount_percent)}% (было {html.escape(format_rub_value(float(plan.base_amount_rub)))} ₽)"
+                "</div>"
+            )
+        else:
+            plan_discount = '<div class="plan-discount">Без дополнительной скидки</div>'
+        plan_cards.append(
+            (
+                '<article class="plan-card reveal" '
+                f'data-plan-code="{html.escape(str(plan.code or ""), quote=True)}" '
+                f'data-plan-title="{html.escape(plan_title, quote=True)}" '
+                f'data-plan-amount="{html.escape(plan_amount, quote=True)}">'
+                f'<h3 class="plan-title">{html.escape(plan_title)}</h3>'
+                f'<div class="plan-days">{int(plan.days)} {day_word(int(plan.days))}</div>'
+                f'<div class="plan-price">{html.escape(plan_amount)} ₽</div>'
+                f"{plan_discount}"
+                '<button class="btn plan-select-btn" type="button">Выбрать тариф</button>'
+                "</article>"
+            )
+        )
+    plans_block = "\n".join(plan_cards) if plan_cards else (
+        '<article class="plan-card reveal">'
+        '<h3 class="plan-title">Тарифы скоро появятся</h3>'
+        '<div class="plan-days">Проверьте позже</div>'
+        '<div class="plan-price">—</div>'
+        '<div class="plan-discount">Нет доступных планов</div>'
+        '<button class="btn plan-select-btn" type="button" disabled>Недоступно</button>'
+        "</article>"
+    )
+
+    sale_text = get_sale_text()
+    sale_block = ""
+    if sale_text:
+        sale_block = (
+            '<div class="promo">'
+            f"{html.escape(sale_text).replace(chr(10), '<br>')}"
+            "</div>"
+        )
+
+    provider_cards_data = [
+        ("Основной провайдер", active_provider_label, active_provider_ready),
+        ("CryptoBot", payment_provider_label(CRYPTOBOT_PROVIDER), payment_provider_is_ready(CRYPTOBOT_PROVIDER)),
+        ("LZT Market", payment_provider_label(LZT_PROVIDER), payment_provider_is_ready(LZT_PROVIDER)),
+        (SECONDARY_PAYMENT_LABEL, payment_provider_label(SECONDARY_PROVIDER), payment_provider_is_ready(SECONDARY_PROVIDER)),
+    ]
+    provider_cards: list[str] = []
+    for provider_title, provider_label, is_ready in provider_cards_data:
+        status_class = "ok" if is_ready else "bad"
+        status_text = "доступен" if is_ready else "недоступен"
+        provider_cards.append(
+            (
+                '<article class="provider reveal">'
+                f'<div class="name">{html.escape(str(provider_title or "-"))}</div>'
+                f'<div class="meta">{html.escape(str(provider_label or "-"))}</div>'
+                f'<span class="state {status_class}">{status_text}</span>'
+                "</article>"
+            )
+        )
+    provider_cards_html = "\n".join(provider_cards)
+
+    rules_items: list[str] = []
+    for raw_line in str(build_rules_text() or "").splitlines():
+        line = str(raw_line or "").strip()
+        if not line or line.startswith("📜"):
+            continue
+        line = re.sub(r"^\d+\.\s*", "", line).strip()
+        if line:
+            rules_items.append(line)
+    rules_items_html = "\n".join(
+        f"<li>{html.escape(item)}</li>" for item in rules_items
+    ) or "<li>Правила временно недоступны.</li>"
+
+    maintenance_badge_html = (
+        '<span class="badge bad">🔴 Технические работы</span>'
+        if maintenance_mode
+        else '<span class="badge ok">🟢 Рабочий режим</span>'
+    )
+    payment_badge_html = (
+        f'<span class="badge {"ok" if active_provider_ready else "bad"}">'
+        f"💳 Оплата: {html.escape(active_provider_label)} {'доступна' if active_provider_ready else 'недоступна'}"
+        "</span>"
+    )
+
+    def esc_text(value: Any) -> str:
+        return html.escape(str(value or ""))
+
+    def esc_href(value: str, fallback: str = "#") -> str:
+        raw = str(value or "").strip()
+        final = raw if raw else fallback
+        return html.escape(final, quote=True)
+
+    replacements = {
+        "%%MAINTENANCE_BADGE%%": maintenance_badge_html,
+        "%%PAYMENT_BADGE%%": payment_badge_html,
+        "%%BOT_START_URL%%": esc_href(bot_start_url_raw, webapp_url_raw or "/webapp"),
+        "%%STATUS_URL%%": esc_href(status_url_raw, "/status"),
+        "%%CHANNEL_URL%%": esc_href(channel_url_raw, "https://t.me/BoxVoltVPN"),
+        "%%NEWS_URL%%": esc_href(news_url_raw, channel_url_raw or "https://t.me/BoxVoltVPN"),
+        "%%SUPPORT_URL%%": esc_href(support_url_raw, bot_start_url_raw or "/webapp"),
+        "%%SUPPORT_CONTACT%%": esc_text(support_contact_label),
+        "%%REQUIRED_CHANNEL_DISPLAY%%": esc_text(required_channel_display()),
+        "%%UPDATED_AT%%": esc_text(snapshot.get("timestamp") or "-"),
+        "%%NEWS_INFO%%": esc_text(NEWS_INFO_TEXT),
+        "%%APP_VERSION%%": esc_text(snapshot.get("app_version") or resolve_app_version() or "-"),
+        "%%SALE_BLOCK%%": sale_block,
+        "%%PLANS_BLOCK%%": plans_block,
+        "%%PROVIDER_CARDS%%": provider_cards_html,
+        "%%RULES_URL%%": esc_href(rules_url_raw, "https://telegra.ph"),
+        "%%RULES_ITEMS%%": rules_items_html,
+    }
+    rendered = template
+    for token, value in replacements.items():
+        rendered = rendered.replace(token, value)
+    return rendered
 
 
 async def public_status_json(_: web.Request) -> web.Response:
@@ -8779,6 +10346,891 @@ async def public_status_page(_: web.Request) -> web.Response:
         text=html_page,
         content_type="text/html",
         headers={"Cache-Control": "no-store"},
+    )
+
+
+async def public_site_page(_: web.Request) -> web.Response:
+    if not bot_public_username_hint():
+        await get_bot_public_username()
+
+    page_html = render_public_site_html(collect_public_status_snapshot())
+    if not page_html:
+        return web.Response(text="Public site template not found", status=500)
+    return web.Response(
+        text=page_html,
+        content_type="text/html",
+        headers={"Cache-Control": "no-store"},
+    )
+
+
+def parse_site_telegram_id(raw_value: Any) -> int:
+    token = str(raw_value or "").strip()
+    if not re.fullmatch(r"\d{5,20}", token):
+        return 0
+    value = int(token)
+    return value if value > 0 else 0
+
+
+def normalize_site_username(raw_value: Any) -> tuple[str | None, bool]:
+    token = str(raw_value or "").strip()
+    if not token:
+        return None, True
+    if token.startswith("@"):
+        token = token[1:]
+    if not re.fullmatch(r"[A-Za-z0-9_]{4,64}", token):
+        return None, False
+    return token, True
+
+
+def site_plan_title(plan_code: str, days: int, plans_map: dict[str, Plan]) -> str:
+    normalized_code = str(plan_code or "").strip().lower()
+    if normalized_code:
+        plan = plans_map.get(normalized_code)
+        if plan:
+            return str(plan.title or f"{int(plan.days)} {day_word(int(plan.days))}")
+    by_days = get_plan_by_days(int(days or 0))
+    if by_days:
+        return str(by_days.title or f"{int(by_days.days)} {day_word(int(by_days.days))}")
+    resolved_days = max(0, int(days or 0))
+    return f"{resolved_days} {day_word(resolved_days)}" if resolved_days > 0 else "-"
+
+
+def serialize_site_order(
+    row: sqlite3.Row,
+    *,
+    plans_map: dict[str, Plan],
+    links: dict[str, str] | None = None,
+) -> dict[str, Any]:
+    provider = normalize_payment_provider(str(row["provider"] or ""))
+    amount_rub = float(row["amount_rub"] or 0)
+    base_amount_rub = float(row["base_amount_rub"] or amount_rub)
+    days = int(row["days"] or 0)
+    plan_code = str(row["plan_code"] or "").strip().lower()
+    try:
+        promo_code_raw = row["promo_code"]
+    except Exception:
+        promo_code_raw = ""
+    try:
+        promo_discount_raw = row["promo_discount_rub"]
+    except Exception:
+        promo_discount_raw = 0
+    promo_code = normalize_promo_code(str(promo_code_raw or ""))
+    promo_discount_rub = int(promo_discount_raw or 0)
+    payload: dict[str, Any] = {
+        "order_id": str(row["order_id"] or "").strip().upper(),
+        "status": str(row["status"] or "").strip().lower() or "pending",
+        "amount_rub": format_rub_value(amount_rub),
+        "base_amount_rub": format_rub_value(base_amount_rub),
+        "days": days,
+        "plan_code": plan_code,
+        "plan_title": site_plan_title(plan_code, days, plans_map),
+        "provider": provider,
+        "provider_label": payment_provider_label(provider),
+        "promo_code": promo_code or None,
+        "promo_discount_rub": max(0, promo_discount_rub),
+        "created_at": str(row["created_at"] or ""),
+        "paid_at": str(row["paid_at"] or ""),
+        "expires_at": payment_expires_at_str(str(row["created_at"] or "")) or "",
+    }
+    if links:
+        payload.update(
+            {
+                "payment_url": str(links.get("payment_url") or ""),
+                "donatepay_payment_url": str(links.get("donatepay_payment_url") or ""),
+                "cryptobot_payment_url": str(links.get("cryptobot_payment_url") or ""),
+                "lzt_payment_url": str(links.get("lzt_payment_url") or ""),
+                "secondary_payment_url": str(links.get("secondary_payment_url") or ""),
+                "cryptobot_payment_label": payment_provider_label(CRYPTOBOT_PROVIDER),
+                "lzt_payment_label": payment_provider_label(LZT_PROVIDER),
+                "secondary_payment_label": SECONDARY_PAYMENT_LABEL,
+            }
+        )
+    return payload
+
+
+def site_auth_profile_payload(
+    telegram_id: int,
+    *,
+    username_hint: str | None = None,
+) -> dict[str, Any]:
+    user = get_user(int(telegram_id))
+    resolved_username = str(user["username"] or "").strip() if user else ""
+    if not resolved_username:
+        resolved_username = str(username_hint or "").strip()
+    subscription_end = str(user["subscription_end"] or "").strip() if user else ""
+    return {
+        "user": {
+            "id": int(telegram_id),
+            "username": resolved_username or None,
+        },
+        "subscription_active": has_active_subscription(subscription_end or None),
+        "subscription_end": subscription_end,
+        "subscription_remaining": format_subscription_remaining(subscription_end or None),
+    }
+
+
+def site_session_user_from_request(
+    request: web.Request,
+    *,
+    required: bool,
+    touch_last_seen: bool = True,
+) -> tuple[dict[str, Any] | None, web.Response | None]:
+    session_token = edge_extract_bearer_token(request)
+    if not session_token:
+        if required:
+            return None, webapp_error("missing_token", 401)
+        return None, None
+
+    session, reason = edge_get_session(session_token, touch_last_seen=touch_last_seen)
+    if not session:
+        return None, webapp_error(reason, edge_status_code_for_error(reason))
+
+    telegram_id = int(session["telegram_id"] or 0)
+    if telegram_id <= 0:
+        return None, webapp_error("invalid_session", 401)
+
+    return {
+        "telegram_id": telegram_id,
+        "username": str(session["username"] or "").strip() or None,
+        "session_expires_at": str(session["expires_at"] or ""),
+        "token": session_token,
+    }, None
+
+
+def site_request_client_ip(request: web.Request) -> str:
+    forwarded_for = str(request.headers.get("X-Forwarded-For") or "").strip()
+    if forwarded_for:
+        candidate = str(forwarded_for.split(",")[0] or "").strip()
+        if candidate:
+            return candidate
+
+    real_ip = str(request.headers.get("X-Real-IP") or "").strip()
+    if real_ip:
+        return real_ip
+
+    remote_ip = str(request.remote or "").strip()
+    return remote_ip or "unknown"
+
+
+def site_ai_rate_key(request: web.Request, telegram_id: int) -> str:
+    if int(telegram_id or 0) > 0:
+        return f"tg:{int(telegram_id)}"
+    return f"ip:{site_request_client_ip(request)}"
+
+
+def site_ai_consume_rate_slot(key: str) -> int:
+    normalized_key = str(key or "").strip() or "unknown"
+    now_ts = dt.datetime.now().timestamp()
+    last_ts = float(SITE_AI_LAST_REQUEST_TS.get(normalized_key) or 0.0)
+    delta = max(0.0, now_ts - last_ts)
+    if delta < float(SITE_AI_RATE_LIMIT_SECONDS):
+        retry_after = int(float(SITE_AI_RATE_LIMIT_SECONDS) - delta)
+        return retry_after if retry_after > 0 else 1
+
+    SITE_AI_LAST_REQUEST_TS[normalized_key] = now_ts
+    if len(SITE_AI_LAST_REQUEST_TS) > 5000:
+        cutoff = now_ts - 3600.0
+        for item_key, item_ts in list(SITE_AI_LAST_REQUEST_TS.items()):
+            if float(item_ts or 0.0) < cutoff:
+                SITE_AI_LAST_REQUEST_TS.pop(item_key, None)
+    return 0
+
+
+def site_ai_system_prompt() -> str:
+    plans = sorted(get_active_plans().values(), key=lambda item: int(item.days))
+    if plans:
+        plans_text = "\n".join(
+            f"- {int(plan.days)} {day_word(int(plan.days))}: {format_rub_value(float(plan.amount_rub))} ₽"
+            for plan in plans
+        )
+    else:
+        plans_text = "- Тарифы временно недоступны."
+
+    rules_lines: list[str] = []
+    for raw_line in str(build_rules_text() or "").splitlines():
+        line = str(raw_line or "").strip()
+        if not line or line.startswith("📜"):
+            continue
+        rules_lines.append(re.sub(r"^\d+\.\s*", "", line).strip())
+    rules_text = "\n".join(f"- {line}" for line in rules_lines[:12]) if rules_lines else "- Правила недоступны."
+
+    support_contact = str(SUPPORT_CONTACT or "@boxvolt_support").strip() or "@boxvolt_support"
+    if not support_contact.startswith("@") and not support_contact.startswith("http"):
+        support_contact = f"@{support_contact}"
+
+    return (
+        "Ты — официальный помощник проекта BoxVolt VPN.\n"
+        "Отвечай всегда на русском языке, кратко и по делу.\n"
+        "Не выдумывай цены, условия, акции и технические детали, которых нет в контексте.\n"
+        "Если вопрос о нарушениях, блокировках или спорных кейсах — рекомендуй обратиться в поддержку.\n\n"
+        "Контекст проекта:\n"
+        f"Тарифы:\n{plans_text}\n\n"
+        f"Краткие правила:\n{rules_text}\n\n"
+        f"Поддержка: {support_contact}\n"
+        f"Ссылка на полные правила: {rules_page_url()}"
+    )
+
+
+def site_ai_extract_text(payload: dict[str, Any]) -> str:
+    if not isinstance(payload, dict):
+        return ""
+    candidates = payload.get("candidates")
+    if not isinstance(candidates, list):
+        return ""
+
+    for candidate in candidates:
+        if not isinstance(candidate, dict):
+            continue
+        content = candidate.get("content")
+        if not isinstance(content, dict):
+            continue
+        parts = content.get("parts")
+        if not isinstance(parts, list):
+            continue
+        chunks: list[str] = []
+        for part in parts:
+            if isinstance(part, dict) and isinstance(part.get("text"), str):
+                chunks.append(str(part.get("text") or "").strip())
+        result = "\n".join(chunk for chunk in chunks if chunk).strip()
+        if result:
+            return result
+    return ""
+
+
+def site_ai_fallback_answer(question: str) -> str:
+    normalized = str(question or "").strip().lower()
+    support_contact = str(SUPPORT_CONTACT or "@boxvolt_support").strip() or "@boxvolt_support"
+    if not support_contact.startswith("@") and not support_contact.startswith("http"):
+        support_contact = f"@{support_contact}"
+
+    plans = sorted(get_active_plans().values(), key=lambda item: int(item.days))
+    plans_text = (
+        "\n".join(
+            f"- {int(plan.days)} {day_word(int(plan.days))}: {format_rub_value(float(plan.amount_rub))} ₽"
+            for plan in plans
+        )
+        if plans
+        else "- Тарифы временно недоступны."
+    )
+    rules_link = rules_page_url()
+
+    if any(token in normalized for token in ("тариф", "цена", "стоим", "оплат", "price")):
+        return (
+            "Сейчас Gemini временно недоступен, отвечаю в базовом режиме.\n\n"
+            "Актуальные тарифы:\n"
+            f"{plans_text}\n\n"
+            "Для оплаты откройте вкладку «Оплата» и создайте заказ."
+        )
+
+    if any(token in normalized for token in ("правил", "соглаш", "запрещ", "ban", "блок")):
+        return (
+            "Сейчас Gemini временно недоступен, отвечаю в базовом режиме.\n\n"
+            f"Кратко: соблюдайте правила сервиса и не используйте VPN для запрещенных действий.\n"
+            f"Полные правила: {rules_link}\n"
+            f"Поддержка: {support_contact}"
+        )
+
+    if any(token in normalized for token in ("поддерж", "support", "помощ", "ошиб", "не работ")):
+        return (
+            "Сейчас Gemini временно недоступен, отвечаю в базовом режиме.\n\n"
+            f"Напишите в поддержку: {support_contact}\n"
+            "В сообщении укажите Telegram ID, код заказа (если есть) и кратко опишите проблему."
+        )
+
+    return (
+        "Сейчас Gemini временно недоступен, поэтому работает базовый помощник.\n\n"
+        "Что можно сделать сейчас:\n"
+        "- Выбрать тариф во вкладке «Оплата» и создать заказ.\n"
+        "- Проверить статус подписки во вкладке «Личный кабинет».\n"
+        f"- Открыть полные правила: {rules_link}\n"
+        f"- Написать в поддержку: {support_contact}\n\n"
+        f"Актуальные тарифы:\n{plans_text}"
+    )
+
+
+async def site_ai_assistant_api(request: web.Request) -> web.Response:
+    try:
+        body = await request.json()
+    except Exception:  # noqa: BLE001
+        return webapp_error("invalid_json", 400)
+
+    question = str(body.get("question") or body.get("query") or "").strip()
+    if not question:
+        return webapp_error("missing_question", 400)
+    if len(question) > SITE_AI_MAX_QUESTION_CHARS:
+        return webapp_error("question_too_long", 400)
+
+    fallback_answer = site_ai_fallback_answer(question)
+    if not SITE_AI_ENABLED or not GEMINI_API_KEY:
+        return web.json_response(
+            {
+                "ok": True,
+                "answer": fallback_answer,
+                "model": "local-fallback",
+            }
+        )
+
+    session_user, error_response = site_session_user_from_request(
+        request,
+        required=False,
+        touch_last_seen=True,
+    )
+    if error_response:
+        return error_response
+
+    telegram_id = int(session_user["telegram_id"] or 0) if session_user else parse_site_telegram_id(body.get("telegram_id"))
+    rate_key = site_ai_rate_key(request, telegram_id)
+    retry_after = site_ai_consume_rate_slot(rate_key)
+    if retry_after > 0:
+        return web.json_response(
+            {
+                "ok": False,
+                "error": "ai_rate_limited",
+                "retry_after_seconds": retry_after,
+            },
+            status=429,
+        )
+
+    request_payload = {
+        "systemInstruction": {"parts": [{"text": site_ai_system_prompt()}]},
+        "contents": [{"parts": [{"text": question}]}],
+        "generationConfig": {
+            "temperature": 0.35,
+            "topP": 0.9,
+            "maxOutputTokens": 700,
+        },
+    }
+
+    model_candidates_raw = [str(GEMINI_MODEL or "").strip(), *GEMINI_FALLBACK_MODELS]
+    model_candidates: list[str] = []
+    for raw_model in model_candidates_raw:
+        normalized_model = str(raw_model or "").strip()
+        if normalized_model.startswith("models/"):
+            normalized_model = normalized_model[7:]
+        if not normalized_model:
+            continue
+        if normalized_model not in model_candidates:
+            model_candidates.append(normalized_model)
+    if not model_candidates:
+        model_candidates = ["gemini-2.0-flash", "gemini-2.5-flash"]
+
+    chosen_model = ""
+    answer_text = ""
+    last_error_text = ""
+
+    try:
+        async with httpx.AsyncClient(timeout=float(SITE_AI_TIMEOUT_SECONDS)) as client:
+            for model_name in model_candidates:
+                api_url = f"{GEMINI_API_BASE}/models/{model_name}:generateContent"
+                response = await client.post(
+                    api_url,
+                    params={"key": GEMINI_API_KEY},
+                    json=request_payload,
+                )
+                if response.status_code >= 400:
+                    error_text = str(response.text or "").strip().replace("\n", " ")[:400]
+                    last_error_text = f"{response.status_code}: {error_text}"
+                    # Model is unavailable for this key/version. Try the next one.
+                    if response.status_code in {400, 401, 403, 404, 429, 500, 503}:
+                        continue
+                    print(f"[site-ai] Gemini HTTP {response.status_code} model={model_name}: {error_text}")
+                    continue
+
+                try:
+                    payload = response.json()
+                except Exception:  # noqa: BLE001
+                    continue
+
+                extracted = site_ai_extract_text(payload)
+                if extracted:
+                    chosen_model = model_name
+                    answer_text = extracted
+                    break
+    except Exception as exc:  # noqa: BLE001
+        print(f"[site-ai] Gemini request failed: {exc}")
+        return web.json_response(
+            {
+                "ok": True,
+                "answer": fallback_answer,
+                "model": "local-fallback",
+            }
+        )
+
+    if not answer_text:
+        if last_error_text:
+            print(f"[site-ai] All models failed: {last_error_text}")
+        return web.json_response(
+            {
+                "ok": True,
+                "answer": fallback_answer,
+                "model": "local-fallback",
+            }
+        )
+
+    return web.json_response(
+        {
+            "ok": True,
+            "answer": answer_text[:6000],
+            "model": chosen_model or GEMINI_MODEL,
+        }
+    )
+
+
+async def site_auth_start_api(request: web.Request) -> web.Response:
+    if request.can_read_body:
+        with contextlib.suppress(Exception):
+            await request.json()
+
+    edge_cleanup_state()
+    try:
+        auth_payload = edge_create_auth_request()
+    except Exception as exc:  # noqa: BLE001
+        print(f"[site] Failed to create auth request: {exc}")
+        return webapp_error("auth_create_failed", 500)
+
+    start_payload = site_auth_start_payload(str(auth_payload["code"]))
+    bot_start_url = build_bot_start_url(start_payload)
+    return web.json_response(
+        {
+            "ok": True,
+            "request_id": auth_payload["request_id"],
+            "poll_token": auth_payload["poll_token"],
+            "expires_at": auth_payload["expires_at"],
+            "poll_interval_ms": 2500,
+            "start_payload": start_payload,
+            "bot_start_url": bot_start_url,
+            "bot_start_command": f"/start {start_payload}",
+            "bot_username": bot_public_username_hint(),
+        }
+    )
+
+
+async def site_auth_poll_api(request: web.Request) -> web.Response:
+    try:
+        body = await request.json()
+    except Exception:  # noqa: BLE001
+        return webapp_error("invalid_json", 400)
+
+    request_id = str(body.get("request_id") or "").strip()
+    poll_token = str(body.get("poll_token") or "").strip()
+    if not request_id:
+        return webapp_error("missing_request_id", 400)
+    if not poll_token:
+        return webapp_error("missing_poll_token", 400)
+
+    row, reason = edge_get_auth_request_for_poll(request_id, poll_token)
+    if not row:
+        return webapp_error(reason, edge_status_code_for_error(reason))
+
+    status = str(row["status"] or "pending").strip().lower() or "pending"
+    if status != "approved":
+        return web.json_response(
+            {
+                "ok": True,
+                "status": status,
+                "expires_at": row["expires_at"],
+                "poll_interval_ms": 2500,
+            }
+        )
+
+    telegram_id = int(row["telegram_id"] or 0)
+    if telegram_id <= 0:
+        return web.json_response(
+            {
+                "ok": True,
+                "status": "pending",
+                "expires_at": row["expires_at"],
+                "poll_interval_ms": 2500,
+            }
+        )
+
+    try:
+        session = edge_create_session(
+            telegram_id,
+            request_id=row["id"],
+            user_agent=str(request.headers.get("User-Agent") or ""),
+        )
+    except Exception as exc:  # noqa: BLE001
+        print(f"[site] Failed to create session for {telegram_id}: {exc}")
+        return webapp_error("session_create_failed", 500)
+
+    profile = site_auth_profile_payload(telegram_id, username_hint=str(row.get("username") or ""))
+    return web.json_response(
+        {
+            "ok": True,
+            "status": "approved",
+            "session_token": session["token"],
+            "session_expires_at": session["expires_at"],
+            **profile,
+        }
+    )
+
+
+async def site_me_api(request: web.Request) -> web.Response:
+    edge_cleanup_state()
+    session_user, error_response = site_session_user_from_request(
+        request,
+        required=True,
+        touch_last_seen=True,
+    )
+    if error_response:
+        return error_response
+    if not session_user:
+        return webapp_error("invalid_session", 401)
+
+    profile = site_auth_profile_payload(
+        int(session_user["telegram_id"]),
+        username_hint=str(session_user["username"] or ""),
+    )
+    return web.json_response(
+        {
+            "ok": True,
+            "authenticated": True,
+            "session_expires_at": str(session_user["session_expires_at"] or ""),
+            **profile,
+        }
+    )
+
+
+async def site_logout_api(request: web.Request) -> web.Response:
+    session_user, error_response = site_session_user_from_request(
+        request,
+        required=True,
+        touch_last_seen=False,
+    )
+    if error_response:
+        return error_response
+    if not session_user:
+        return webapp_error("invalid_session", 401)
+
+    edge_revoke_session(str(session_user["token"] or ""))
+    return web.json_response({"ok": True})
+
+
+async def site_create_order_api(request: web.Request) -> web.Response:
+    try:
+        body = await request.json()
+    except Exception:  # noqa: BLE001
+        return webapp_error("invalid_json", 400)
+
+    if not payment_provider_is_ready():
+        return webapp_error("payment_not_configured", 503)
+
+    session_user, error_response = site_session_user_from_request(
+        request,
+        required=False,
+        touch_last_seen=True,
+    )
+    if error_response:
+        return error_response
+
+    telegram_id = parse_site_telegram_id(body.get("telegram_id"))
+    if session_user:
+        session_telegram_id = int(session_user["telegram_id"] or 0)
+        if telegram_id > 0 and telegram_id != session_telegram_id:
+            return webapp_error("telegram_id_mismatch", 403)
+        telegram_id = session_telegram_id
+    if telegram_id <= 0:
+        return webapp_error("bad_telegram_id", 400)
+
+    username_raw, username_ok = normalize_site_username(body.get("username"))
+    if not username_ok:
+        return webapp_error("bad_username", 400)
+    username = (
+        str(session_user["username"] or "").strip() or username_raw
+        if session_user
+        else username_raw
+    )
+
+    plan_code = str(body.get("plan_code") or "").strip().lower()
+    plans = get_active_plans()
+    plan = plans.get(plan_code)
+    if not plan:
+        return webapp_error("unknown_plan", 400)
+
+    upsert_user(telegram_id, username)
+    if not is_admin_user(telegram_id) and is_user_blacklisted(telegram_id):
+        return webapp_error("user_blacklisted", 403)
+
+    retry_after, retry_reason = order_create_retry_state(telegram_id)
+    if retry_after > 0:
+        apply_order_retry_penalty(
+            telegram_id,
+            retry_reason,
+            retry_after,
+            context="site",
+        )
+        log_suspicious_flag(
+            telegram_id,
+            "order_rate_limited",
+            f"context=site reason={retry_reason} retry_after={retry_after}",
+        )
+        return web.json_response(
+            {
+                "ok": False,
+                "error": "order_rate_limited",
+                "message": order_create_retry_message(retry_after, retry_reason),
+                "retry_after_seconds": retry_after,
+                "retry_reason": retry_reason,
+            },
+            status=429,
+        )
+
+    promo_code_input = normalize_promo_code(str(body.get("promo_code") or ""))
+    if promo_code_input:
+        active_promo = get_user_active_promocode(telegram_id)
+        active_code = (
+            normalize_promo_code(str(active_promo.get("code") or ""))
+            if active_promo
+            else ""
+        )
+        if active_code != promo_code_input:
+            activated, activate_reason, _ = activate_promocode_for_user(telegram_id, promo_code_input)
+            if not activated:
+                if activate_reason == "promo_not_found":
+                    return webapp_error(activate_reason, 404)
+                if activate_reason in {"promo_limit_reached", "promo_already_activated"}:
+                    return webapp_error(activate_reason, 409)
+                return webapp_error(activate_reason, 400)
+
+    final_amount, promo = calculate_plan_price_for_user(telegram_id, plan)
+    order_id = create_payment_order(
+        telegram_id=telegram_id,
+        plan=plan,
+        amount_rub=final_amount,
+        promo_code=promo["code"] if promo else None,
+        promo_discount_rub=promo["discount_rub"] if promo else 0,
+    )
+    payment = get_payment(order_id, apply_expiry=False)
+    if not payment:
+        return webapp_error("order_not_found", 500)
+
+    provider = payment["provider"]
+    links = await build_payment_links_for_order(
+        order_id,
+        int(round(float(payment["amount_rub"] or final_amount))),
+        provider,
+        telegram_id=telegram_id,
+        username=username,
+    )
+    order_payload = serialize_site_order(payment, plans_map=plans, links=links)
+    return web.json_response({"ok": True, "order": order_payload})
+
+
+async def site_order_status_api(request: web.Request) -> web.Response:
+    try:
+        body = await request.json()
+    except Exception:  # noqa: BLE001
+        return webapp_error("invalid_json", 400)
+
+    session_user, error_response = site_session_user_from_request(
+        request,
+        required=False,
+        touch_last_seen=True,
+    )
+    if error_response:
+        return error_response
+
+    telegram_id = parse_site_telegram_id(body.get("telegram_id"))
+    if session_user:
+        session_telegram_id = int(session_user["telegram_id"] or 0)
+        if telegram_id > 0 and telegram_id != session_telegram_id:
+            return webapp_error("telegram_id_mismatch", 403)
+        telegram_id = session_telegram_id
+    if telegram_id <= 0:
+        return webapp_error("bad_telegram_id", 400)
+
+    order_id = str(body.get("order_id") or "").strip().upper()
+    if not ORDER_ID_RE.fullmatch(order_id):
+        return webapp_error("bad_order_id", 400)
+
+    payment = get_payment(order_id, apply_expiry=True)
+    if not payment or int(payment["telegram_id"] or 0) != telegram_id:
+        return webapp_error("order_not_found", 404)
+
+    if str(payment["status"] or "").strip().lower() == "pending":
+        with contextlib.suppress(Exception):
+            await sync_pending_payment_order(order_id)
+        payment = get_payment(order_id, apply_expiry=True)
+        if not payment or int(payment["telegram_id"] or 0) != telegram_id:
+            return webapp_error("order_not_found", 404)
+
+    user = get_user(telegram_id)
+    username = str(user["username"] or "").strip() if user else None
+    links = await build_payment_links_for_order(
+        order_id,
+        int(round(float(payment["amount_rub"] or 0))),
+        str(payment["provider"] or ""),
+        telegram_id=telegram_id,
+        username=username,
+    )
+    plans_map = get_active_plans()
+    order_payload = serialize_site_order(payment, plans_map=plans_map, links=links)
+    return web.json_response({"ok": True, "order": order_payload})
+
+
+async def site_cancel_order_api(request: web.Request) -> web.Response:
+    try:
+        body = await request.json()
+    except Exception:  # noqa: BLE001
+        return webapp_error("invalid_json", 400)
+
+    session_user, error_response = site_session_user_from_request(
+        request,
+        required=True,
+        touch_last_seen=True,
+    )
+    if error_response:
+        return error_response
+    if not session_user:
+        return webapp_error("invalid_session", 401)
+
+    order_id = str(body.get("order_id") or "").strip().upper()
+    if not ORDER_ID_RE.fullmatch(order_id):
+        return webapp_error("bad_order_id", 400)
+
+    telegram_id = int(session_user["telegram_id"] or 0)
+    cancelled, cancel_reason = cancel_payment_order(
+        order_id,
+        telegram_id=telegram_id,
+        reason="cancelled_from_site",
+    )
+    if not cancelled:
+        if cancel_reason == "order_not_found":
+            return webapp_error("order_not_found", 404)
+        if cancel_reason.startswith("not_pending:"):
+            return webapp_error("order_not_pending", 409)
+        return webapp_error("cancel_failed", 400)
+
+    return web.json_response({"ok": True, "order_id": order_id, "status": "cancelled"})
+
+
+async def site_account_api(request: web.Request) -> web.Response:
+    try:
+        body = await request.json()
+    except Exception:  # noqa: BLE001
+        return webapp_error("invalid_json", 400)
+
+    session_user, error_response = site_session_user_from_request(
+        request,
+        required=False,
+        touch_last_seen=True,
+    )
+    if error_response:
+        return error_response
+
+    telegram_id = parse_site_telegram_id(body.get("telegram_id"))
+    if session_user:
+        session_telegram_id = int(session_user["telegram_id"] or 0)
+        if telegram_id > 0 and telegram_id != session_telegram_id:
+            return webapp_error("telegram_id_mismatch", 403)
+        telegram_id = session_telegram_id
+    if telegram_id <= 0:
+        return webapp_error("bad_telegram_id", 400)
+
+    cancel_expired_payments(telegram_id)
+    conn = get_conn()
+    user_row = conn.execute(
+        """
+        SELECT telegram_id, username, subscription_end, trial_used, created_at
+        FROM users
+        WHERE telegram_id = ?
+        LIMIT 1
+        """,
+        (telegram_id,),
+    ).fetchone()
+    stats_row = conn.execute(
+        """
+        SELECT
+            COUNT(*) AS total_orders,
+            COALESCE(SUM(CASE WHEN status = 'paid' THEN 1 ELSE 0 END), 0) AS paid_orders,
+            COALESCE(SUM(CASE WHEN status = 'pending' THEN 1 ELSE 0 END), 0) AS pending_orders,
+            COALESCE(SUM(CASE WHEN status = 'cancelled' THEN 1 ELSE 0 END), 0) AS cancelled_orders,
+            COALESCE(SUM(CASE WHEN status = 'paid' THEN amount_rub ELSE 0 END), 0) AS total_paid_rub,
+            MAX(CASE WHEN status = 'paid' THEN paid_at ELSE NULL END) AS last_paid_at,
+            MIN(created_at) AS first_order_at,
+            MAX(created_at) AS last_order_at
+        FROM payments
+        WHERE telegram_id = ?
+        """,
+        (telegram_id,),
+    ).fetchone()
+    recent_rows = conn.execute(
+        """
+        SELECT
+            order_id,
+            provider,
+            amount_rub,
+            days,
+            plan_code,
+            base_amount_rub,
+            promo_code,
+            promo_discount_rub,
+            status,
+            created_at,
+            paid_at
+        FROM payments
+        WHERE telegram_id = ?
+        ORDER BY id DESC
+        LIMIT 20
+        """,
+        (telegram_id,),
+    ).fetchall()
+    conn.close()
+
+    plans_map = get_active_plans()
+    recent_orders = [
+        serialize_site_order(row, plans_map=plans_map)
+        for row in recent_rows
+    ]
+
+    pending = get_latest_pending_payment(telegram_id)
+    pending_payload: dict[str, Any] | None = None
+    if pending:
+        pending_row = get_payment(str(pending["order_id"] or "").strip().upper(), apply_expiry=False)
+        if pending_row:
+            links = await build_payment_links_for_order(
+                str(pending_row["order_id"]),
+                int(round(float(pending_row["amount_rub"] or 0))),
+                str(pending_row["provider"] or ""),
+                telegram_id=telegram_id,
+                username=str(user_row["username"] or "") if user_row else None,
+            )
+            pending_payload = serialize_site_order(pending_row, plans_map=plans_map, links=links)
+
+    paid_orders = int(stats_row["paid_orders"] or 0) if stats_row else 0
+    total_paid_rub = float(stats_row["total_paid_rub"] or 0) if stats_row else 0.0
+    avg_paid_rub = (total_paid_rub / paid_orders) if paid_orders > 0 else 0.0
+    subscription_end = str(user_row["subscription_end"] or "").strip() if user_row else ""
+    account_payload = {
+        "exists": bool(user_row),
+        "telegram_id": telegram_id,
+        "username": str(user_row["username"] or "").strip() if user_row else "",
+        "created_at": str(user_row["created_at"] or "") if user_row else "",
+        "subscription_active": has_active_subscription(subscription_end if subscription_end else None),
+        "subscription_end": subscription_end,
+        "subscription_remaining": format_subscription_remaining(subscription_end if subscription_end else None),
+        "trial_used": int(user_row["trial_used"] or 0) if user_row else 0,
+    }
+    stats_payload = {
+        "total_orders": int(stats_row["total_orders"] or 0) if stats_row else 0,
+        "paid_orders": paid_orders,
+        "pending_orders": int(stats_row["pending_orders"] or 0) if stats_row else 0,
+        "cancelled_orders": int(stats_row["cancelled_orders"] or 0) if stats_row else 0,
+        "total_paid_rub": format_rub_value(total_paid_rub),
+        "avg_paid_rub": format_rub_value(avg_paid_rub),
+        "last_paid_at": str(stats_row["last_paid_at"] or "") if stats_row else "",
+        "first_order_at": str(stats_row["first_order_at"] or "") if stats_row else "",
+        "last_order_at": str(stats_row["last_order_at"] or "") if stats_row else "",
+    }
+    return web.json_response(
+        {
+            "ok": True,
+            "account": account_payload,
+            "stats": stats_payload,
+            "recent_orders": recent_orders,
+            "pending_order": pending_payload,
+        }
     )
 
 
@@ -8869,43 +11321,78 @@ def render_subscription_profile_html(
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>BoxVolt Elite Access</title>
+  <link rel="icon" type="image/png" sizes="32x32" href="/icon.png?v=2">
+  <link rel="icon" type="image/png" sizes="192x192" href="/icon.png?v=2">
+  <link rel="shortcut icon" type="image/png" href="/icon.png?v=2">
+  <link rel="apple-touch-icon" href="/icon.png?v=2">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Exo+2:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@500;700;800&family=Sora:wght@600;700;800&display=swap" rel="stylesheet">
   <style>
     :root {{
-      --bg-top: #e3f2f2;
-      --bg-bottom: #cde1df;
-      --ink: #032d2c;
-      --muted: #3f6461;
-      --panel: rgba(2, 74, 74, 0.92);
-      --panel-soft: rgba(3, 94, 95, 0.84);
-      --card: rgba(2, 61, 63, 0.75);
-      --line: rgba(179, 245, 235, 0.25);
-      --ok: #8fffe0;
-      --bad: #ffd9d9;
-      --btn: rgba(216, 255, 247, 0.2);
-      --btn-border: rgba(199, 255, 246, 0.55);
-      --title: #ecfff8;
-      --white: #f6fffc;
+      --bg-top: #121521;
+      --bg-mid: #0d1220;
+      --bg-bottom: #050608;
+      --ink: #f3f5f8;
+      --muted: #aeb6c5;
+      --panel: rgba(21, 26, 34, 0.76);
+      --panel-soft: rgba(27, 33, 45, 0.74);
+      --card: rgba(255, 255, 255, 0.04);
+      --line: rgba(255, 255, 255, 0.14);
+      --ok: #45d39c;
+      --bad: #ff7e79;
+      --btn: rgba(255, 255, 255, 0.06);
+      --btn-border: rgba(255, 255, 255, 0.2);
+      --title: #ffffff;
+      --white: #f3f5f8;
+      --accent: #ff9e1b;
+      --accent-strong: #ff7f11;
     }}
     * {{ box-sizing: border-box; }}
     body {{
       margin: 0;
-      font-family: "Exo 2", "Trebuchet MS", sans-serif;
+      font-family: "Manrope", "Segoe UI", sans-serif;
       color: var(--white);
       background:
-        radial-gradient(1400px 700px at 12% -10%, rgba(92, 197, 185, 0.34), transparent 64%),
-        radial-gradient(900px 560px at 100% 0%, rgba(21, 96, 103, 0.42), transparent 62%),
-        linear-gradient(180deg, var(--bg-top), var(--bg-bottom));
+        radial-gradient(1100px 420px at 20% -15%, rgba(255, 158, 27, 0.24), transparent 58%),
+        radial-gradient(760px 380px at 90% -20%, rgba(255, 127, 17, 0.22), transparent 56%),
+        radial-gradient(720px 360px at -8% 100%, rgba(79, 161, 255, 0.14), transparent 66%),
+        linear-gradient(180deg, var(--bg-top), var(--bg-mid) 54%, var(--bg-bottom));
       min-height: 100vh;
       padding: 20px 14px 36px;
+      position: relative;
+      overflow-x: hidden;
+    }}
+    body::before,
+    body::after {{
+      content: "";
+      position: fixed;
+      border-radius: 999px;
+      pointer-events: none;
+      z-index: 0;
+    }}
+    body::before {{
+      width: 340px;
+      height: 340px;
+      right: -120px;
+      top: -110px;
+      background: radial-gradient(circle, rgba(255, 158, 27, 0.2), transparent 70%);
+    }}
+    body::after {{
+      width: 320px;
+      height: 320px;
+      left: -140px;
+      bottom: -160px;
+      background: radial-gradient(circle, rgba(96, 169, 255, 0.17), transparent 70%);
     }}
     .wrap {{
       max-width: 980px;
       margin: 0 auto;
       display: grid;
       gap: 14px;
+      position: relative;
+      z-index: 1;
+      isolation: isolate;
     }}
     .hero {{
       position: relative;
@@ -9202,6 +11689,226 @@ def render_subscription_profile_html(
     .toast.show {{
       opacity: 1;
       transform: translateX(-50%) translateY(0);
+    }}
+    .hero {{
+      background: linear-gradient(155deg, rgba(22, 27, 36, 0.95), rgba(12, 14, 19, 0.94));
+      border-color: var(--line);
+      box-shadow: 0 26px 48px rgba(0, 0, 0, 0.42);
+    }}
+    .hero::before {{
+      background: rgba(255, 158, 27, 0.12);
+      border: 1px solid rgba(255, 158, 27, 0.32);
+    }}
+    .pill {{
+      background: var(--btn);
+      border-color: var(--btn-border);
+      color: var(--white);
+    }}
+    .brand {{
+      font-family: "Sora", "Manrope", sans-serif;
+      color: var(--title);
+    }}
+    .sub {{
+      color: var(--muted);
+    }}
+    .state {{
+      border-color: var(--btn-border);
+      background: rgba(255, 255, 255, 0.08);
+    }}
+    .stat {{
+      border-color: var(--line);
+      background: var(--card);
+    }}
+    .k {{
+      color: var(--muted);
+    }}
+    .v {{
+      color: var(--white);
+    }}
+    .panel {{
+      border-color: var(--line);
+      background: linear-gradient(165deg, var(--panel), var(--panel-soft));
+      box-shadow: 0 26px 48px rgba(0, 0, 0, 0.42);
+    }}
+    .panel h2 {{
+      font-family: "Sora", "Manrope", sans-serif;
+      color: var(--title);
+    }}
+    .panel p {{
+      color: var(--muted);
+    }}
+    .hint {{
+      border-color: rgba(255, 158, 27, 0.34);
+      background: rgba(255, 158, 27, 0.12);
+      color: #ffd9a1;
+    }}
+    .suburl {{
+      background: rgba(12, 15, 22, 0.86);
+      color: var(--white);
+      border-color: rgba(255, 255, 255, 0.2);
+    }}
+    .qr-wrap {{
+      border-color: rgba(255, 255, 255, 0.16);
+      background: rgba(255, 255, 255, 0.03);
+    }}
+    .qr-head {{
+      color: var(--white);
+    }}
+    .qr-fallback {{
+      border-color: rgba(255, 255, 255, 0.26);
+      color: var(--muted);
+      background: rgba(12, 15, 22, 0.7);
+    }}
+    .qr-note {{
+      color: var(--muted);
+    }}
+    .btn {{
+      border-color: rgba(255, 255, 255, 0.2);
+      color: var(--white);
+      background: rgba(255, 255, 255, 0.06);
+    }}
+    .btn:hover {{
+      background: rgba(255, 255, 255, 0.1);
+      border-color: rgba(255, 158, 27, 0.52);
+    }}
+    .btn-ghost {{
+      background: rgba(255, 255, 255, 0.03);
+    }}
+    .app-card {{
+      border-color: rgba(255, 255, 255, 0.16);
+      background: rgba(255, 255, 255, 0.04);
+    }}
+    .app-card h4 {{
+      color: var(--white);
+    }}
+    .app-card p {{
+      color: var(--muted);
+    }}
+    .download-card {{
+      border-color: rgba(255, 255, 255, 0.16);
+      background: rgba(255, 255, 255, 0.04);
+    }}
+    .download-card h4 {{
+      color: var(--white);
+    }}
+    .download-card p {{
+      color: var(--muted);
+    }}
+    .steps {{
+      border-top-color: rgba(255, 255, 255, 0.2);
+    }}
+    .steps h3 {{
+      color: var(--white);
+    }}
+    .steps ol {{
+      color: var(--muted);
+    }}
+    .platform-note {{
+      color: var(--muted);
+    }}
+    .toast {{
+      background: rgba(12, 15, 22, 0.92);
+      border-color: rgba(255, 255, 255, 0.2);
+      color: var(--white);
+    }}
+    .wrap::before,
+    .wrap::after {{
+      content: "";
+      position: absolute;
+      pointer-events: none;
+      border-radius: 999px;
+      z-index: -1;
+    }}
+    .wrap::before {{
+      width: 260px;
+      height: 260px;
+      right: -100px;
+      top: 26px;
+      background: radial-gradient(circle, rgba(255, 158, 27, 0.16), transparent 70%);
+    }}
+    .wrap::after {{
+      width: 240px;
+      height: 240px;
+      left: -95px;
+      top: 420px;
+      background: radial-gradient(circle, rgba(90, 156, 255, 0.14), transparent 70%);
+    }}
+    .hero,
+    .panel {{
+      backdrop-filter: blur(18px) saturate(130%);
+      -webkit-backdrop-filter: blur(18px) saturate(130%);
+      position: relative;
+      isolation: isolate;
+      overflow: hidden;
+    }}
+    .hero::after {{
+      content: "";
+      position: absolute;
+      width: 300px;
+      height: 300px;
+      right: -120px;
+      bottom: -160px;
+      border-radius: 50%;
+      background: radial-gradient(circle, rgba(255, 255, 255, 0.1), transparent 68%);
+      pointer-events: none;
+      z-index: 0;
+    }}
+    .hero > *,
+    .panel > * {{
+      position: relative;
+      z-index: 1;
+    }}
+    .panel::before {{
+      content: "";
+      position: absolute;
+      inset: 0;
+      border-radius: inherit;
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      pointer-events: none;
+      z-index: 0;
+    }}
+    .pill,
+    .stat,
+    .hint,
+    .qr-wrap,
+    .app-card,
+    .download-card,
+    .suburl,
+    .btn,
+    .toast {{
+      backdrop-filter: blur(12px) saturate(124%);
+      -webkit-backdrop-filter: blur(12px) saturate(124%);
+    }}
+    .stat,
+    .app-card,
+    .download-card,
+    .qr-wrap {{
+      box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.06);
+    }}
+    .pill {{
+      border-color: rgba(255, 255, 255, 0.26);
+      background: rgba(255, 255, 255, 0.08);
+    }}
+    .btn {{
+      border-color: rgba(255, 255, 255, 0.24);
+      background:
+        linear-gradient(180deg, rgba(255, 255, 255, 0.11), rgba(255, 255, 255, 0.04)),
+        rgba(255, 255, 255, 0.03);
+    }}
+    .btn-ghost {{
+      background: rgba(255, 255, 255, 0.05);
+    }}
+    .btn:hover {{
+      border-color: rgba(255, 158, 27, 0.56);
+      box-shadow: 0 10px 20px rgba(0, 0, 0, 0.34);
+    }}
+    .hint {{
+      border-color: rgba(255, 158, 27, 0.4);
+      background: rgba(255, 158, 27, 0.14);
+    }}
+    .suburl:focus {{
+      border-color: rgba(255, 158, 27, 0.62);
+      box-shadow: 0 0 0 2px rgba(255, 158, 27, 0.24);
     }}
     @media (max-width: 680px) {{
       body {{ padding: 12px 10px 28px; }}
@@ -9526,13 +12233,25 @@ async def subscription_feed(request: web.Request) -> web.Response:
 
         speed_uuid = user_uuid
         speed_profile: dict[str, str] | None = None
-        speed_port = SERVER_PORT
+        speed_has_custom_endpoint = bool(SPEED_PROFILE_XUI_URL)
+        speed_xui_url = SPEED_PROFILE_XUI_URL if speed_has_custom_endpoint else XUI_URL
+        speed_xui_username = (
+            SPEED_PROFILE_XUI_USERNAME if speed_has_custom_endpoint else XUI_USERNAME
+        )
+        speed_xui_password = (
+            SPEED_PROFILE_XUI_PASSWORD if speed_has_custom_endpoint else XUI_PASSWORD
+        )
+        speed_server_ip = (SPEED_PROFILE_SERVER_IP or SERVER_IP).strip()
+        speed_server_port_fallback = (
+            SPEED_PROFILE_SERVER_PORT if SPEED_PROFILE_SERVER_PORT > 0 else SERVER_PORT
+        )
+        speed_port = speed_server_port_fallback
         speed_flow = SPEED_PROFILE_FLOW if SPEED_PROFILE_FLOW != "" else XUI_FLOW
         speed_inbound_synced = False
         speed_link = ""
 
         if SPEED_PROFILE_ENABLED:
-            if SPEED_INBOUND_ID > 0 and SPEED_INBOUND_ID != INBOUND_ID:
+            if SPEED_INBOUND_ID > 0 and (speed_has_custom_endpoint or SPEED_INBOUND_ID != INBOUND_ID):
                 try:
                     speed_uuid, speed_inbound_obj = await xui_upsert_client_for_inbound(
                         inbound_id=SPEED_INBOUND_ID,
@@ -9542,9 +12261,12 @@ async def subscription_feed(request: web.Request) -> web.Response:
                         flow_override=speed_flow if SPEED_PROFILE_FLOW != "" else None,
                         cache_main_reality=False,
                         email_override=speed_inbound_email(telegram_id),
+                        xui_url=speed_xui_url,
+                        xui_username=speed_xui_username,
+                        xui_password=speed_xui_password,
                     )
                     speed_profile = extract_reality_profile_from_inbound(speed_inbound_obj)
-                    speed_port = non_negative_int(speed_inbound_obj.get("port")) or SERVER_PORT
+                    speed_port = non_negative_int(speed_inbound_obj.get("port")) or speed_server_port_fallback
                     speed_inbound_synced = True
                 except Exception as exc:  # noqa: BLE001
                     print(f"[xui] Failed to sync speed inbound for {telegram_id}: {exc}")
@@ -9555,6 +12277,7 @@ async def subscription_feed(request: web.Request) -> web.Response:
                 flow_override=speed_flow if speed_flow else None,
                 reality_profile=speed_profile,
                 server_port=speed_port,
+                server_ip=speed_server_ip,
             )
             if speed_link:
                 link_map["speed"] = speed_link
@@ -9818,7 +12541,7 @@ async def payment_success_page(request: web.Request) -> web.Response:
         build_webapp_order_url(order_id, auto_pay=False) if order_id else build_webapp_tab_url("plans")
     )
     if not webapp_url:
-        webapp_url = (WEBAPP_PUBLIC_URL or "").strip() or "https://connect.boxvolt.shop/webapp"
+        webapp_url = (WEBAPP_PUBLIC_URL or "").strip() or "https://web.boxvolt.shop/webapp"
 
     redirect_target = bot_start_url or mini_app_url or webapp_url
     order_line = f"Заказ: <b>{html.escape(order_id)}</b>" if order_id else "Заказ найден."
@@ -9832,49 +12555,159 @@ async def payment_success_page(request: web.Request) -> web.Response:
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
   <title>BoxVolt • Оплата</title>
+  <link rel="icon" type="image/png" sizes="32x32" href="/icon.png?v=2">
+  <link rel="icon" type="image/png" sizes="192x192" href="/icon.png?v=2">
+  <link rel="shortcut icon" type="image/png" href="/icon.png?v=2">
+  <link rel="apple-touch-icon" href="/icon.png?v=2">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@500;700;800&family=Sora:wght@600;700;800&display=swap" rel="stylesheet">
   <style>
     :root {{
       color-scheme: dark;
-      --bg:#051522;
-      --card:#0b2335;
-      --line:#1d4b67;
-      --text:#e8f4ff;
-      --muted:#9ec2dd;
-      --accent:#3ec7ff;
-      --btn:#0f2d43;
+      --bg:#05070c;
+      --bg-soft:#0f1523;
+      --bg-mid:#141b2f;
+      --card:rgba(24, 31, 48, 0.72);
+      --card-soft:rgba(16, 22, 35, 0.74);
+      --line:rgba(255, 255, 255, 0.16);
+      --line-soft:rgba(255, 255, 255, 0.1);
+      --text:#f3f5f8;
+      --muted:#aeb6c5;
+      --accent:#ff9e1b;
+      --accent-strong:#ff7f11;
+      --btn:rgba(255, 255, 255, 0.07);
     }}
     * {{ box-sizing:border-box; }}
     body {{
-      margin:0; min-height:100vh; display:flex; align-items:center; justify-content:center;
+      margin:0;
+      min-height:100vh;
+      display:flex;
+      align-items:center;
+      justify-content:center;
       background:
-        radial-gradient(800px 420px at 15% -10%, rgba(62,199,255,.24), transparent 60%),
-        radial-gradient(720px 420px at 90% 110%, rgba(110,246,186,.12), transparent 55%),
-        var(--bg);
-      color:var(--text); font-family: "Segoe UI", "Tahoma", sans-serif;
+        radial-gradient(980px 460px at 18% -24%, rgba(255, 158, 27, 0.24), transparent 60%),
+        radial-gradient(820px 440px at 100% -14%, rgba(96, 169, 255, 0.18), transparent 58%),
+        radial-gradient(640px 320px at -6% 100%, rgba(72, 209, 166, 0.14), transparent 66%),
+        linear-gradient(160deg, var(--bg-mid), var(--bg-soft) 52%, var(--bg));
+      color:var(--text);
+      font-family:"Manrope", "Segoe UI", sans-serif;
       padding:18px;
+      position:relative;
+      overflow:hidden;
+    }}
+    body::before,
+    body::after {{
+      content:"";
+      position:fixed;
+      border-radius:999px;
+      pointer-events:none;
+      z-index:0;
+    }}
+    body::before {{
+      width:320px;
+      height:320px;
+      right:-120px;
+      top:-120px;
+      background:radial-gradient(circle, rgba(255, 158, 27, 0.2), transparent 70%);
+    }}
+    body::after {{
+      width:300px;
+      height:300px;
+      left:-120px;
+      bottom:-140px;
+      background:radial-gradient(circle, rgba(96, 169, 255, 0.16), transparent 70%);
     }}
     .card {{
       width:min(560px, 96vw);
       border:1px solid var(--line);
-      border-radius:16px;
-      background:linear-gradient(180deg, rgba(14,39,59,.98), rgba(8,26,40,.98));
-      padding:18px;
+      border-radius:22px;
+      background:
+        linear-gradient(150deg, rgba(255,255,255,0.09), rgba(255,255,255,0.01)),
+        linear-gradient(165deg, var(--card), var(--card-soft));
+      padding:20px;
       box-shadow:0 22px 60px rgba(0,0,0,.45);
+      backdrop-filter:blur(18px) saturate(132%);
+      -webkit-backdrop-filter:blur(18px) saturate(132%);
+      position:relative;
+      overflow:hidden;
+      isolation:isolate;
+      z-index:1;
     }}
-    h1 {{ margin:0 0 8px; font-size:22px; }}
+    .card::before {{
+      content:"";
+      position:absolute;
+      inset:0;
+      border-radius:inherit;
+      border:1px solid rgba(255,255,255,0.08);
+      pointer-events:none;
+    }}
+    .card::after {{
+      content:"";
+      position:absolute;
+      width:260px;
+      height:260px;
+      right:-110px;
+      top:-130px;
+      border-radius:50%;
+      background:radial-gradient(circle, rgba(255, 158, 27, 0.18), transparent 70%);
+      pointer-events:none;
+      z-index:0;
+    }}
+    .card > * {{
+      position:relative;
+      z-index:1;
+    }}
+    h1 {{
+      margin:0 0 8px;
+      font-size:22px;
+      font-family:"Sora", "Manrope", sans-serif;
+    }}
     p {{ margin:8px 0; line-height:1.45; color:var(--muted); }}
     .row {{ display:flex; gap:10px; flex-wrap:wrap; margin-top:14px; }}
     .btn {{
       display:inline-flex; align-items:center; justify-content:center;
-      text-decoration:none; color:var(--text); border:1px solid var(--line);
-      background:var(--btn); border-radius:12px; padding:10px 14px;
-      font-weight:700; font-size:14px;
+      text-decoration:none;
+      color:var(--text);
+      border:1px solid var(--line-soft);
+      background:
+        linear-gradient(180deg, rgba(255,255,255,0.12), rgba(255,255,255,0.04)),
+        var(--btn);
+      border-radius:12px;
+      padding:10px 14px;
+      font-weight:700;
+      font-size:14px;
+      transition:transform .16s ease, border-color .16s ease, box-shadow .16s ease, background .16s ease;
+      backdrop-filter:blur(11px);
+      -webkit-backdrop-filter:blur(11px);
+    }}
+    .btn:hover {{
+      transform:translateY(-1px);
+      border-color:rgba(255,255,255,0.32);
+      box-shadow:0 10px 20px rgba(0,0,0,.32);
     }}
     .btn.primary {{
-      background:linear-gradient(135deg, #1f8ec0, #37c5ff);
-      color:#032338; border:0;
+      background:linear-gradient(180deg, var(--accent), var(--accent-strong));
+      color:#1c1205;
+      border-color:rgba(255, 158, 27, 0.46);
+      box-shadow:0 10px 22px rgba(255, 127, 17, 0.34);
     }}
-    .hint {{ font-size:13px; margin-top:10px; }}
+    .hint {{
+      font-size:13px;
+      margin-top:10px;
+      border:1px solid rgba(255, 158, 27, 0.34);
+      border-radius:12px;
+      padding:10px 12px;
+      background:rgba(255, 158, 27, 0.11);
+      color:#ffd9a1;
+      backdrop-filter:blur(10px);
+      -webkit-backdrop-filter:blur(10px);
+    }}
+    @media (max-width: 620px) {{
+      .card {{ padding:16px; border-radius:18px; }}
+      .row {{ flex-direction:column; }}
+      .btn {{ width:100%; }}
+    }}
   </style>
 </head>
 <body>
@@ -9921,6 +12754,19 @@ async def webapp_page(_: web.Request) -> web.Response:
         content_type="text/html",
         headers={"Cache-Control": "no-store"},
     )
+
+
+async def app_icon_png(_: web.Request) -> web.Response:
+    if not ICON_PNG_PATH.exists():
+        return web.Response(text="icon_not_found", status=404)
+    return web.FileResponse(
+        path=ICON_PNG_PATH,
+        headers={"Cache-Control": "public, max-age=86400"},
+    )
+
+
+async def app_favicon_ico(request: web.Request) -> web.Response:
+    return await app_icon_png(request)
 
 
 async def webapp_plans_api(_: web.Request) -> web.Response:
@@ -10616,7 +13462,14 @@ async def webapp_admin_promocodes_api(request: web.Request) -> web.Response:
     if not ok:
         return webapp_error(reason, status)
 
-    return web.json_response({"ok": True, "promocodes": get_promocodes_for_admin()})
+    include_archived = _meta_to_bool(body.get("include_archived"), default=False)
+    return web.json_response(
+        {
+            "ok": True,
+            "include_archived": include_archived,
+            "promocodes": get_promocodes_for_admin(include_archived=include_archived),
+        }
+    )
 
 
 async def webapp_admin_create_promocode_api(request: web.Request) -> web.Response:
@@ -10646,7 +13499,91 @@ async def webapp_admin_create_promocode_api(request: web.Request) -> web.Respons
     if not created:
         return webapp_error(create_reason, 400)
 
-    return web.json_response({"ok": True, "promocodes": get_promocodes_for_admin()})
+    include_archived = _meta_to_bool(body.get("include_archived"), default=False)
+    return web.json_response(
+        {
+            "ok": True,
+            "include_archived": include_archived,
+            "promocodes": get_promocodes_for_admin(include_archived=include_archived),
+        }
+    )
+
+
+async def webapp_admin_delete_promocode_api(request: web.Request) -> web.Response:
+    try:
+        body = await request.json()
+    except Exception:  # noqa: BLE001
+        return webapp_error("invalid_json", 400)
+
+    ok, _, reason, status = validate_webapp_admin_init_data(str(body.get("init_data") or ""))
+    if not ok:
+        return webapp_error(reason, status)
+
+    code = str(body.get("code") or "")
+    deleted, delete_reason = delete_promocode(code)
+    if not deleted:
+        return webapp_error(delete_reason, 400 if delete_reason != "promo_not_found" else 404)
+
+    include_archived = _meta_to_bool(body.get("include_archived"), default=False)
+    return web.json_response(
+        {
+            "ok": True,
+            "include_archived": include_archived,
+            "promocodes": get_promocodes_for_admin(include_archived=include_archived),
+        }
+    )
+
+
+async def webapp_admin_extend_promocode_api(request: web.Request) -> web.Response:
+    try:
+        body = await request.json()
+    except Exception:  # noqa: BLE001
+        return webapp_error("invalid_json", 400)
+
+    ok, _, reason, status = validate_webapp_admin_init_data(str(body.get("init_data") or ""))
+    if not ok:
+        return webapp_error(reason, status)
+
+    code = str(body.get("code") or "")
+    days = _safe_int(body.get("days"), 0)
+    extended, extend_reason = extend_promocode_expiry(code, days)
+    if not extended:
+        return webapp_error(extend_reason, 400 if extend_reason != "promo_not_found" else 404)
+
+    include_archived = _meta_to_bool(body.get("include_archived"), default=False)
+    return web.json_response(
+        {
+            "ok": True,
+            "include_archived": include_archived,
+            "promocodes": get_promocodes_for_admin(include_archived=include_archived),
+        }
+    )
+
+
+async def webapp_admin_set_promocode_expiry_api(request: web.Request) -> web.Response:
+    try:
+        body = await request.json()
+    except Exception:  # noqa: BLE001
+        return webapp_error("invalid_json", 400)
+
+    ok, _, reason, status = validate_webapp_admin_init_data(str(body.get("init_data") or ""))
+    if not ok:
+        return webapp_error(reason, status)
+
+    code = str(body.get("code") or "")
+    expires_at = str(body.get("expires_at") or "")
+    changed, change_reason = set_promocode_expiry(code, expires_at)
+    if not changed:
+        return webapp_error(change_reason, 400 if change_reason != "promo_not_found" else 404)
+
+    include_archived = _meta_to_bool(body.get("include_archived"), default=False)
+    return web.json_response(
+        {
+            "ok": True,
+            "include_archived": include_archived,
+            "promocodes": get_promocodes_for_admin(include_archived=include_archived),
+        }
+    )
 
 
 def serialize_suspicious_flag(row: sqlite3.Row) -> dict[str, Any]:
@@ -10775,6 +13712,265 @@ async def webapp_admin_remove_subscription_api(request: web.Request) -> web.Resp
     return web.json_response({"ok": True, "user": user, "reason": remove_reason})
 
 
+def edge_cors_headers() -> dict[str, str]:
+    return {
+        "Access-Control-Allow-Origin": "*",
+        "Access-Control-Allow-Methods": "GET, POST, OPTIONS",
+        "Access-Control-Allow-Headers": "Content-Type, Authorization",
+        "Access-Control-Max-Age": "86400",
+    }
+
+
+def edge_json_response(payload: dict[str, Any], status: int = 200) -> web.Response:
+    headers = edge_cors_headers()
+    headers["Cache-Control"] = "no-store"
+    return web.json_response(payload, status=status, headers=headers)
+
+
+def edge_error_response(error: str, status: int | None = None) -> web.Response:
+    final_status = int(status or edge_status_code_for_error(error))
+    return edge_json_response({"ok": False, "error": error}, status=final_status)
+
+
+async def edge_api_options_handler(_: web.Request) -> web.Response:
+    return web.Response(status=204, headers=edge_cors_headers())
+
+
+def edge_extension_manifest_meta() -> dict[str, str]:
+    fallback = {"name": "BoxVolt VPN", "version": "-"}
+    manifest_path = BASE_DIR / "browser-extension" / "manifest.json"
+    if not manifest_path.exists():
+        return fallback
+    try:
+        payload = json.loads(manifest_path.read_text(encoding="utf-8"))
+    except Exception:  # noqa: BLE001
+        return fallback
+    if not isinstance(payload, dict):
+        return fallback
+    name = str(payload.get("name") or fallback["name"]).strip() or fallback["name"]
+    version = str(payload.get("version") or fallback["version"]).strip() or fallback["version"]
+    return {"name": name, "version": version}
+
+
+def edge_extension_download_name(ext: str) -> str:
+    manifest_meta = edge_extension_manifest_meta()
+    version = re.sub(r"[^0-9A-Za-z._-]+", "-", str(manifest_meta["version"])).strip("-")
+    safe_version = version or "latest"
+    safe_ext = re.sub(r"[^a-z0-9._-]+", "", str(ext or "").lower()).strip("._-") or "bin"
+    return f"boxvolt-vpn-extension-v{safe_version}.{safe_ext}"
+
+
+def render_edge_install_page() -> str:
+    if not EDGE_INSTALL_TEMPLATE_PATH.exists():
+        return ""
+    template = EDGE_INSTALL_TEMPLATE_PATH.read_text(encoding="utf-8")
+    manifest_meta = edge_extension_manifest_meta()
+    zip_ready = EDGE_EXTENSION_ZIP_PATH.exists() and EDGE_EXTENSION_ZIP_PATH.is_file()
+
+    replacements = {
+        "%%EXT_NAME%%": manifest_meta["name"],
+        "%%EXT_VERSION%%": manifest_meta["version"],
+        "%%EDGE_ENABLED%%": "включен" if EDGE_EXTENSION_ENABLED else "выключен",
+        "%%SERVERS_COUNT%%": str(len(edge_server_configs())),
+        "%%ZIP_STATUS%%": (
+            f"доступен ({EDGE_EXTENSION_ZIP_PATH.name})"
+            if zip_ready
+            else "не найден на сервере"
+        ),
+    }
+    rendered = template
+    for token, value in replacements.items():
+        rendered = rendered.replace(token, html.escape(str(value)))
+    return rendered
+
+
+def edge_file_download_response(
+    file_path: Path,
+    *,
+    download_name: str,
+    content_type: str,
+) -> web.Response:
+    response = web.FileResponse(path=file_path)
+    response.headers["Cache-Control"] = "no-store"
+    response.headers["Content-Disposition"] = f'attachment; filename="{download_name}"'
+    response.content_type = content_type
+    return response
+
+
+async def edge_page(_: web.Request) -> web.Response:
+    page_html = render_edge_install_page()
+    if not page_html:
+        return web.Response(text="Edge install template not found", status=500)
+    return web.Response(
+        text=page_html,
+        content_type="text/html",
+        headers={"Cache-Control": "no-store"},
+    )
+
+
+async def edge_download_zip(_: web.Request) -> web.Response:
+    if not EDGE_EXTENSION_ZIP_PATH.exists() or not EDGE_EXTENSION_ZIP_PATH.is_file():
+        return web.Response(
+            text="ZIP-пакет расширения не найден на сервере.",
+            status=404,
+            headers={"Cache-Control": "no-store"},
+        )
+    return edge_file_download_response(
+        EDGE_EXTENSION_ZIP_PATH,
+        download_name=edge_extension_download_name("zip"),
+        content_type="application/zip",
+    )
+
+
+async def edge_download_crx(_: web.Request) -> web.Response:
+    return web.Response(
+        text=(
+            "Установка через CRX отключена. "
+            "Используйте ZIP-установку через «Загрузить распакованное»."
+        ),
+        status=410,
+        headers={"Cache-Control": "no-store"},
+    )
+
+
+async def edge_download_crx_zip(_: web.Request) -> web.Response:
+    return web.Response(
+        text=(
+            "Установка через CRX отключена. "
+            "Используйте ZIP-установку через «Загрузить распакованное»."
+        ),
+        status=410,
+        headers={"Cache-Control": "no-store"},
+    )
+
+
+async def edge_auth_start_api(request: web.Request) -> web.Response:
+    if not EDGE_EXTENSION_ENABLED:
+        return edge_error_response("edge_disabled", 503)
+
+    if request.can_read_body:
+        with contextlib.suppress(Exception):
+            await request.json()
+
+    edge_cleanup_state()
+    try:
+        auth_payload = edge_create_auth_request()
+    except Exception as exc:  # noqa: BLE001
+        print(f"[edge] Failed to create auth request: {exc}")
+        return edge_error_response("auth_create_failed", 500)
+
+    start_payload = edge_auth_start_payload(str(auth_payload["code"]))
+    bot_start_url = build_bot_start_url(start_payload)
+    bot_username = bot_public_username_hint()
+
+    return edge_json_response(
+        {
+            "ok": True,
+            "request_id": auth_payload["request_id"],
+            "poll_token": auth_payload["poll_token"],
+            "expires_at": auth_payload["expires_at"],
+            "poll_interval_ms": 2500,
+            "start_payload": start_payload,
+            "bot_username": bot_username,
+            "bot_start_url": bot_start_url,
+            "bot_start_command": f"/start {start_payload}",
+            "servers_configured": len(edge_server_configs()),
+        }
+    )
+
+
+async def edge_auth_poll_api(request: web.Request) -> web.Response:
+    if not EDGE_EXTENSION_ENABLED:
+        return edge_error_response("edge_disabled", 503)
+
+    try:
+        body = await request.json()
+    except Exception:  # noqa: BLE001
+        return edge_error_response("invalid_json", 400)
+
+    request_id = str(body.get("request_id") or "").strip()
+    poll_token = str(body.get("poll_token") or "").strip()
+    if not request_id:
+        return edge_error_response("missing_request_id", 400)
+    if not poll_token:
+        return edge_error_response("missing_poll_token", 400)
+
+    row, reason = edge_get_auth_request_for_poll(request_id, poll_token)
+    if not row:
+        return edge_error_response(reason)
+
+    status = str(row["status"] or "pending").strip().lower() or "pending"
+    if status != "approved":
+        return edge_json_response(
+            {
+                "ok": True,
+                "status": status,
+                "expires_at": row["expires_at"],
+                "poll_interval_ms": 2500,
+            }
+        )
+
+    telegram_id = int(row["telegram_id"] or 0)
+    if telegram_id <= 0:
+        return edge_json_response(
+            {
+                "ok": True,
+                "status": "pending",
+                "expires_at": row["expires_at"],
+                "poll_interval_ms": 2500,
+            }
+        )
+
+    try:
+        session = edge_create_session(
+            telegram_id,
+            request_id=row["id"],
+            user_agent=str(request.headers.get("User-Agent") or ""),
+        )
+    except Exception as exc:  # noqa: BLE001
+        print(f"[edge] Failed to create session for {telegram_id}: {exc}")
+        return edge_error_response("session_create_failed", 500)
+
+    me_payload = edge_build_me_payload(telegram_id, include_server_credentials=True)
+    return edge_json_response(
+        {
+            "ok": True,
+            "status": "approved",
+            "session_token": session["token"],
+            "session_expires_at": session["expires_at"],
+            **me_payload,
+        }
+    )
+
+
+async def edge_me_api(request: web.Request) -> web.Response:
+    if not EDGE_EXTENSION_ENABLED:
+        return edge_error_response("edge_disabled", 503)
+
+    edge_cleanup_state()
+    session_token = edge_extract_bearer_token(request)
+    session, reason = edge_get_session(session_token, touch_last_seen=True)
+    if not session:
+        return edge_error_response(reason)
+
+    payload = edge_build_me_payload(int(session["telegram_id"]), include_server_credentials=True)
+    payload.update({"ok": True, "session_expires_at": session["expires_at"]})
+    return edge_json_response(payload)
+
+
+async def edge_logout_api(request: web.Request) -> web.Response:
+    if not EDGE_EXTENSION_ENABLED:
+        return edge_error_response("edge_disabled", 503)
+
+    session_token = edge_extract_bearer_token(request)
+    session, reason = edge_get_session(session_token, touch_last_seen=False)
+    if not session:
+        return edge_error_response(reason)
+
+    edge_revoke_session(session_token)
+    return edge_json_response({"ok": True})
+
+
 def make_web_app() -> web.Application:
     app = web.Application()
 
@@ -10785,13 +13981,28 @@ def make_web_app() -> web.Application:
     if not subscription_path:
         subscription_path = "/sub"
 
-    app.router.add_post(donatepay_webhook_path, donatepay_webhook)
+    if DONATEPAY_ENABLED:
+        app.router.add_post(donatepay_webhook_path, donatepay_webhook)
     app.router.add_post(cryptobot_webhook_path, cryptobot_webhook)
     app.router.add_post(lzt_webhook_path, lzt_webhook)
     app.router.add_get(f"{subscription_path}/{{sub_token}}/profile", subscription_profile_page)
     app.router.add_get(f"{subscription_path}/{{sub_token}}", subscription_feed)
     app.router.add_get(f"{subscription_path}/{{telegram_id}}/{{token}}/profile", subscription_profile_page)
     app.router.add_get(f"{subscription_path}/{{telegram_id}}/{{token}}", subscription_feed)
+    app.router.add_get("/", public_site_page)
+    app.router.add_get("/site", public_site_page)
+    app.router.add_get("/site/", public_site_page)
+    app.router.add_post("/site/api/auth/start", site_auth_start_api)
+    app.router.add_post("/site/api/auth/poll", site_auth_poll_api)
+    app.router.add_get("/site/api/me", site_me_api)
+    app.router.add_post("/site/api/logout", site_logout_api)
+    app.router.add_post("/site/api/ai", site_ai_assistant_api)
+    app.router.add_post("/site/api/create-order", site_create_order_api)
+    app.router.add_post("/site/api/order-status", site_order_status_api)
+    app.router.add_post("/site/api/cancel-order", site_cancel_order_api)
+    app.router.add_post("/site/api/account", site_account_api)
+    app.router.add_get("/icon.png", app_icon_png)
+    app.router.add_get("/favicon.ico", app_favicon_ico)
     app.router.add_get("/health", healthcheck)
     app.router.add_get("/status", public_status_page)
     app.router.add_get("/status.json", public_status_json)
@@ -10817,11 +14028,26 @@ def make_web_app() -> web.Application:
     app.router.add_post("/webapp/api/admin/reset-antiabuse", webapp_admin_reset_antiabuse_api)
     app.router.add_post("/webapp/api/admin/promocodes", webapp_admin_promocodes_api)
     app.router.add_post("/webapp/api/admin/create-promocode", webapp_admin_create_promocode_api)
+    app.router.add_post("/webapp/api/admin/delete-promocode", webapp_admin_delete_promocode_api)
+    app.router.add_post("/webapp/api/admin/extend-promocode", webapp_admin_extend_promocode_api)
+    app.router.add_post("/webapp/api/admin/set-promocode-expiry", webapp_admin_set_promocode_expiry_api)
     app.router.add_post("/webapp/api/admin/flags", webapp_admin_flags_api)
     app.router.add_post("/webapp/api/admin/resolve-flag", webapp_admin_resolve_flag_api)
     app.router.add_post("/webapp/api/admin/find-user", webapp_admin_find_user_api)
     app.router.add_post("/webapp/api/admin/grant-subscription", webapp_admin_grant_subscription_api)
     app.router.add_post("/webapp/api/admin/remove-subscription", webapp_admin_remove_subscription_api)
+    app.router.add_route("OPTIONS", "/edge/api/{tail:.*}", edge_api_options_handler)
+    app.router.add_get("/edge", edge_page)
+    app.router.add_get("/edge/", edge_page)
+    app.router.add_get("/edge/install", edge_page)
+    app.router.add_get("/edge/install/", edge_page)
+    app.router.add_get("/edge/download/zip", edge_download_zip)
+    app.router.add_get("/edge/download/crx", edge_download_crx)
+    app.router.add_get("/edge/download/crx-zip", edge_download_crx_zip)
+    app.router.add_post("/edge/api/auth/start", edge_auth_start_api)
+    app.router.add_post("/edge/api/auth/poll", edge_auth_poll_api)
+    app.router.add_get("/edge/api/me", edge_me_api)
+    app.router.add_post("/edge/api/logout", edge_logout_api)
     return app
 
 
@@ -10831,6 +14057,75 @@ async def start_handler(message: Message) -> None:
     start_arg = command_args(message)
     start_token = start_arg.split(maxsplit=1)[0].strip() if start_arg else ""
     referral_notice = ""
+
+    edge_auth_code = parse_edge_auth_start_code(start_token)
+    if edge_auth_code:
+        approved, reason = edge_approve_auth_request(
+            edge_auth_code,
+            message.from_user.id,
+            message.from_user.username,
+        )
+        if approved:
+            user = get_user(message.from_user.id)
+            subscription_active = has_active_subscription(user["subscription_end"] if user else None)
+            if subscription_active:
+                await message.answer(
+                    "✅ Вход в расширение подтвержден.\n"
+                    "Вернитесь в расширение и дождитесь завершения авторизации.",
+                    reply_markup=build_main_keyboard(message.from_user.id),
+                )
+            else:
+                await message.answer(
+                    "✅ Вход в расширение подтвержден.\n"
+                    "⚠️ Подписка не активна. Оформите или продлите подписку, "
+                    "чтобы подключить сервер BR/RU в расширении.",
+                    reply_markup=build_main_keyboard(message.from_user.id),
+                )
+            return
+
+        reason_map = {
+            "request_not_found": "Код входа не найден. Запустите вход из расширения заново.",
+            "request_expired": "Код входа истек. Запустите вход из расширения еще раз.",
+            "already_confirmed": "Этот код уже подтвержден другим аккаунтом.",
+        }
+        await message.answer(
+            f"❌ Не удалось подтвердить вход: {reason_map.get(reason, 'повторите попытку из расширения.')}"
+        )
+        return
+
+    site_auth_code = parse_site_auth_start_code(start_token)
+    if site_auth_code:
+        approved, reason = edge_approve_auth_request(
+            site_auth_code,
+            message.from_user.id,
+            message.from_user.username,
+        )
+        if approved:
+            user = get_user(message.from_user.id)
+            subscription_active = has_active_subscription(user["subscription_end"] if user else None)
+            if subscription_active:
+                await message.answer(
+                    "✅ Вход на сайт подтвержден.\n"
+                    "Вернитесь на сайт и дождитесь завершения авторизации.",
+                    reply_markup=build_main_keyboard(message.from_user.id),
+                )
+            else:
+                await message.answer(
+                    "✅ Вход на сайт подтвержден.\n"
+                    "⚠️ Подписка не активна. Оформите или продлите доступ, чтобы пользоваться сервисом.",
+                    reply_markup=build_main_keyboard(message.from_user.id),
+                )
+            return
+
+        reason_map = {
+            "request_not_found": "Код входа не найден. Запустите вход с сайта заново.",
+            "request_expired": "Код входа истек. Запустите вход с сайта еще раз.",
+            "already_confirmed": "Этот код уже подтвержден другим аккаунтом.",
+        }
+        await message.answer(
+            f"❌ Не удалось подтвердить вход: {reason_map.get(reason, 'повторите попытку с сайта.')}"
+        )
+        return
 
     referrer_id, referral_code = parse_referral_start_payload(start_token)
     if referrer_id:
@@ -10890,7 +14185,6 @@ async def start_handler(message: Message) -> None:
                         links["payment_url"],
                         order_from_start,
                         str(payment["provider"] or ""),
-                        donatepay_url=links["donatepay_payment_url"],
                         cryptobot_url=links["cryptobot_payment_url"],
                         lzt_url=links["lzt_payment_url"],
                         secondary_payment_url=links["secondary_payment_url"],
@@ -10976,7 +14270,12 @@ async def myid_handler(message: Message) -> None:
 
 @dp.message(Command("rules"))
 async def rules_command_handler(message: Message) -> None:
-    await message.answer(build_rules_text(), reply_markup=build_main_keyboard(message.from_user.id))
+    target_url = rules_page_url()
+    await message.answer(
+        f"📜 Правила BoxVolt VPN\nПолная версия: {target_url}",
+        reply_markup=build_rules_keyboard(),
+        disable_web_page_preview=True,
+    )
 
 
 @dp.message(F.text == "📜 Правила")
@@ -11266,7 +14565,7 @@ async def buy_menu_handler(message: Message) -> None:
 
     active_provider = get_active_payment_provider()
     if not payment_provider_is_ready(active_provider):
-        missing = "`DONATEPAY_DONATE_BASE_URL` и `DONATEPAY_API_KEY`"
+        missing = "настройки платежного провайдера"
         if active_provider == CRYPTOBOT_PROVIDER:
             missing = "`CRYPTOBOT_ENABLED=1` и `CRYPTOBOT_API_TOKEN`"
         elif active_provider == LZT_PROVIDER:
@@ -11380,12 +14679,15 @@ async def buy_plan_callback(callback: CallbackQuery) -> None:
 
     provider_label = payment_provider_label(provider)
     pay_step_line = f"1. Нажмите «Оплатить в {provider_label}».\n"
-    if WEBAPP_PUBLIC_URL and (
-        links["donatepay_payment_url"] or links["cryptobot_payment_url"] or links["lzt_payment_url"]
-    ):
-        pay_step_line = (
-            "1. Нажмите «Выбрать оплату в Mini App» (выбор DonatePay/CryptoBot/LZT).\n"
-        )
+    available_methods: list[str] = []
+    if links["cryptobot_payment_url"]:
+        available_methods.append("CryptoBot")
+    if links["lzt_payment_url"]:
+        available_methods.append("LZT Market")
+    if links["secondary_payment_url"]:
+        available_methods.append(SECONDARY_PAYMENT_LABEL)
+    if WEBAPP_PUBLIC_URL and len(available_methods) > 1:
+        pay_step_line = "1. Нажмите «Выбрать оплату в Mini App» (выбор " + "/".join(available_methods) + ").\n"
     elif links["payment_url"]:
         pay_step_line = f"1. Нажмите «Оплатить в {provider_label}».\n"
 
@@ -11415,7 +14717,6 @@ async def buy_plan_callback(callback: CallbackQuery) -> None:
             links["payment_url"],
             order_id,
             provider,
-            donatepay_url=links["donatepay_payment_url"],
             cryptobot_url=links["cryptobot_payment_url"],
             lzt_url=links["lzt_payment_url"],
             secondary_payment_url=links["secondary_payment_url"],
@@ -11482,7 +14783,6 @@ async def payment_check_callback(callback: CallbackQuery) -> None:
             links["payment_url"],
             order_id,
             payment["provider"],
-            donatepay_url=links["donatepay_payment_url"],
             cryptobot_url=links["cryptobot_payment_url"],
             lzt_url=links["lzt_payment_url"],
             secondary_payment_url=links["secondary_payment_url"],
@@ -11650,7 +14950,6 @@ async def payment_repeat_callback(callback: CallbackQuery) -> None:
                 links["payment_url"],
                 new_order_id,
                 provider_code,
-                donatepay_url=links["donatepay_payment_url"],
                 cryptobot_url=links["cryptobot_payment_url"],
                 lzt_url=links["lzt_payment_url"],
                 secondary_payment_url=links["secondary_payment_url"],
@@ -11664,7 +14963,6 @@ async def payment_repeat_callback(callback: CallbackQuery) -> None:
                 links["payment_url"],
                 new_order_id,
                 provider_code,
-                donatepay_url=links["donatepay_payment_url"],
                 cryptobot_url=links["cryptobot_payment_url"],
                 lzt_url=links["lzt_payment_url"],
                 secondary_payment_url=links["secondary_payment_url"],
@@ -11937,7 +15235,6 @@ async def create_order_from_profile_plan(
             links["payment_url"],
             order_id,
             provider,
-            donatepay_url=links["donatepay_payment_url"],
             cryptobot_url=links["cryptobot_payment_url"],
             lzt_url=links["lzt_payment_url"],
             secondary_payment_url=links["secondary_payment_url"],
@@ -12415,6 +15712,14 @@ async def sale_handler(message: Message) -> None:
     sale_keyboard = build_sale_keyboard()
     reply_markup = sale_keyboard if sale_keyboard.inline_keyboard else None
     await message.answer("\n\n".join(blocks), reply_markup=reply_markup)
+
+
+@dp.message(F.text == "🌐 Перейти на сайт")
+async def public_site_text_handler(message: Message) -> None:
+    await message.answer(
+        "🌐 Откройте сайт BoxVolt:",
+        reply_markup=build_public_site_open_keyboard(),
+    )
 
 
 @dp.callback_query(F.data == "sale:open")
@@ -13120,10 +16425,13 @@ async def start_webhook_server() -> web.AppRunner:
     if not subscription_path:
         subscription_path = "/sub"
 
-    print(f"[webhook] DonatePay path http://{WEBHOOK_HOST}:{WEBHOOK_PORT}{donatepay_webhook_path}")
+    if DONATEPAY_ENABLED:
+        print(f"[webhook] DonatePay path http://{WEBHOOK_HOST}:{WEBHOOK_PORT}{donatepay_webhook_path}")
     print(f"[webhook] CryptoBot path http://{WEBHOOK_HOST}:{WEBHOOK_PORT}{cryptobot_webhook_path}")
     print(f"[webhook] LZT path http://{WEBHOOK_HOST}:{WEBHOOK_PORT}{lzt_webhook_path}")
     print(f"[webapp] Internal URL http://{WEBHOOK_HOST}:{WEBHOOK_PORT}/webapp")
+    if EDGE_EXTENSION_ENABLED:
+        print(f"[edge] Internal URL http://{WEBHOOK_HOST}:{WEBHOOK_PORT}/edge")
     print(f"[pricing] File {pricing_path()}")
     if WEBAPP_PUBLIC_URL:
         print(f"[webapp] Public URL {WEBAPP_PUBLIC_URL}")
@@ -13147,7 +16455,7 @@ async def main() -> None:
     webhook_runner = await start_webhook_server()
     poll_tasks: list[asyncio.Task[None]] = []
     background_tasks: list[asyncio.Task[None]] = []
-    if DONATEPAY_POLL_ENABLED and DONATEPAY_API_KEY and (
+    if DONATEPAY_ENABLED and DONATEPAY_POLL_ENABLED and DONATEPAY_API_KEY and (
         get_active_payment_provider() == DONATEPAY_PROVIDER
         or has_pending_orders_for_provider(DONATEPAY_PROVIDER)
     ):

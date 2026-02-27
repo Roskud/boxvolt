@@ -4,39 +4,43 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>BoxVolt Mini App</title>
+  <link rel="icon" type="image/png" sizes="32x32" href="/icon.png?v=2">
+  <link rel="icon" type="image/png" sizes="192x192" href="/icon.png?v=2">
+  <link rel="shortcut icon" type="image/png" href="/icon.png?v=2">
+  <link rel="apple-touch-icon" href="/icon.png?v=2">
   <script src="https://telegram.org/js/telegram-web-app.js"></script>
   <style>
-    @import url("https://fonts.googleapis.com/css2?family=Exo+2:wght@500;600;700&family=Space+Grotesk:wght@400;500;600;700&display=swap");
+    @import url("https://fonts.googleapis.com/css2?family=Manrope:wght@500;700;800&family=Sora:wght@600;700;800&display=swap");
 
     :root {
-      --bg-top: #f2fbff;
-      --bg-mid: #d6e7ef;
-      --bg-bottom: #c5d8e0;
-      --panel-top: #03606a;
-      --panel-bottom: #03464f;
-      --text: #e9fdff;
-      --title: #f3ffff;
-      --ink: #0f3137;
-      --muted: #b6d9de;
-      --accent: #53f0e0;
-      --accent-2: #97fff2;
-      --danger: #ffd8de;
-      --ok: #a6ffe2;
-      --border: rgba(161, 250, 236, 0.33);
-      --glass: rgba(255, 255, 255, 0.08);
-      --glass-strong: rgba(255, 255, 255, 0.14);
-      --shadow: 0 22px 44px rgba(1, 28, 31, 0.24);
-      --btn-shadow: 0 10px 20px rgba(2, 34, 40, 0.22);
+      --bg-top: #121521;
+      --bg-mid: #0d1119;
+      --bg-bottom: #050608;
+      --panel-top: #1a202c;
+      --panel-bottom: #121722;
+      --text: #f3f5f8;
+      --title: #ffffff;
+      --ink: #f3f5f8;
+      --muted: #aeb6c5;
+      --accent: #ff9e1b;
+      --accent-2: #ff7f11;
+      --danger: #ff7e79;
+      --ok: #45d39c;
+      --border: rgba(255, 255, 255, 0.14);
+      --glass: rgba(255, 255, 255, 0.06);
+      --glass-strong: rgba(255, 255, 255, 0.1);
+      --shadow: 0 26px 48px rgba(0, 0, 0, 0.42);
+      --btn-shadow: 0 10px 20px rgba(0, 0, 0, 0.34);
     }
 
     * { box-sizing: border-box; }
 
     body {
       margin: 0;
-      font-family: "Space Grotesk", "Exo 2", "Trebuchet MS", sans-serif;
+      font-family: "Manrope", "Segoe UI", sans-serif;
       background:
-        radial-gradient(60% 70% at 15% -10%, #f8ffff 0%, transparent 100%),
-        radial-gradient(80% 90% at 100% 0%, #e7f7ff 0%, transparent 100%),
+        radial-gradient(70% 78% at 14% -16%, rgba(255, 158, 27, 0.24), transparent 100%),
+        radial-gradient(80% 85% at 100% 0%, rgba(255, 127, 17, 0.2), transparent 100%),
         linear-gradient(180deg, var(--bg-top) 0%, var(--bg-mid) 50%, var(--bg-bottom) 100%);
       color: var(--ink);
       min-height: 100vh;
@@ -59,7 +63,7 @@
       height: 340px;
       top: -140px;
       left: -110px;
-      background: radial-gradient(circle, rgba(31, 255, 231, 0.25), transparent 68%);
+      background: radial-gradient(circle, rgba(255, 158, 27, 0.2), transparent 68%);
     }
 
     body::after {
@@ -67,7 +71,7 @@
       height: 380px;
       right: -160px;
       bottom: -120px;
-      background: radial-gradient(circle, rgba(9, 184, 197, 0.26), transparent 68%);
+      background: radial-gradient(circle, rgba(255, 127, 17, 0.2), transparent 68%);
     }
 
     .wrap {
@@ -198,9 +202,34 @@
       background: rgba(123, 24, 43, 0.26);
     }
 
+    .status.busy {
+      border-color: rgba(169, 241, 255, 0.55);
+      color: #dffbff;
+      background: rgba(8, 80, 96, 0.28);
+    }
+
     .plans {
       display: grid;
       gap: 12px;
+    }
+
+    .plan-skeleton {
+      border-radius: 18px;
+      border: 1px solid rgba(170, 255, 243, 0.16);
+      height: 72px;
+      background: linear-gradient(
+        100deg,
+        rgba(255, 255, 255, 0.06) 0%,
+        rgba(255, 255, 255, 0.16) 45%,
+        rgba(255, 255, 255, 0.06) 100%
+      );
+      background-size: 220% 100%;
+      animation: skeletonPulse 1.2s ease infinite;
+    }
+
+    @keyframes skeletonPulse {
+      0% { background-position: 0% 50%; }
+      100% { background-position: 120% 50%; }
     }
 
     .plan {
@@ -252,6 +281,37 @@
 
     button:active {
       transform: translateY(1px);
+    }
+
+    button:disabled {
+      opacity: 0.6;
+      cursor: not-allowed;
+      transform: none;
+      box-shadow: none;
+    }
+
+    button.is-loading {
+      position: relative;
+      overflow: hidden;
+    }
+
+    button.is-loading::after {
+      content: "";
+      position: absolute;
+      inset: 0;
+      background: linear-gradient(
+        100deg,
+        rgba(255, 255, 255, 0) 0%,
+        rgba(255, 255, 255, 0.24) 35%,
+        rgba(255, 255, 255, 0) 70%
+      );
+      animation: btnShimmer 1.1s linear infinite;
+      pointer-events: none;
+    }
+
+    @keyframes btnShimmer {
+      from { transform: translateX(-120%); }
+      to { transform: translateX(120%); }
     }
 
     button.ghost {
@@ -456,7 +516,459 @@
       background: rgba(8, 80, 96, 0.28);
     }
 
+    .hero {
+      background:
+        linear-gradient(155deg, rgba(22, 27, 36, 0.95), rgba(12, 14, 19, 0.94)),
+        radial-gradient(130% 130% at 0% 0%, rgba(255, 158, 27, 0.18), transparent 55%);
+      border-color: var(--border);
+    }
+
+    .title {
+      font-family: "Sora", "Manrope", sans-serif;
+      color: var(--title);
+    }
+
+    .subtitle {
+      color: var(--muted);
+    }
+
+    button.tab-btn {
+      border: 1px solid rgba(255, 255, 255, 0.16);
+      color: var(--text);
+      background: linear-gradient(180deg, rgba(255, 255, 255, 0.08), rgba(255, 255, 255, 0.03));
+      box-shadow: 0 9px 18px rgba(0, 0, 0, 0.32);
+      text-shadow: none;
+    }
+
+    button.tab-btn.is-active {
+      border-color: rgba(255, 158, 27, 0.52);
+      background: linear-gradient(180deg, var(--accent), var(--accent-2));
+      color: #1c1205;
+      box-shadow: 0 10px 22px rgba(255, 127, 17, 0.34);
+    }
+
+    .card {
+      background:
+        linear-gradient(165deg, rgba(23, 29, 40, 0.94), rgba(14, 18, 26, 0.94)),
+        radial-gradient(100% 130% at 100% 0%, rgba(255, 158, 27, 0.16), transparent 64%);
+      color: var(--text);
+      border-color: var(--border);
+    }
+
+    .card strong {
+      font-family: "Sora", "Manrope", sans-serif;
+      color: var(--title);
+    }
+
+    .status {
+      border: 1px solid rgba(255, 255, 255, 0.16);
+      color: #d9dfeb;
+      background: rgba(255, 255, 255, 0.05);
+    }
+
+    .status.busy {
+      border-color: rgba(255, 158, 27, 0.5);
+      color: #ffd49a;
+      background: rgba(108, 63, 9, 0.26);
+    }
+
+    .plan {
+      border-color: rgba(255, 255, 255, 0.16);
+      background: linear-gradient(180deg, rgba(255, 255, 255, 0.08), rgba(255, 255, 255, 0.03));
+      box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.04);
+    }
+
+    .plan h3 {
+      color: var(--text);
+    }
+
+    .plan p {
+      color: var(--muted);
+    }
+
+    button {
+      border: 1px solid rgba(255, 255, 255, 0.2);
+      color: var(--text);
+      background:
+        linear-gradient(180deg, rgba(255, 255, 255, 0.09), rgba(255, 255, 255, 0.03)),
+        rgba(255, 255, 255, 0.02);
+      box-shadow: var(--btn-shadow);
+    }
+
+    button:hover {
+      box-shadow: 0 14px 24px rgba(0, 0, 0, 0.36);
+      border-color: rgba(255, 158, 27, 0.52);
+    }
+
+    button.ghost {
+      background: rgba(255, 255, 255, 0.02);
+      border-color: rgba(255, 255, 255, 0.16);
+      color: #e8edf5;
+    }
+
+    .mono {
+      color: #e8edf5;
+      background: #0f141c;
+      border-color: rgba(255, 255, 255, 0.16);
+    }
+
+    .small {
+      color: var(--muted);
+    }
+
+    .pitch,
+    .faq,
+    .admin-plan,
+    .mini-block {
+      border-color: rgba(255, 255, 255, 0.16);
+      background: rgba(255, 255, 255, 0.04);
+    }
+
+    .pitch ul,
+    .faq summary {
+      color: var(--text);
+    }
+
+    .faq details {
+      border-top: 1px solid rgba(255, 255, 255, 0.12);
+    }
+
+    .faq p {
+      color: var(--muted);
+    }
+
+    .field label {
+      color: #d0d7e5;
+    }
+
+    .field input, .field textarea, .field select {
+      border: 1px solid rgba(255, 255, 255, 0.2);
+      background: rgba(11, 14, 20, 0.78);
+      color: var(--text);
+    }
+
+    .field input::placeholder,
+    .field textarea::placeholder {
+      color: rgba(174, 182, 197, 0.76);
+    }
+
+    .field input:focus,
+    .field textarea:focus,
+    .field select:focus {
+      border-color: rgba(255, 158, 27, 0.68);
+      box-shadow: 0 0 0 2px rgba(255, 158, 27, 0.22);
+    }
+
+    .admin-plan-head {
+      color: #d3dae7;
+    }
+
+    .state-pill {
+      border: 1px solid rgba(255, 255, 255, 0.24);
+      background: rgba(255, 255, 255, 0.08);
+      color: var(--text);
+    }
+
+    .state-pill.warn {
+      color: #ffd8b0;
+      border-color: rgba(255, 200, 87, 0.55);
+      background: rgba(120, 58, 12, 0.26);
+    }
+
+    .state-pill.info {
+      color: #ffd9a1;
+      border-color: rgba(255, 158, 27, 0.52);
+      background: rgba(106, 62, 9, 0.26);
+    }
+
     #adminUserResults .order-row { margin-top: 8px; }
+
+    /* Liquid-glass pass (visual only) */
+    .wrap {
+      isolation: isolate;
+      overflow: visible;
+    }
+
+    .wrap::before,
+    .wrap::after {
+      content: "";
+      position: absolute;
+      border-radius: 999px;
+      pointer-events: none;
+      z-index: -1;
+      filter: blur(1px);
+    }
+
+    .wrap::before {
+      width: 280px;
+      height: 280px;
+      right: -110px;
+      top: 68px;
+      background: radial-gradient(circle, rgba(255, 158, 27, 0.18), transparent 70%);
+    }
+
+    .wrap::after {
+      width: 250px;
+      height: 250px;
+      left: -96px;
+      top: 320px;
+      background: radial-gradient(circle, rgba(84, 154, 255, 0.14), transparent 70%);
+    }
+
+    .hero,
+    .card,
+    .plan,
+    .pitch,
+    .faq,
+    .admin-plan,
+    .mini-block,
+    .status,
+    .field input,
+    .field textarea,
+    .field select,
+    .state-pill,
+    button.tab-btn,
+    button {
+      backdrop-filter: blur(14px) saturate(128%);
+      -webkit-backdrop-filter: blur(14px) saturate(128%);
+    }
+
+    .hero,
+    .card {
+      position: relative;
+      overflow: hidden;
+      isolation: isolate;
+    }
+
+    .hero::before,
+    .card::before {
+      content: "";
+      position: absolute;
+      inset: 0;
+      border-radius: inherit;
+      pointer-events: none;
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      z-index: 1;
+    }
+
+    .hero::after {
+      content: "";
+      position: absolute;
+      width: 280px;
+      height: 280px;
+      top: -130px;
+      right: -90px;
+      border-radius: 50%;
+      background: radial-gradient(circle, rgba(255, 158, 27, 0.16), transparent 68%);
+      pointer-events: none;
+      z-index: 0;
+    }
+
+    .card::after {
+      border-color: rgba(255, 255, 255, 0.1);
+    }
+
+    .tabbar {
+      padding: 6px;
+      border-radius: 16px;
+      border: 1px solid rgba(255, 255, 255, 0.12);
+      background: rgba(255, 255, 255, 0.03);
+      box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.06);
+    }
+
+    button.tab-btn {
+      border-color: rgba(255, 255, 255, 0.18);
+      background:
+        linear-gradient(180deg, rgba(255, 255, 255, 0.12), rgba(255, 255, 255, 0.05)),
+        rgba(255, 255, 255, 0.02);
+    }
+
+    button.tab-btn.is-active {
+      border-color: rgba(255, 158, 27, 0.58);
+      box-shadow: 0 10px 20px rgba(255, 127, 17, 0.34);
+    }
+
+    .plan,
+    .pitch,
+    .faq,
+    .admin-plan,
+    .mini-block {
+      border-color: rgba(255, 255, 255, 0.18);
+      box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.07);
+    }
+
+    .plan {
+      background:
+        linear-gradient(180deg, rgba(255, 255, 255, 0.13), rgba(255, 255, 255, 0.04)),
+        rgba(255, 255, 255, 0.03);
+    }
+
+    button {
+      border-color: rgba(255, 255, 255, 0.24);
+      background:
+        linear-gradient(180deg, rgba(255, 255, 255, 0.12), rgba(255, 255, 255, 0.04)),
+        rgba(255, 255, 255, 0.03);
+    }
+
+    button:hover {
+      border-color: rgba(255, 158, 27, 0.58);
+      box-shadow: 0 14px 26px rgba(0, 0, 0, 0.38);
+    }
+
+    .status.busy {
+      border-color: rgba(255, 198, 122, 0.64);
+      background: rgba(108, 63, 9, 0.3);
+    }
+
+    @keyframes blob {
+      0% { transform: translate(0px, 0px) scale(1); }
+      33% { transform: translate(30px, -50px) scale(1.1); }
+      66% { transform: translate(-20px, 20px) scale(0.9); }
+      100% { transform: translate(0px, 0px) scale(1); }
+    }
+
+    @keyframes float-up {
+      0% { transform: translateY(0) scale(1); opacity: 0; }
+      20% { opacity: 1; }
+      80% { opacity: 1; }
+      100% { transform: translateY(-100vh) scale(0); opacity: 0; }
+    }
+
+    .fx-bg {
+      position: fixed;
+      inset: 0;
+      z-index: 0;
+      pointer-events: none;
+      overflow: hidden;
+      background: #050505;
+    }
+
+    .fx-grid {
+      position: absolute;
+      inset: 0;
+      background-image:
+        linear-gradient(to right, #ffffff0a 1px, transparent 1px),
+        linear-gradient(to bottom, #ffffff0a 1px, transparent 1px);
+      background-size: 4rem 4rem;
+      -webkit-mask-image: radial-gradient(ellipse 80% 50% at 50% 0%, #000 70%, transparent 100%);
+      mask-image: radial-gradient(ellipse 80% 50% at 50% 0%, #000 70%, transparent 100%);
+    }
+
+    .fx-sparks {
+      position: absolute;
+      inset: 0;
+    }
+
+    .fx-spark {
+      position: absolute;
+      border-radius: 999px;
+      background: rgba(255, 255, 255, 0.95);
+      animation: float-up linear infinite;
+    }
+
+    .fx-spotlight {
+      position: absolute;
+      inset: 0;
+      z-index: 10;
+      transition: opacity 0.3s ease;
+      background: radial-gradient(600px circle at 50% 20%, rgba(249, 115, 22, 0.06), transparent 40%);
+    }
+
+    .fx-blob {
+      position: absolute;
+      border-radius: 999px;
+      filter: blur(120px);
+    }
+
+    .fx-blob-1 {
+      top: -10%;
+      left: -10%;
+      width: 40vw;
+      height: 40vw;
+      background: rgba(234, 88, 12, 0.14);
+      animation: blob 15s infinite alternate ease-in-out;
+    }
+
+    .fx-blob-2 {
+      bottom: -20%;
+      right: -10%;
+      width: 50vw;
+      height: 50vw;
+      background: rgba(79, 70, 229, 0.12);
+      animation: blob 15s infinite alternate ease-in-out;
+      animation-delay: 2s;
+    }
+
+    .fx-blob-3 {
+      top: 40%;
+      left: 60%;
+      width: 30vw;
+      height: 30vw;
+      background: rgba(16, 185, 129, 0.08);
+      animation: blob 15s infinite alternate ease-in-out;
+      animation-delay: 4s;
+      filter: blur(100px);
+    }
+
+    .fx-noise {
+      position: absolute;
+      inset: 0;
+      background: url('https://grainy-gradients.vercel.app/noise.svg');
+      opacity: 0.2;
+      mix-blend-mode: overlay;
+      z-index: 20;
+    }
+
+    .wrap {
+      position: relative;
+      z-index: 20;
+      max-width: 860px;
+      padding-top: 26px;
+    }
+
+    .hero,
+    .card {
+      background: rgba(0, 0, 0, 0.4);
+      border-color: rgba(255, 255, 255, 0.1);
+      backdrop-filter: blur(18px) saturate(128%);
+      -webkit-backdrop-filter: blur(18px) saturate(128%);
+    }
+
+    .tabbar {
+      border-radius: 999px;
+      background: rgba(255, 255, 255, 0.04);
+      border: 1px solid rgba(255, 255, 255, 0.12);
+      padding: 6px;
+    }
+
+    button.tab-btn {
+      border-radius: 999px;
+      border-color: rgba(255, 255, 255, 0.18);
+      color: #d4d7df;
+    }
+
+    button.tab-btn:hover {
+      color: #ffffff;
+      background: rgba(255, 255, 255, 0.08);
+    }
+
+    button.tab-btn.is-active {
+      color: #ffffff;
+      background: linear-gradient(to right, #f97316, #f59e0b);
+      border-color: rgba(249, 115, 22, 0.58);
+      box-shadow: 0 0 15px rgba(249, 115, 22, 0.3);
+    }
+
+    button.tab-btn {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      min-height: 40px;
+      text-align: center;
+      line-height: 1.2;
+      padding-left: 10px;
+      padding-right: 10px;
+    }
 
     @media (max-width: 520px) {
       .tabbar {
@@ -475,23 +987,473 @@
       .admin-plan-grid { grid-template-columns: 1fr; }
     }
   </style>
+  <style>
+    :root {
+      --bg-page: #050505;
+      --card: rgba(10, 10, 13, 0.62);
+      --card-2: rgba(8, 9, 12, 0.8);
+      --line-new: rgba(255, 255, 255, 0.11);
+      --line-new-soft: rgba(255, 255, 255, 0.08);
+      --text-main: #e7e7ea;
+      --text-soft: #a3a3ac;
+      --orange-main: #f97316;
+      --orange-soft: #f59e0b;
+      --ok-main: #34d399;
+      --err-main: #fb7185;
+    }
+
+    body {
+      background:
+        radial-gradient(80% 90% at 10% -20%, rgba(249, 115, 22, 0.2), transparent 70%),
+        radial-gradient(80% 90% at 100% 0%, rgba(59, 130, 246, 0.12), transparent 70%),
+        #050505 !important;
+      color: var(--text-main);
+    }
+
+    .wrap {
+      max-width: 980px;
+      padding: 18px 14px 44px;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+
+    .hero {
+      border-radius: 28px;
+      padding: 22px;
+      background: linear-gradient(165deg, var(--card), var(--card-2));
+      border: 1px solid var(--line-new);
+      box-shadow: 0 26px 50px rgba(0, 0, 0, 0.45);
+      backdrop-filter: blur(18px) saturate(130%);
+      -webkit-backdrop-filter: blur(18px) saturate(130%);
+    }
+
+    .hero-head {
+      margin-bottom: 8px;
+    }
+
+    .title {
+      margin: 0;
+      font-family: "Sora", "Manrope", sans-serif;
+      font-size: clamp(32px, 5vw, 52px);
+      line-height: 1.05;
+      letter-spacing: 0.01em;
+      background: linear-gradient(160deg, #fff 15%, #d4d4d8 55%, #737373 100%);
+      -webkit-background-clip: text;
+      background-clip: text;
+      color: transparent;
+      text-shadow: none;
+    }
+
+    .subtitle {
+      margin: 0 0 14px;
+      color: var(--text-soft);
+      font-size: 15px;
+      max-width: 620px;
+      line-height: 1.5;
+    }
+
+    .status {
+      margin-top: 0;
+      border-radius: 13px;
+      border: 1px solid var(--line-new-soft);
+      background: rgba(255, 255, 255, 0.05);
+      color: #d4d4da;
+      font-size: 14px;
+    }
+
+    .status.ok {
+      border-color: rgba(16, 185, 129, 0.3);
+      background: rgba(5, 56, 44, 0.45);
+      color: #6ee7b7;
+    }
+
+    .status.err {
+      border-color: rgba(244, 63, 94, 0.3);
+      background: rgba(66, 18, 32, 0.45);
+      color: #fda4af;
+    }
+
+    .status.busy {
+      border-color: rgba(59, 130, 246, 0.3);
+      background: rgba(20, 39, 66, 0.45);
+      color: #bfdbfe;
+    }
+
+    .tabbar {
+      display: flex;
+      gap: 8px;
+      overflow-x: auto;
+      -ms-overflow-style: none;
+      scrollbar-width: none;
+      padding: 8px;
+      border-radius: 18px;
+      border: 1px solid var(--line-new);
+      background: rgba(7, 8, 11, 0.6);
+      backdrop-filter: blur(14px);
+      -webkit-backdrop-filter: blur(14px);
+    }
+
+    .tabbar::-webkit-scrollbar {
+      display: none;
+    }
+
+    button.tab-btn {
+      flex: 0 0 auto;
+      width: auto;
+      min-width: 120px;
+      border-radius: 12px;
+      border: 1px solid transparent;
+      background: transparent;
+      color: #9ca3af;
+      padding: 10px 12px;
+      font-size: 13px;
+      font-weight: 700;
+      box-shadow: none;
+      letter-spacing: 0.01em;
+      text-shadow: none;
+      white-space: nowrap;
+    }
+
+    button.tab-btn:hover {
+      color: #f3f4f6;
+      background: rgba(255, 255, 255, 0.05);
+      border-color: rgba(255, 255, 255, 0.16);
+    }
+
+    button.tab-btn.is-active {
+      color: #fff;
+      border-color: rgba(249, 115, 22, 0.45);
+      background: linear-gradient(90deg, var(--orange-main), var(--orange-soft));
+      box-shadow: 0 0 16px rgba(249, 115, 22, 0.28);
+    }
+
+    .card {
+      border-radius: 24px;
+      border: 1px solid var(--line-new);
+      background: linear-gradient(165deg, var(--card), var(--card-2));
+      color: var(--text-main);
+      box-shadow: 0 20px 42px rgba(0, 0, 0, 0.42);
+      padding: 18px;
+      margin-bottom: 0;
+      backdrop-filter: blur(18px) saturate(125%);
+      -webkit-backdrop-filter: blur(18px) saturate(125%);
+    }
+
+    .card strong {
+      font-family: "Sora", "Manrope", sans-serif;
+      font-size: 22px;
+      letter-spacing: 0.01em;
+      color: #fff;
+      display: block;
+      margin-bottom: 10px;
+    }
+
+    .tab-panel:not(.tab-hidden) {
+      animation: fadeInPanel 0.35s ease both;
+    }
+
+    .card.is-locked {
+      border-color: rgba(251, 113, 133, 0.25);
+      box-shadow: 0 16px 36px rgba(0, 0, 0, 0.36);
+    }
+
+    .access-note {
+      font-size: 12px;
+      color: var(--text-soft);
+      line-height: 1.45;
+    }
+
+    .access-note.warn {
+      color: #fda4af;
+    }
+
+    .pitch,
+    .faq,
+    .mini-block,
+    .admin-plan {
+      border-radius: 16px;
+      border: 1px solid var(--line-new-soft);
+      background: rgba(255, 255, 255, 0.03);
+      padding: 12px;
+      color: var(--text-main);
+    }
+
+    .pitch strong,
+    .faq strong {
+      font-size: 16px;
+      margin-bottom: 8px;
+    }
+
+    .pitch ul {
+      margin: 8px 0 0 0;
+      padding-left: 18px;
+      color: #d4d4da;
+      line-height: 1.5;
+      font-size: 13px;
+    }
+
+    .small {
+      color: var(--text-soft);
+      font-size: 13px;
+      line-height: 1.45;
+    }
+
+    .faq details {
+      border-top: 1px solid rgba(255, 255, 255, 0.08);
+      padding: 8px 0;
+    }
+
+    .faq details:first-of-type {
+      border-top: 0;
+      padding-top: 4px;
+    }
+
+    .faq summary {
+      color: #e5e7eb;
+      font-size: 13px;
+      font-weight: 700;
+      cursor: pointer;
+      list-style: none;
+    }
+
+    .faq summary::-webkit-details-marker {
+      display: none;
+    }
+
+    .faq p {
+      color: #a3a3ac;
+      margin: 7px 0 0;
+      line-height: 1.5;
+      font-size: 13px;
+    }
+
+    .field label {
+      color: #a3a3ac;
+      font-size: 12px;
+      margin-bottom: 6px;
+    }
+
+    .field input,
+    .field textarea,
+    .field select {
+      border-radius: 11px;
+      border: 1px solid var(--line-new-soft);
+      background: rgba(0, 0, 0, 0.35);
+      color: #fff;
+      padding: 10px 12px;
+      font-size: 13px;
+    }
+
+    .field input:focus,
+    .field textarea:focus,
+    .field select:focus {
+      border-color: rgba(249, 115, 22, 0.5);
+      box-shadow: 0 0 0 1px rgba(249, 115, 22, 0.25);
+    }
+
+    button {
+      border-radius: 11px;
+      border: 1px solid rgba(249, 115, 22, 0.35);
+      background: linear-gradient(90deg, var(--orange-main), var(--orange-soft));
+      color: #fff;
+      font-size: 13px;
+      font-weight: 700;
+      padding: 10px 12px;
+      box-shadow: 0 10px 20px rgba(249, 115, 22, 0.2);
+    }
+
+    button:hover {
+      transform: translateY(-1px);
+      box-shadow: 0 14px 24px rgba(249, 115, 22, 0.28);
+    }
+
+    button.ghost {
+      border-color: var(--line-new-soft);
+      background: rgba(255, 255, 255, 0.06);
+      color: #e5e7eb;
+      box-shadow: none;
+    }
+
+    button.ghost:hover {
+      border-color: rgba(255, 255, 255, 0.2);
+      background: rgba(255, 255, 255, 0.1);
+      box-shadow: none;
+      transform: translateY(-1px);
+    }
+
+    .order-row {
+      gap: 8px;
+    }
+
+    .mono {
+      border-radius: 10px;
+      border: 1px solid var(--line-new-soft);
+      background: rgba(0, 0, 0, 0.35);
+      color: #fcd34d;
+      font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+      font-size: 12px;
+      padding: 10px;
+      margin-top: 8px;
+    }
+
+    .plans {
+      gap: 10px;
+    }
+
+    .plan {
+      border-radius: 16px;
+      border: 1px solid var(--line-new-soft);
+      background: rgba(255, 255, 255, 0.03);
+      padding: 14px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+    }
+
+    .plan h3 {
+      margin: 0 0 4px;
+      color: #fff;
+      font-size: 17px;
+      font-family: "Sora", "Manrope", sans-serif;
+    }
+
+    .plan p {
+      margin: 0;
+      color: var(--text-soft);
+      font-size: 12px;
+      line-height: 1.45;
+    }
+
+    .plan button {
+      width: auto;
+      min-width: 120px;
+    }
+
+    .plan.plan-popular {
+      border-color: rgba(249, 115, 22, 0.34);
+      box-shadow: 0 0 0 1px rgba(249, 115, 22, 0.12) inset;
+    }
+
+    .plan.plan-best {
+      border-color: rgba(16, 185, 129, 0.34);
+      box-shadow: 0 0 0 1px rgba(16, 185, 129, 0.12) inset;
+    }
+
+    .plan-badges {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+      margin: 0 0 8px;
+    }
+
+    .plan-badge {
+      display: inline-flex;
+      align-items: center;
+      border-radius: 999px;
+      border: 1px solid var(--line-new-soft);
+      padding: 3px 8px;
+      font-size: 10px;
+      font-weight: 800;
+      letter-spacing: 0.02em;
+      white-space: nowrap;
+      text-transform: uppercase;
+    }
+
+    .plan-badge.popular {
+      color: #fdba74;
+      border-color: rgba(249, 115, 22, 0.42);
+      background: rgba(249, 115, 22, 0.12);
+    }
+
+    .plan-badge.best {
+      color: #6ee7b7;
+      border-color: rgba(16, 185, 129, 0.42);
+      background: rgba(16, 185, 129, 0.12);
+    }
+
+    .plan-skeleton {
+      border-radius: 16px;
+      border: 1px solid var(--line-new-soft);
+      height: 74px;
+      background: linear-gradient(90deg, rgba(255, 255, 255, 0.03), rgba(255, 255, 255, 0.06), rgba(255, 255, 255, 0.03));
+      background-size: 220% 100%;
+      animation: skeletonPulse 1.1s linear infinite;
+    }
+
+    .state-pill {
+      border-radius: 999px;
+      padding: 4px 8px;
+      font-size: 11px;
+      font-weight: 800;
+      border: 1px solid;
+    }
+
+    .state-pill.ok {
+      color: #6ee7b7;
+      border-color: rgba(16, 185, 129, 0.35);
+      background: rgba(16, 185, 129, 0.14);
+    }
+
+    .state-pill.warn {
+      color: #fde68a;
+      border-color: rgba(245, 158, 11, 0.35);
+      background: rgba(245, 158, 11, 0.14);
+    }
+
+    .state-pill.info {
+      color: #c4b5fd;
+      border-color: rgba(139, 92, 246, 0.35);
+      background: rgba(139, 92, 246, 0.14);
+    }
+
+    @keyframes fadeInPanel {
+      from { opacity: 0; transform: translateY(10px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    @keyframes skeletonPulse {
+      0% { background-position: 0 50%; }
+      100% { background-position: 100% 50%; }
+    }
+
+    @media (max-width: 860px) {
+      .wrap { max-width: 760px; }
+      .hero { padding: 18px; }
+      .card { padding: 14px; }
+      .title { font-size: clamp(26px, 8vw, 42px); }
+      .plan { flex-direction: column; align-items: flex-start; }
+      .plan button { width: 100%; min-width: 0; }
+    }
+  </style>
 </head>
 <body>
+  <div class="fx-bg" aria-hidden="true">
+    <div class="fx-grid"></div>
+    <div id="fxSparks" class="fx-sparks"></div>
+    <div id="fxSpotlight" class="fx-spotlight"></div>
+    <div class="fx-blob fx-blob-1"></div>
+    <div class="fx-blob fx-blob-2"></div>
+    <div class="fx-blob fx-blob-3"></div>
+    <div class="fx-noise"></div>
+  </div>
   <main class="wrap">
     <section class="hero">
       <div class="hero-head">
-        <h1 class="title">⚡ BoxVolt Mini App</h1>
+        <h1 class="title">BoxVolt Mini App</h1>
       </div>
       <p class="subtitle">Покупка подписки и проверка оплаты в одном окне Telegram</p>
       <div id="status" class="status">Загрузка...</div>
     </section>
 
     <nav class="tabbar" aria-label="Разделы Mini App">
-      <button type="button" id="accountTabBtn" class="tab-btn is-active" data-tab-target="accountCard">👤 Аккаунт</button>
-      <button type="button" id="plansTabBtn" class="tab-btn" data-tab-target="plansCard">💳 Тарифы</button>
-      <button type="button" id="orderTabBtn" class="tab-btn hidden" data-tab-target="orderCard">🧾 Заказ</button>
-      <button type="button" id="adminTabBtn" class="tab-btn hidden" data-tab-target="adminCard">🛠 Админ</button>
-      <button type="button" id="broadcastTabBtn" class="tab-btn hidden" data-tab-target="broadcastCard">📣 Рассылка</button>
+      <button type="button" id="accountTabBtn" class="tab-btn is-active" data-tab-target="accountCard">Аккаунт</button>
+      <button type="button" id="plansTabBtn" class="tab-btn" data-tab-target="plansCard">Тарифы</button>
+      <button type="button" id="referralsTabBtn" class="tab-btn" data-tab-target="referralsCard">Бонусы</button>
+      <button type="button" id="orderTabBtn" class="tab-btn hidden" data-tab-target="orderCard">Заказ</button>
+      <button type="button" id="adminTabBtn" class="tab-btn" data-tab-target="adminCard">Админ</button>
+      <button type="button" id="broadcastTabBtn" class="tab-btn" data-tab-target="broadcastCard">Рассылка</button>
     </nav>
 
     <section id="accountCard" class="card tab-panel">
@@ -547,11 +1509,28 @@
       <div id="plans" class="plans" style="margin-top:10px;"></div>
     </section>
 
-    <section id="adminCard" class="card tab-panel hidden tab-hidden">
+    <section id="referralsCard" class="card tab-panel tab-hidden">
+      <strong>Бонусная программа</strong>
+      <p class="small" style="margin-top:8px;">
+        Приглашайте друзей и получайте бонусы за их оплаты.
+      </p>
+      <div class="pitch">
+        <strong>Реферальная ссылка</strong>
+        <p id="referralHint" class="small" style="margin:6px 0 0;">Ссылка сформируется после загрузки профиля.</p>
+        <div id="referralLink" class="mono" style="margin-top:10px;">-</div>
+        <div class="order-row">
+          <button id="referralCopyBtn" class="ghost">Копировать ссылку</button>
+          <button id="referralShareBtn" class="ghost">Поделиться</button>
+        </div>
+      </div>
+    </section>
+
+    <section id="adminCard" class="card tab-panel tab-hidden">
       <strong>🛠 Админ-панель</strong>
       <p class="small" style="margin-top:8px;">
         Изменение цен и акций прямо в Mini App.
       </p>
+      <div id="adminAccessHint" class="access-note" style="margin-top:8px;"></div>
 
       <div class="field">
         <label for="adminGlobalDiscount">Глобальная скидка (%)</label>
@@ -594,6 +1573,32 @@
         <button id="adminPromoSaveBtn" class="ghost">🎟 Сохранить промокод</button>
         <button id="adminPromoReloadBtn" class="ghost">📋 Обновить список</button>
       </div>
+      <div class="admin-plan-grid">
+        <div class="field">
+          <label for="adminPromoManageCode">Управление кодом</label>
+          <input id="adminPromoManageCode" type="text" placeholder="Например: START50">
+        </div>
+        <div class="field">
+          <label for="adminPromoExtendDays">Продлить на дней</label>
+          <input id="adminPromoExtendDays" type="number" min="1" max="3650" value="7">
+        </div>
+        <div class="field">
+          <label for="adminPromoSetExpiry">Новая дата окончания</label>
+          <input id="adminPromoSetExpiry" type="text" placeholder="2026-03-01 23:59">
+        </div>
+      </div>
+      <div class="order-row">
+        <button id="adminPromoExtendBtn" class="ghost">⏩ Продлить</button>
+        <button id="adminPromoSetExpiryBtn" class="ghost">📅 Изменить дату</button>
+        <button id="adminPromoDeleteBtn" class="ghost">🗑 Удалить</button>
+      </div>
+      <div class="field">
+        <label for="adminPromoShowArchived">Список промокодов</label>
+        <select id="adminPromoShowArchived">
+          <option value="0" selected>Только активные</option>
+          <option value="1">Все (включая архив)</option>
+        </select>
+      </div>
       <div id="adminPromoList" class="small" style="margin-top:8px; white-space:pre-wrap;"></div>
 
       <strong style="display:block; margin-top:14px;">Пользователи</strong>
@@ -623,11 +1628,12 @@
       </div>
     </section>
 
-    <section id="broadcastCard" class="card tab-panel hidden tab-hidden">
+    <section id="broadcastCard" class="card tab-panel tab-hidden">
       <strong>📣 Рассылка</strong>
       <p class="small" style="margin-top:8px;">
         Управление сервисными уведомлениями, режимами работы и массовыми сообщениями.
       </p>
+      <div id="broadcastAccessHint" class="access-note" style="margin-top:8px;"></div>
 
       <div class="mini-block">
         <strong style="display:block;">Режим update-уведомлений</strong>
@@ -651,57 +1657,54 @@
       </div>
 
       <div class="mini-block">
-        <strong style="display:block;">🛡 Антиабуз 2.0</strong>
+        <strong style="display:block;">🛡 Антиабуз (упрощенное меню)</strong>
         <p class="small" style="margin:8px 0 0;">
-          Настройки защиты от спама заказов и trial-абуза. Применяются сразу, без перезапуска.
+          Настройки защиты от спама заказов и повторных trial. Изменения применяются сразу, без перезапуска.
+        </p>
+        <p class="small" style="margin:6px 0 0;">
+          Ниже оставлены только базовые параметры. Если не уверены, оставляйте значения по умолчанию.
         </p>
         <div class="state-line">
           <span id="adminAntiabuseBadge" class="state-pill info">Загрузка...</span>
         </div>
         <div class="admin-plan-grid">
           <div class="field">
-            <label for="adminAbSoftEnabled">Soft-block</label>
+            <label for="adminAbSoftEnabled">Режим защиты</label>
             <select id="adminAbSoftEnabled">
-              <option value="1">Включен</option>
+              <option value="1">Включен (рекомендуется)</option>
               <option value="0">Выключен</option>
             </select>
+            <div class="small">Если включен, подозрительные пользователи временно блокируются.</div>
           </div>
           <div class="field">
-            <label for="adminAbSoftBlockSeconds">Время soft-block (сек.)</label>
-            <input id="adminAbSoftBlockSeconds" type="number" min="60" max="86400" value="1800">
-          </div>
-          <div class="field">
-            <label for="adminAbThreshold">Порог strikes</label>
+            <label for="adminAbThreshold">Порог нарушений (strikes)</label>
             <input id="adminAbThreshold" type="number" min="2" max="50" value="4">
+            <div class="small">Сколько нарушений нужно набрать до блокировки.</div>
           </div>
           <div class="field">
-            <label for="adminAbStrikeWindow">Окно strikes (сек.)</label>
+            <label for="adminAbStrikeWindow">Окно нарушений (сек.)</label>
             <input id="adminAbStrikeWindow" type="number" min="300" max="604800" value="86400">
+            <div class="small">За какой период суммируются нарушения.</div>
           </div>
           <div class="field">
-            <label for="adminAbWeightOrder">Вес: order spam</label>
-            <input id="adminAbWeightOrder" type="number" min="1" max="10" value="1">
+            <label for="adminAbSoftBlockSeconds">Длительность блокировки (сек.)</label>
+            <input id="adminAbSoftBlockSeconds" type="number" min="60" max="86400" value="1800">
+            <div class="small">На сколько секунд ограничивается создание заказа/trial.</div>
           </div>
           <div class="field">
-            <label for="adminAbWeightTrial">Вес: trial reuse</label>
-            <input id="adminAbWeightTrial" type="number" min="1" max="10" value="2">
-          </div>
-          <div class="field">
-            <label for="adminAbWeightUsername">Вес: username pattern</label>
-            <input id="adminAbWeightUsername" type="number" min="1" max="10" value="1">
-          </div>
-          <div class="field">
-            <label for="adminAbFpDays">Окно fingerprint (дней)</label>
-            <input id="adminAbFpDays" type="number" min="1" max="365" value="30">
-          </div>
-          <div class="field">
-            <label for="adminAbFpMaxUsers">Лимит users на fingerprint</label>
+            <label for="adminAbFpMaxUsers">Лимит пользователей на один fingerprint</label>
             <input id="adminAbFpMaxUsers" type="number" min="1" max="10" value="2">
+            <div class="small">Если один отпечаток встречается у большего числа аккаунтов, trial блокируется.</div>
+          </div>
+          <div class="field">
+            <label for="adminAbFpDays">Период проверки fingerprint (дней)</label>
+            <input id="adminAbFpDays" type="number" min="1" max="365" value="30">
+            <div class="small">За сколько последних дней проверять повторения fingerprint.</div>
           </div>
         </div>
         <div class="order-row">
-          <button id="adminAntiabuseSaveBtn" class="ghost">💾 Сохранить антиабуз</button>
-          <button id="adminAntiabuseResetBtn" class="ghost">↩️ Сбросить к .env</button>
+          <button id="adminAntiabuseSaveBtn" class="ghost">💾 Сохранить настройки защиты</button>
+          <button id="adminAntiabuseResetBtn" class="ghost">↩️ Вернуть значения из .env</button>
         </div>
       </div>
 
@@ -715,25 +1718,28 @@
       </div>
 
       <div class="mini-block">
-        <strong style="display:block;">Антифрод-флаги</strong>
+        <strong style="display:block;">🚩 Подозрительные события (флаги)</strong>
         <p class="small" style="margin:8px 0 0;">
-          Подозрительная активность (лимиты/абуз/underpay). Автобана нет, только ручная модерация.
+          Здесь видны последние подозрительные действия пользователей. Автобана нет, только ручная модерация.
+        </p>
+        <p class="small" style="margin:6px 0 0;">
+          Схема работы: обновите список -> возьмите номер <code>#ID</code> -> закройте после проверки.
         </p>
         <div class="order-row">
-          <button id="adminFlagsReloadBtn" class="ghost">🚩 Обновить флаги</button>
+          <button id="adminFlagsReloadBtn" class="ghost">🔄 Обновить список флагов</button>
         </div>
         <div class="field">
-          <label for="adminResolveFlagId">ID флага для закрытия</label>
+          <label for="adminResolveFlagId">Номер флага из списка (#ID)</label>
           <input id="adminResolveFlagId" type="number" min="1" placeholder="Например: 42">
         </div>
         <div class="order-row">
-          <button id="adminResolveFlagBtn" class="ghost">✅ Пометить обработанным</button>
+          <button id="adminResolveFlagBtn" class="ghost">✅ Закрыть выбранный флаг</button>
         </div>
         <div id="adminFlagsList" class="small" style="margin-top:8px; white-space:pre-wrap;"></div>
       </div>
     </section>
 
-    <section id="orderCard" class="card tab-panel hidden tab-hidden">
+    <section id="orderCard" class="card tab-panel tab-hidden">
       <strong>Текущий заказ</strong>
       <div id="orderInfo" class="small" style="margin-top:8px;"></div>
       <div id="orderCode" class="mono"></div>
@@ -767,14 +1773,14 @@
     const orderIdFromQueryValid = /^BV-[A-Z0-9_-]{6,80}$/.test(orderIdFromQuery);
     let currentOrderId = "";
     let currentPaymentUrl = "";
-    let currentDonatePayUrl = "";
     let currentCryptobotPaymentUrl = "";
     let currentCryptobotPaymentLabel = "CryptoBot";
     let currentLztPaymentUrl = "";
     let currentLztPaymentLabel = "LZT Market";
     let currentSecondaryPaymentUrl = "";
     let currentSecondaryPaymentLabel = "Резервная оплата";
-    let currentOrderProviderLabel = "DonatePay";
+    let currentOrderProvider = "cryptobot";
+    let currentOrderProviderLabel = "CryptoBot";
     let currentOrderStatus = "pending";
     let autoStatusTimer = null;
     let isAdmin = false;
@@ -784,10 +1790,11 @@
     let adminAntiabuseConfig = null;
     let selectedAdminUserId = 0;
     let adminFoundUsers = [];
-    let paymentProvider = "donatepay";
-    let paymentProviderLabel = "DonatePay";
+    let paymentProvider = "cryptobot";
+    let paymentProviderLabel = "CryptoBot";
     let plansCache = [];
     let lastPaidPlanCode = "";
+    let currentReferralUrl = "";
 
     const statusEl = document.getElementById("status");
     const profileEl = document.getElementById("profile");
@@ -800,14 +1807,24 @@
     const quickRenew365Btn = document.getElementById("quickRenew365Btn");
     const quickRenewLastBtn = document.getElementById("quickRenewLastBtn");
     const plansEl = document.getElementById("plans");
+    const referralsCardEl = document.getElementById("referralsCard");
+    const accountTabBtnEl = document.getElementById("accountTabBtn");
+    const plansTabBtnEl = document.getElementById("plansTabBtn");
+    const referralLinkEl = document.getElementById("referralLink");
+    const referralHintEl = document.getElementById("referralHint");
+    const referralCopyBtn = document.getElementById("referralCopyBtn");
+    const referralShareBtn = document.getElementById("referralShareBtn");
     const accountCardEl = document.getElementById("accountCard");
     const plansCardEl = document.getElementById("plansCard");
     const tabButtons = Array.from(document.querySelectorAll(".tab-btn[data-tab-target]"));
+    const referralsTabBtnEl = document.getElementById("referralsTabBtn");
     const adminTabBtnEl = document.getElementById("adminTabBtn");
     const broadcastTabBtnEl = document.getElementById("broadcastTabBtn");
     const orderTabBtnEl = document.getElementById("orderTabBtn");
     const adminCardEl = document.getElementById("adminCard");
     const broadcastCardEl = document.getElementById("broadcastCard");
+    const adminAccessHintEl = document.getElementById("adminAccessHint");
+    const broadcastAccessHintEl = document.getElementById("broadcastAccessHint");
     const adminGlobalDiscountEl = document.getElementById("adminGlobalDiscount");
     const adminSaleTitleEl = document.getElementById("adminSaleTitle");
     const adminSaleMessageEl = document.getElementById("adminSaleMessage");
@@ -818,6 +1835,13 @@
     const adminPromoMaxActivationsEl = document.getElementById("adminPromoMaxActivations");
     const adminPromoSaveBtn = document.getElementById("adminPromoSaveBtn");
     const adminPromoReloadBtn = document.getElementById("adminPromoReloadBtn");
+    const adminPromoManageCodeEl = document.getElementById("adminPromoManageCode");
+    const adminPromoExtendDaysEl = document.getElementById("adminPromoExtendDays");
+    const adminPromoSetExpiryEl = document.getElementById("adminPromoSetExpiry");
+    const adminPromoExtendBtn = document.getElementById("adminPromoExtendBtn");
+    const adminPromoSetExpiryBtn = document.getElementById("adminPromoSetExpiryBtn");
+    const adminPromoDeleteBtn = document.getElementById("adminPromoDeleteBtn");
+    const adminPromoShowArchivedEl = document.getElementById("adminPromoShowArchived");
     const adminPromoListEl = document.getElementById("adminPromoList");
     const adminUserQueryEl = document.getElementById("adminUserQuery");
     const adminUserSearchBtn = document.getElementById("adminUserSearchBtn");
@@ -867,6 +1891,7 @@
     const tabPanels = [
       accountCardEl,
       plansCardEl,
+      referralsCardEl,
       orderCardEl,
       adminCardEl,
       broadcastCardEl,
@@ -877,21 +1902,60 @@
       statusEl.className = "status";
       if (kind === "ok") statusEl.classList.add("ok");
       if (kind === "err") statusEl.classList.add("err");
+      if (kind === "busy") statusEl.classList.add("busy");
+    }
+
+    const REQUEST_TIMEOUT_MS = 15000;
+    const ACTIVE_TAB_STORAGE_KEY = "boxvolt_webapp_tab";
+    const actionLocks = new Set();
+
+    function readableErrorText(code) {
+      const key = String(code || "").trim();
+      if (!key) return "Неизвестная ошибка";
+      if (key === "request_timeout") return "Превышен таймаут запроса к серверу.";
+      if (key === "network_error") return "Нет связи с сервером. Проверьте подключение и повторите.";
+      if (key === "bad_json_response") return "Сервер вернул некорректный ответ.";
+      if (key === "init_data_required") return "Откройте Mini App через Telegram-бота.";
+      if (key === "unauthorized") return "Сессия устарела. Закройте и заново откройте Mini App.";
+      if (key.startsWith("http_")) return `Ошибка сервера (${key.replace("http_", "")}).`;
+      return key;
+    }
+
+    function errorMessageFromAny(err) {
+      if (!err) return "Неизвестная ошибка";
+      if (err instanceof Error && err.message) return String(err.message);
+      return readableErrorText(String(err));
     }
 
     async function requestJson(url, method, payload) {
       const options = { method, headers: { "Content-Type": "application/json" } };
       if (payload) options.body = JSON.stringify(payload);
-      const res = await fetch(url, options);
+      const controller = new AbortController();
+      options.signal = controller.signal;
+      const timeoutId = setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS);
+      let res;
+      try {
+        res = await fetch(url, options);
+      } catch (fetchErr) {
+        const code = fetchErr && fetchErr.name === "AbortError" ? "request_timeout" : "network_error";
+        const err = new Error(readableErrorText(code));
+        err.code = code;
+        throw err;
+      } finally {
+        clearTimeout(timeoutId);
+      }
       let data = {};
       try {
         data = await res.json();
       } catch (_) {
-        throw new Error("bad_json_response");
+        const code = "bad_json_response";
+        const err = new Error(readableErrorText(code));
+        err.code = code;
+        throw err;
       }
       if (!res.ok || data.ok === false) {
         const code = String(data.error || ("http_" + res.status));
-        const err = new Error(code);
+        const err = new Error(readableErrorText(code));
         err.code = code;
         err.details = data;
         throw err;
@@ -899,13 +1963,56 @@
       return data;
     }
 
+    function rememberActiveTab(targetId) {
+      try {
+        if (targetId) window.localStorage.setItem(ACTIVE_TAB_STORAGE_KEY, String(targetId));
+      } catch (_) {}
+    }
+
+    function readRememberedTab() {
+      try {
+        return String(window.localStorage.getItem(ACTIVE_TAB_STORAGE_KEY) || "").trim();
+      } catch (_) {
+        return "";
+      }
+    }
+
+    async function runButtonAction(button, lockKey, busyText, action) {
+      if (!button) return;
+      const key = String(lockKey || button.id || "action");
+      if (actionLocks.has(key)) return;
+      actionLocks.add(key);
+      const wasDisabled = !!button.disabled;
+      button.disabled = true;
+      button.classList.add("is-loading");
+      if (busyText) setStatus(busyText, "busy");
+      try {
+        await action();
+      } catch (err) {
+        setStatus("Ошибка: " + errorMessageFromAny(err), "err");
+      } finally {
+        actionLocks.delete(key);
+        button.classList.remove("is-loading");
+        if (!wasDisabled) {
+          button.disabled = false;
+        }
+        updateOrderActionButtons();
+        refreshQuickRenewButtons();
+      }
+    }
+
     function resolveTabFromQuery() {
       const map = {
         account: "accountCard",
         plans: "plansCard",
+        tariffs: "plansCard",
+        referrals: "referralsCard",
+        referral: "referralsCard",
+        bonuses: "referralsCard",
         order: "orderCard",
         admin: "adminCard",
         broadcast: "broadcastCard",
+        mailing: "broadcastCard",
       };
       return map[requestedTab] || "";
     }
@@ -929,6 +2036,7 @@
         if (item.id === wanted) item.classList.remove("tab-hidden");
         else item.classList.add("tab-hidden");
       });
+      rememberActiveTab(wanted);
     }
 
     function ensureValidTab(preferredId = "accountCard") {
@@ -938,9 +2046,10 @@
         preferredId,
         "accountCard",
         "plansCard",
-        "orderCard",
+        "referralsCard",
         "adminCard",
         "broadcastCard",
+        "orderCard",
       ];
       for (const targetId of candidates) {
         if (!targetId) continue;
@@ -954,12 +2063,37 @@
     }
 
     function syncOrderTabVisibility() {
-      if (!orderTabBtnEl || !orderCardEl) return;
-      const hasOrder = !orderCardEl.classList.contains("hidden");
+      if (!orderTabBtnEl) return;
+      const hasOrder = !!String(currentOrderId || "").trim();
       orderTabBtnEl.classList.toggle("hidden", !hasOrder);
-      if (!hasOrder) {
-        orderCardEl.classList.add("tab-hidden");
+      if (!hasOrder && getCurrentActiveTabTarget() === "orderCard") {
+        ensureValidTab("plansCard");
       }
+    }
+
+    function setCoreTabsVisible() {
+      [accountTabBtnEl, plansTabBtnEl, referralsTabBtnEl].forEach((btn) => {
+        if (btn) btn.classList.remove("hidden");
+      });
+      [accountCardEl, plansCardEl, referralsCardEl].forEach((panel) => {
+        if (panel) panel.classList.remove("hidden");
+      });
+    }
+
+    function setPanelLocked(panel, locked) {
+      if (!panel) return;
+      const isLocked = !!locked;
+      panel.classList.toggle("is-locked", isLocked);
+      const controls = panel.querySelectorAll("input, textarea, select, button");
+      controls.forEach((control) => {
+        control.disabled = isLocked;
+      });
+    }
+
+    function setAccessHint(el, text, warning) {
+      if (!el) return;
+      el.textContent = text;
+      el.classList.toggle("warn", !!warning);
     }
 
     function setAdminVisible(visible) {
@@ -972,12 +2106,48 @@
         adminCardEl.classList.add("tab-hidden");
         broadcastCardEl.classList.add("tab-hidden");
       }
-      ensureValidTab("accountCard");
+      setPanelLocked(adminCardEl, !allowed);
+      setPanelLocked(broadcastCardEl, !allowed);
+      setAccessHint(
+        adminAccessHintEl,
+        allowed
+          ? "Доступ администратора активен. Все действия в этом разделе доступны."
+          : "Раздел доступен только администраторам. Войдите под админ-аккаунтом в боте.",
+        !allowed
+      );
+      setAccessHint(
+        broadcastAccessHintEl,
+        allowed
+          ? "Доступ администратора активен. Можно отправлять рассылки и менять режимы."
+          : "Раздел доступен только администраторам. Для обычного пользователя это режим просмотра.",
+        !allowed
+      );
+      if (!allowed) {
+        ensureValidTab("accountCard");
+      }
     }
 
     function toInt(value, fallback = 0) {
       const parsed = Number.parseInt(String(value), 10);
       return Number.isFinite(parsed) ? parsed : fallback;
+    }
+
+    function buildReferralUrl(telegramId) {
+      const id = toInt(telegramId, 0);
+      if (id <= 0) return "";
+      return `https://t.me/BoxVoltVPN_bot?start=ref${id}`;
+    }
+
+    function renderReferralLink(telegramId) {
+      if (!referralLinkEl) return;
+      const url = buildReferralUrl(telegramId);
+      currentReferralUrl = url;
+      referralLinkEl.textContent = url || "Ссылка будет доступна после авторизации в Mini App.";
+      if (referralHintEl) {
+        referralHintEl.textContent = url
+          ? "Скопируйте ссылку и отправьте друзьям."
+          : "Откройте Mini App через Telegram, чтобы получить личную реферальную ссылку.";
+      }
     }
 
     function promoErrorText(code) {
@@ -990,6 +2160,26 @@
         promo_already_activated: "Вы уже активировали этот промокод."
       };
       return map[code] || ("Ошибка: " + code);
+    }
+
+    function adminPromoErrorText(code) {
+      const map = {
+        bad_code_format: "Неверный формат кода.",
+        promo_not_found: "Промокод не найден.",
+        bad_expiry_format: "Неверный формат даты. Используйте YYYY-MM-DD HH:MM.",
+        bad_extend_days: "Укажите корректное количество дней (>= 1).",
+      };
+      return map[code] || promoErrorText(code);
+    }
+
+    function adminPromoIncludeArchived() {
+      return toBool(adminPromoShowArchivedEl ? adminPromoShowArchivedEl.value : "0");
+    }
+
+    function adminPromoTargetCode() {
+      const manageCode = String(adminPromoManageCodeEl ? adminPromoManageCodeEl.value : "").trim();
+      const createCode = String(adminPromoCodeEl ? adminPromoCodeEl.value : "").trim();
+      return (manageCode || createCode).toUpperCase();
     }
 
     function toBool(value) {
@@ -1018,7 +2208,12 @@
       const threshold = toInt(config.soft_block_threshold, 0);
       const softSec = toInt(config.soft_block_seconds, 0);
       const strikeWindow = toInt(config.strike_window_seconds, 0);
-      return `Антиабуз: ${enabled ? "вкл" : "выкл"}, порог ${threshold}, soft-block ${softSec}с, окно ${strikeWindow}с`;
+      const fpDays = toInt(config.trial_fingerprint_window_days, 0);
+      const fpUsers = toInt(config.trial_fingerprint_max_users, 0);
+      if (!enabled) {
+        return "Антиабуз выключен";
+      }
+      return `Антиабуз включен: блок после ${threshold} нарушений за ${strikeWindow} сек, блок ${softSec} сек, fingerprint ${fpUsers} польз. за ${fpDays} дн`;
     }
 
     function renderAdminAntiabuseConfig(config) {
@@ -1085,20 +2280,50 @@
           ? `${promo.total_activations || 0}/${promo.max_activations}`
           : `${promo.total_activations || 0}/∞`;
         const used = Number(promo.used_activations || 0);
-        const state = promo.is_expired ? "истек" : (promo.is_active ? "активен" : "выкл");
-        return `• ${promo.code}: -${promo.discount_rub} ₽, до ${promo.expires_at}, активаций ${limit}, использовано ${used}, статус ${state}`;
+        const state = String(promo.status || "").trim() || (promo.is_expired ? "expired" : (promo.is_active ? "active" : "inactive"));
+        const stateLabelMap = {
+          active: "активен",
+          expired: "истек",
+          limit_reached: "лимит исчерпан",
+          inactive: "выкл"
+        };
+        const stateLabel = stateLabelMap[state] || state;
+        return `• ${promo.code}: -${promo.discount_rub} ₽, до ${promo.expires_at}, активаций ${limit}, использовано ${used}, статус ${stateLabel}`;
       });
       adminPromoListEl.textContent = items.length ? items.join("\n") : "Промокодов пока нет.";
     }
 
     function renderAdminFlags(flags) {
       if (!adminFlagsListEl) return;
+      const flagLabels = {
+        order_rate_limited: "Частые попытки создать заказ",
+        order_spam_attempt: "Подозрение на спам заказов",
+        payment_underpaid_attempt: "Попытка недоплаты",
+        trial_rate_limited: "Слишком частый запрос trial",
+        trial_soft_blocked: "Сработала soft-блокировка trial",
+        trial_reuse_attempt: "Повторная попытка взять trial",
+        trial_username_pattern: "Подозрительный username для trial",
+        trial_fingerprint_reuse: "Fingerprint повторяется у разных аккаунтов",
+        antiabuse_soft_block: "Пользователь попал в soft-блок",
+        blacklist_access_attempt: "Попытка доступа от blacklist-пользователя",
+      };
       const rows = (flags || []).map((flag) => {
+        const flagType = String(flag.flag_type || "").trim();
+        const flagTypeLabel = flagLabels[flagType] || flagType || "Неизвестный флаг";
+        const seen = toInt(flag.seen_count, 1);
+        const lastSeen = String(flag.last_seen_at || flag.created_at || "-").trim() || "-";
         const details = String(flag.details || "").trim();
-        const detailsTail = details ? ` | ${details}` : "";
-        return `#${flag.id} tg:${flag.telegram_id} ${flag.flag_type} x${flag.seen_count} | ${flag.last_seen_at}${detailsTail}`;
+        const lines = [
+          `#${flag.id} | tg:${flag.telegram_id}`,
+          `Тип: ${flagTypeLabel}${flagType ? ` (${flagType})` : ""}`,
+          `Повторов: ${seen} | Последний: ${lastSeen}`,
+        ];
+        if (details) {
+          lines.push(`Детали: ${details}`);
+        }
+        return lines.join("\n");
       });
-      adminFlagsListEl.textContent = rows.length ? rows.join("\n") : "Активных флагов нет.";
+      adminFlagsListEl.textContent = rows.length ? rows.join("\n\n") : "Активных флагов нет.";
     }
 
     function findPlanCodeByDays(days) {
@@ -1319,17 +2544,62 @@
     }
 
     function collectAdminAntiabuseConfig() {
-      return {
-        soft_block_enabled: toBool(adminAbSoftEnabledEl ? adminAbSoftEnabledEl.value : "1"),
-        soft_block_seconds: toInt(adminAbSoftBlockSecondsEl ? adminAbSoftBlockSecondsEl.value : 1800, 1800),
-        soft_block_threshold: toInt(adminAbThresholdEl ? adminAbThresholdEl.value : 4, 4),
-        strike_window_seconds: toInt(adminAbStrikeWindowEl ? adminAbStrikeWindowEl.value : 86400, 86400),
-        strike_weight_order_spam: toInt(adminAbWeightOrderEl ? adminAbWeightOrderEl.value : 1, 1),
-        strike_weight_trial_reuse: toInt(adminAbWeightTrialEl ? adminAbWeightTrialEl.value : 2, 2),
-        strike_weight_username_pattern: toInt(adminAbWeightUsernameEl ? adminAbWeightUsernameEl.value : 1, 1),
-        trial_fingerprint_window_days: toInt(adminAbFpDaysEl ? adminAbFpDaysEl.value : 30, 30),
-        trial_fingerprint_max_users: toInt(adminAbFpMaxUsersEl ? adminAbFpMaxUsersEl.value : 2, 2),
-      };
+      const current = adminAntiabuseConfig && typeof adminAntiabuseConfig === "object"
+        ? adminAntiabuseConfig
+        : {};
+      const payload = {};
+      if (adminAbSoftEnabledEl) {
+        payload.soft_block_enabled = toBool(adminAbSoftEnabledEl.value);
+      }
+      if (adminAbSoftBlockSecondsEl) {
+        payload.soft_block_seconds = toInt(
+          adminAbSoftBlockSecondsEl.value,
+          toInt(current.soft_block_seconds, 1800)
+        );
+      }
+      if (adminAbThresholdEl) {
+        payload.soft_block_threshold = toInt(
+          adminAbThresholdEl.value,
+          toInt(current.soft_block_threshold, 4)
+        );
+      }
+      if (adminAbStrikeWindowEl) {
+        payload.strike_window_seconds = toInt(
+          adminAbStrikeWindowEl.value,
+          toInt(current.strike_window_seconds, 86400)
+        );
+      }
+      if (adminAbWeightOrderEl) {
+        payload.strike_weight_order_spam = toInt(
+          adminAbWeightOrderEl.value,
+          toInt(current.strike_weight_order_spam, 1)
+        );
+      }
+      if (adminAbWeightTrialEl) {
+        payload.strike_weight_trial_reuse = toInt(
+          adminAbWeightTrialEl.value,
+          toInt(current.strike_weight_trial_reuse, 2)
+        );
+      }
+      if (adminAbWeightUsernameEl) {
+        payload.strike_weight_username_pattern = toInt(
+          adminAbWeightUsernameEl.value,
+          toInt(current.strike_weight_username_pattern, 1)
+        );
+      }
+      if (adminAbFpDaysEl) {
+        payload.trial_fingerprint_window_days = toInt(
+          adminAbFpDaysEl.value,
+          toInt(current.trial_fingerprint_window_days, 30)
+        );
+      }
+      if (adminAbFpMaxUsersEl) {
+        payload.trial_fingerprint_max_users = toInt(
+          adminAbFpMaxUsersEl.value,
+          toInt(current.trial_fingerprint_max_users, 2)
+        );
+      }
+      return payload;
     }
 
     async function adminSaveAntiabuseConfig() {
@@ -1340,7 +2610,7 @@
         antiabuse,
       });
       renderAdminRuntimeState(data);
-      setStatus("Антиабуз-конфиг сохранен.", "ok");
+      setStatus("Настройки антиабуза сохранены.", "ok");
     }
 
     async function adminResetAntiabuseConfig() {
@@ -1354,7 +2624,10 @@
 
     async function loadAdminPromocodes() {
       if (!isAdmin) return;
-      const data = await requestJson("/webapp/api/admin/promocodes", "POST", { init_data: initData });
+      const data = await requestJson("/webapp/api/admin/promocodes", "POST", {
+        init_data: initData,
+        include_archived: adminPromoIncludeArchived()
+      });
       renderAdminPromocodes(data.promocodes || []);
     }
 
@@ -1363,7 +2636,7 @@
       const data = await requestJson("/webapp/api/admin/flags", "POST", {
         init_data: initData,
         unresolved_only: true,
-        limit: 50,
+        limit: 30,
       });
       renderAdminFlags(data.flags || []);
     }
@@ -1372,7 +2645,7 @@
       if (!isAdmin) return;
       const flagId = Number.parseInt(String(adminResolveFlagIdEl?.value || ""), 10);
       if (!Number.isFinite(flagId) || flagId <= 0) {
-        setStatus("Укажите корректный ID флага.", "err");
+        setStatus("Укажите корректный номер флага (#ID).", "err");
         return;
       }
       const data = await requestJson("/webapp/api/admin/resolve-flag", "POST", {
@@ -1391,11 +2664,72 @@
         code: String(adminPromoCodeEl.value || "").trim(),
         discount_rub: toInt(adminPromoDiscountEl.value, 0),
         expires_at: String(adminPromoExpiresEl.value || "").trim(),
-        max_activations: toInt(adminPromoMaxActivationsEl.value, 0)
+        max_activations: toInt(adminPromoMaxActivationsEl.value, 0),
+        include_archived: adminPromoIncludeArchived()
       };
       const data = await requestJson("/webapp/api/admin/create-promocode", "POST", payload);
       renderAdminPromocodes(data.promocodes || []);
       setStatus("Промокод сохранен.", "ok");
+    }
+
+    async function adminDeletePromocode() {
+      if (!isAdmin) return;
+      const code = adminPromoTargetCode();
+      if (!code) {
+        setStatus("Укажите код промокода для удаления.", "err");
+        return;
+      }
+      const data = await requestJson("/webapp/api/admin/delete-promocode", "POST", {
+        init_data: initData,
+        code,
+        include_archived: adminPromoIncludeArchived()
+      });
+      renderAdminPromocodes(data.promocodes || []);
+      setStatus(`Промокод ${code} удален.`, "ok");
+    }
+
+    async function adminExtendPromocode() {
+      if (!isAdmin) return;
+      const code = adminPromoTargetCode();
+      if (!code) {
+        setStatus("Укажите код промокода для продления.", "err");
+        return;
+      }
+      const days = toInt(adminPromoExtendDaysEl ? adminPromoExtendDaysEl.value : "0", 0);
+      if (days <= 0) {
+        setStatus("Укажите корректное количество дней для продления.", "err");
+        return;
+      }
+      const data = await requestJson("/webapp/api/admin/extend-promocode", "POST", {
+        init_data: initData,
+        code,
+        days,
+        include_archived: adminPromoIncludeArchived()
+      });
+      renderAdminPromocodes(data.promocodes || []);
+      setStatus(`Промокод ${code} продлен на ${days} дн.`, "ok");
+    }
+
+    async function adminSetPromocodeExpiry() {
+      if (!isAdmin) return;
+      const code = adminPromoTargetCode();
+      if (!code) {
+        setStatus("Укажите код промокода для изменения даты.", "err");
+        return;
+      }
+      const expiresAt = String(adminPromoSetExpiryEl ? adminPromoSetExpiryEl.value : "").trim();
+      if (!expiresAt) {
+        setStatus("Укажите новую дату окончания.", "err");
+        return;
+      }
+      const data = await requestJson("/webapp/api/admin/set-promocode-expiry", "POST", {
+        init_data: initData,
+        code,
+        expires_at: expiresAt,
+        include_archived: adminPromoIncludeArchived()
+      });
+      renderAdminPromocodes(data.promocodes || []);
+      setStatus(`Дата окончания промокода ${code} обновлена.`, "ok");
     }
 
     async function adminFindUsers() {
@@ -1488,16 +2822,66 @@
         return;
       }
 
+      const validPlans = plans.filter((plan) => {
+        const days = Number(plan.days || 0);
+        const amount = Number(plan.amount_rub || 0);
+        return days > 0 && amount > 0;
+      });
+      let bestValueCode = "";
+      if (validPlans.length) {
+        const sortedByValue = validPlans.slice().sort((a, b) => {
+          const aDays = Number(a.days || 0) || 1;
+          const bDays = Number(b.days || 0) || 1;
+          const aAmount = Number(a.amount_rub || 0);
+          const bAmount = Number(b.amount_rub || 0);
+          const aPerDay = aAmount / aDays;
+          const bPerDay = bAmount / bDays;
+          if (aPerDay !== bPerDay) return aPerDay - bPerDay;
+          return bDays - aDays;
+        });
+        bestValueCode = String(sortedByValue[0].code || "");
+      }
+
+      const popularPlan =
+        validPlans.find((plan) => Number(plan.days || 0) === 90) ||
+        validPlans.find((plan) => Number(plan.days || 0) === 30) ||
+        validPlans[0] ||
+        null;
+      const popularCode = popularPlan ? String(popularPlan.code || "") : "";
+
       plans.forEach((plan) => {
         const item = document.createElement("div");
         item.className = "plan";
+        const isBestValue = !!bestValueCode && String(plan.code || "") === bestValueCode;
+        const isPopular = !!popularCode && String(plan.code || "") === popularCode;
+        if (isBestValue) item.classList.add("plan-best");
+        if (isPopular) item.classList.add("plan-popular");
+
+        const badges = [];
+        if (isPopular) badges.push('<span class="plan-badge popular">Самый популярный</span>');
+        if (isBestValue) badges.push('<span class="plan-badge best">Самый выгодный</span>');
+        const badgesLine = badges.length
+          ? `<div class="plan-badges">${badges.join("")}</div>`
+          : "";
+
+        const days = Number(plan.days || 0);
+        const amount = Number(plan.amount_rub || 0);
+        const dayCost = days > 0 && amount > 0 ? amount / days : 0;
+        let dayCostText = "";
+        if (dayCost > 0) {
+          const normalized = dayCost >= 10 ? dayCost.toFixed(0) : dayCost.toFixed(1);
+          dayCostText = `<p>≈ ${normalized.replace(".", ",")} ₽ / день</p>`;
+        }
+
         const discountLine = (plan.discount_percent > 0 && plan.base_amount_rub > plan.amount_rub)
           ? `<p>Скидка: -${plan.discount_percent}% (было ${plan.base_amount_rub} ₽)</p>`
           : "";
         item.innerHTML = `
           <div>
+            ${badgesLine}
             <h3>${plan.title} • ${plan.amount_rub} ₽</h3>
             <p>${plan.days} дней доступа</p>
+            ${dayCostText}
             ${discountLine}
           </div>
         `;
@@ -1517,38 +2901,65 @@
       }
     }
 
+    function renderPlansLoading() {
+      plansEl.innerHTML = "";
+      for (let i = 0; i < 3; i += 1) {
+        const skeleton = document.createElement("div");
+        skeleton.className = "plan-skeleton";
+        plansEl.appendChild(skeleton);
+      }
+    }
+
     function clearOrder() {
       currentOrderId = "";
       currentPaymentUrl = "";
-      currentDonatePayUrl = "";
       currentCryptobotPaymentUrl = "";
       currentCryptobotPaymentLabel = "CryptoBot";
       currentLztPaymentUrl = "";
       currentLztPaymentLabel = "LZT Market";
       currentSecondaryPaymentUrl = "";
       currentSecondaryPaymentLabel = "Резервная оплата";
+      currentOrderProvider = "cryptobot";
       currentOrderStatus = "pending";
-      orderCardEl.classList.add("hidden");
-      orderCardEl.classList.add("tab-hidden");
+      orderCardEl.classList.remove("hidden");
       syncOrderTabVisibility();
-      orderInfoEl.textContent = "";
-      orderCodeEl.textContent = "";
+      orderInfoEl.textContent = "Активного заказа сейчас нет. Выберите тариф и создайте заказ.";
+      orderCodeEl.textContent = "-";
       ensureValidTab(resolveTabFromQuery() || "plansCard");
     }
 
     function updateOrderActionButtons() {
       const isCancelled = String(currentOrderStatus || "").toLowerCase() === "cancelled";
+      const primaryUrl = String(currentPaymentUrl || "").trim();
+      const cryptoUrl = String(currentCryptobotPaymentUrl || "").trim();
+      const lztUrl = String(currentLztPaymentUrl || "").trim();
+      const secondaryUrl = String(currentSecondaryPaymentUrl || "").trim();
+      const primaryProvider = String(currentOrderProvider || paymentProvider || "").trim().toLowerCase();
+      const primaryProviderLabel = String(
+        currentOrderProviderLabel || paymentProviderLabel || ""
+      ).trim().toLowerCase();
+      const primaryIsCrypto = primaryProvider.includes("crypto") || primaryProviderLabel.includes("crypto");
+      const primaryIsLzt = primaryProvider.includes("lzt") || primaryProviderLabel.includes("lzt");
+
+      const hasPrimary = !!primaryUrl;
+      const hasCrypto = !!cryptoUrl && !primaryIsCrypto && cryptoUrl !== primaryUrl;
+      const hasLzt = !!lztUrl && !primaryIsLzt && lztUrl !== primaryUrl && lztUrl !== cryptoUrl;
+      const hasSecondary = (
+        !!secondaryUrl
+        && secondaryUrl !== primaryUrl
+        && secondaryUrl !== cryptoUrl
+        && secondaryUrl !== lztUrl
+      );
+
       if (repeatBtn) repeatBtn.classList.toggle("hidden", !isCancelled);
       if (payBtn) {
-        const hasDonatePay = !!String(currentDonatePayUrl || "").trim();
-        payBtn.classList.toggle("hidden", !hasDonatePay);
-        payBtn.disabled = isCancelled || !hasDonatePay;
-        if (hasDonatePay) {
-          payBtn.textContent = "💸 DonatePay";
+        payBtn.classList.toggle("hidden", !hasPrimary);
+        payBtn.disabled = isCancelled || !hasPrimary;
+        if (hasPrimary) {
+          payBtn.textContent = `💳 ${currentOrderProviderLabel || paymentProviderLabel || "Оплатить"}`;
         }
       }
       if (cryptoPayBtn) {
-        const hasCrypto = !!String(currentCryptobotPaymentUrl || "").trim();
         cryptoPayBtn.classList.toggle("hidden", !hasCrypto);
         cryptoPayBtn.disabled = isCancelled || !hasCrypto;
         if (hasCrypto) {
@@ -1556,7 +2967,6 @@
         }
       }
       if (lztPayBtn) {
-        const hasLzt = !!String(currentLztPaymentUrl || "").trim();
         lztPayBtn.classList.toggle("hidden", !hasLzt);
         lztPayBtn.disabled = isCancelled || !hasLzt;
         if (hasLzt) {
@@ -1564,7 +2974,6 @@
         }
       }
       if (secondaryPayBtn) {
-        const hasSecondary = !!String(currentSecondaryPaymentUrl || "").trim();
         secondaryPayBtn.classList.toggle("hidden", !hasSecondary);
         secondaryPayBtn.disabled = isCancelled || !hasSecondary;
         if (hasSecondary) {
@@ -1577,16 +2986,13 @@
     function showOrder(orderId, paymentUrl, plan, expiresAt) {
       currentOrderId = orderId;
       currentPaymentUrl = paymentUrl || "";
-      currentDonatePayUrl = String(plan.donatepay_payment_url || "").trim();
-      if (!currentDonatePayUrl && String(plan.provider || "").trim().toLowerCase() === "donatepay") {
-        currentDonatePayUrl = String(paymentUrl || "").trim();
-      }
       currentCryptobotPaymentUrl = String(plan.cryptobot_payment_url || "").trim();
       currentCryptobotPaymentLabel = String(plan.cryptobot_payment_label || "CryptoBot").trim();
       currentLztPaymentUrl = String(plan.lzt_payment_url || "").trim();
       currentLztPaymentLabel = String(plan.lzt_payment_label || "LZT Market").trim();
       currentSecondaryPaymentUrl = String(plan.secondary_payment_url || "").trim();
       currentSecondaryPaymentLabel = String(plan.secondary_payment_label || "Резервная оплата").trim();
+      currentOrderProvider = String(plan.provider || paymentProvider || "").trim().toLowerCase();
       currentOrderStatus = "pending";
       currentOrderProviderLabel = String(plan.provider_label || paymentProviderLabel || "платежный сервис");
       orderCardEl.classList.remove("hidden");
@@ -1607,20 +3013,35 @@
       orderInfoEl.textContent = `Тариф: ${plan.title}, сумма: ${amount} ₽${tariffDiscountTail}${promoTail}${providerTail}${expiresTail}`;
       orderCodeEl.textContent = orderId;
       updateOrderActionButtons();
-      const hasDonatePay = !!String(currentDonatePayUrl || "").trim();
-      const hasCrypto = !!String(currentCryptobotPaymentUrl || "").trim();
-      const hasLzt = !!String(currentLztPaymentUrl || "").trim();
-      const hasSecondary = !!String(currentSecondaryPaymentUrl || "").trim();
-      if (hasDonatePay && hasCrypto && hasLzt) {
-        setStatus("Заказ создан. Выберите удобный способ оплаты: DonatePay, CryptoBot или LZT Market.", "ok");
-      } else if (hasDonatePay && hasCrypto) {
-        setStatus("Заказ создан. Выберите удобный способ оплаты: DonatePay или CryptoBot.", "ok");
-      } else if (hasDonatePay && hasLzt) {
-        setStatus("Заказ создан. Выберите удобный способ оплаты: DonatePay или LZT Market.", "ok");
+      const primaryUrl = String(currentPaymentUrl || "").trim();
+      const cryptoUrl = String(currentCryptobotPaymentUrl || "").trim();
+      const lztUrl = String(currentLztPaymentUrl || "").trim();
+      const secondaryUrl = String(currentSecondaryPaymentUrl || "").trim();
+      const primaryProvider = String(currentOrderProvider || paymentProvider || "").trim().toLowerCase();
+      const primaryProviderLabel = String(
+        currentOrderProviderLabel || paymentProviderLabel || ""
+      ).trim().toLowerCase();
+      const primaryIsCrypto = primaryProvider.includes("crypto") || primaryProviderLabel.includes("crypto");
+      const primaryIsLzt = primaryProvider.includes("lzt") || primaryProviderLabel.includes("lzt");
+      const hasPrimary = !!primaryUrl;
+      const hasCrypto = !!cryptoUrl && !primaryIsCrypto && cryptoUrl !== primaryUrl;
+      const hasLzt = !!lztUrl && !primaryIsLzt && lztUrl !== primaryUrl && lztUrl !== cryptoUrl;
+      const hasSecondary = (
+        !!secondaryUrl
+        && secondaryUrl !== primaryUrl
+        && secondaryUrl !== cryptoUrl
+        && secondaryUrl !== lztUrl
+      );
+      if (hasPrimary && hasCrypto && hasLzt) {
+        setStatus("Заказ создан. Выберите удобный способ оплаты: основной/ CryptoBot / LZT Market.", "ok");
+      } else if (hasPrimary && hasCrypto) {
+        setStatus("Заказ создан. Выберите удобный способ оплаты: основной или CryptoBot.", "ok");
+      } else if (hasPrimary && hasLzt) {
+        setStatus("Заказ создан. Выберите удобный способ оплаты: основной или LZT Market.", "ok");
       } else if (hasCrypto && hasLzt) {
         setStatus("Заказ создан. Выберите удобный способ оплаты: CryptoBot или LZT Market.", "ok");
-      } else if (hasDonatePay) {
-        setStatus("Заказ создан. Доступна оплата через DonatePay.", "ok");
+      } else if (hasPrimary) {
+        setStatus("Заказ создан. Доступна оплата через основной метод.", "ok");
       } else if (hasCrypto) {
         setStatus("Заказ создан. Доступна оплата через CryptoBot.", "ok");
       } else if (hasLzt) {
@@ -1649,14 +3070,16 @@
     }
 
     async function loadPlans() {
+      renderPlansLoading();
       const data = await requestJson("/webapp/api/plans", "GET");
-      paymentProvider = String(data.payment_provider || "donatepay");
-      paymentProviderLabel = String(data.payment_provider_label || "DonatePay");
+      paymentProvider = String(data.payment_provider || "cryptobot");
+      paymentProviderLabel = String(data.payment_provider_label || "CryptoBot");
       renderPlans(data.plans || [], data.payment_enabled, paymentProviderLabel);
     }
 
     async function loadProfile() {
       if (!initData) {
+        renderReferralLink(0);
         if (orderIdFromQueryValid) {
           const successUrl = `/pay/success?order_id=${encodeURIComponent(orderIdFromQuery)}&src=webapp`;
           profileEl.textContent = "Перенаправляем обратно в Telegram для проверки оплаты...";
@@ -1672,6 +3095,7 @@
       }
 
       const me = await requestJson("/webapp/api/me", "POST", { init_data: initData });
+      renderReferralLink(me && me.user ? me.user.id : 0);
       const sub = me.subscription || {};
       const subText = sub.active ? ("активна до " + (sub.subscription_end || "-")) : "неактивна";
       const adminText = me.user && me.user.is_admin ? " | Роль: админ" : "";
@@ -1700,7 +3124,6 @@
             title: me.pending_order.days + " дней",
             amount_rub: me.pending_order.amount_rub,
             base_amount_rub: me.pending_order.base_amount_rub,
-            donatepay_payment_url: me.pending_order.donatepay_payment_url || "",
             provider: me.pending_order.provider || "",
             provider_label: me.pending_order.provider_label || paymentProviderLabel,
             promo_code: me.pending_order.promo_code,
@@ -1751,7 +3174,6 @@
           plan_code: planCode
         });
         const orderPlan = Object.assign({}, data.plan || {}, {
-          donatepay_payment_url: data.donatepay_payment_url || "",
           provider: data.payment_provider || "",
           provider_label: data.payment_provider_label || paymentProviderLabel,
           cryptobot_payment_url: data.cryptobot_payment_url || "",
@@ -1790,10 +3212,6 @@
           init_data: initData,
           order_id: currentOrderId
         });
-        currentDonatePayUrl = String((data.order && data.order.donatepay_payment_url) || "").trim();
-        if (!currentDonatePayUrl && String((data.order && data.order.provider) || "").toLowerCase() === "donatepay") {
-          currentDonatePayUrl = String((data.order && data.order.payment_url) || currentPaymentUrl || "").trim();
-        }
         currentPaymentUrl = String((data.order && data.order.payment_url) || currentPaymentUrl || "").trim();
         currentCryptobotPaymentUrl = String((data.order && data.order.cryptobot_payment_url) || "").trim();
         currentCryptobotPaymentLabel = String(
@@ -1868,7 +3286,6 @@
           source_order_id: currentOrderId,
         });
         const orderPlan = Object.assign({}, data.plan || {}, {
-          donatepay_payment_url: data.donatepay_payment_url || "",
           provider: data.payment_provider || "",
           provider_label: data.payment_provider_label || paymentProviderLabel,
           cryptobot_payment_url: data.cryptobot_payment_url || "",
@@ -1901,8 +3318,8 @@
     }
 
     function openPaymentLink() {
-      const donatepayUrl = String(currentDonatePayUrl || "").trim();
-      if (!donatepayUrl) {
+      const paymentUrl = String(currentPaymentUrl || "").trim();
+      if (!paymentUrl) {
         if (currentCryptobotPaymentUrl) {
           openCryptoPaymentLink();
           return;
@@ -1921,10 +3338,11 @@
       if (currentOrderId && navigator.clipboard && navigator.clipboard.writeText) {
         navigator.clipboard.writeText(currentOrderId).catch(() => {});
       }
+      setStatus("Открываем страницу оплаты...", "ok");
       if (tg && tg.openLink) {
-        tg.openLink(donatepayUrl, { try_instant_view: false });
+        tg.openLink(paymentUrl, { try_instant_view: false });
       } else {
-        window.location.href = donatepayUrl;
+        window.location.href = paymentUrl;
       }
     }
 
@@ -1936,6 +3354,7 @@
       if (currentOrderId && navigator.clipboard && navigator.clipboard.writeText) {
         navigator.clipboard.writeText(currentOrderId).catch(() => {});
       }
+      setStatus("Открываем оплату через CryptoBot...", "ok");
       if (tg && tg.openLink) {
         tg.openLink(currentCryptobotPaymentUrl, { try_instant_view: false });
       } else {
@@ -1951,6 +3370,7 @@
       if (currentOrderId && navigator.clipboard && navigator.clipboard.writeText) {
         navigator.clipboard.writeText(currentOrderId).catch(() => {});
       }
+      setStatus("Открываем оплату через LZT Market...", "ok");
       if (tg && tg.openLink) {
         tg.openLink(currentLztPaymentUrl, { try_instant_view: false });
       } else {
@@ -1966,6 +3386,7 @@
       if (currentOrderId && navigator.clipboard && navigator.clipboard.writeText) {
         navigator.clipboard.writeText(currentOrderId).catch(() => {});
       }
+      setStatus(`Открываем оплату через ${currentSecondaryPaymentLabel}...`, "ok");
       if (tg && tg.openLink) {
         tg.openLink(currentSecondaryPaymentUrl, { try_instant_view: false });
       } else {
@@ -1983,161 +3404,176 @@
       };
     });
 
+    setCoreTabsVisible();
+    setAdminVisible(false);
     syncOrderTabVisibility();
-    ensureValidTab(resolveTabFromQuery() || "accountCard");
+    ensureValidTab(resolveTabFromQuery() || readRememberedTab() || "accountCard");
 
-    payBtn.onclick = () => {
+    function bindAction(button, lockKey, busyText, action) {
+      if (!button) return;
+      button.onclick = () => runButtonAction(button, lockKey, busyText, action);
+    }
+
+    bindAction(payBtn, "order:pay", "Открываем страницу оплаты...", async () => {
       openPaymentLink();
-    };
-    cryptoPayBtn.onclick = () => {
+    });
+    bindAction(cryptoPayBtn, "order:pay:cryptobot", "Открываем оплату через CryptoBot...", async () => {
       openCryptoPaymentLink();
-    };
-    lztPayBtn.onclick = () => {
+    });
+    bindAction(lztPayBtn, "order:pay:lzt", "Открываем оплату через LZT Market...", async () => {
       openLztPaymentLink();
-    };
-    secondaryPayBtn.onclick = () => {
+    });
+    bindAction(secondaryPayBtn, "order:pay:secondary", "Открываем резервную оплату...", async () => {
       openSecondaryPaymentLink();
-    };
+    });
 
-    checkBtn.onclick = () => checkOrderStatus(false);
-    cancelBtn.onclick = cancelOrder;
-    promoActivateBtn.onclick = async () => {
+    bindAction(checkBtn, "order:check", "Проверяем оплату...", async () => {
+      await checkOrderStatus(false);
+    });
+    bindAction(cancelBtn, "order:cancel", "Отменяем заказ...", async () => {
+      await cancelOrder();
+    });
+    bindAction(promoActivateBtn, "promo:activate", "Активируем промокод...", async () => {
       await activatePromocode();
-    };
-    quickRenew7Btn.onclick = async () => {
+    });
+    bindAction(referralCopyBtn, "referral:copy", "Копируем реферальную ссылку...", async () => {
+      if (!currentReferralUrl) {
+        setStatus("Реферальная ссылка пока недоступна.", "err");
+        return;
+      }
+      try {
+        await navigator.clipboard.writeText(currentReferralUrl);
+        setStatus("Реферальная ссылка скопирована.", "ok");
+      } catch (_) {
+        setStatus("Не удалось скопировать ссылку автоматически.", "err");
+      }
+    });
+    bindAction(referralShareBtn, "referral:share", "Открываем окно шаринга...", async () => {
+      if (!currentReferralUrl) {
+        setStatus("Реферальная ссылка пока недоступна.", "err");
+        return;
+      }
+      const shareText = "Подключайся к BoxVolt VPN по моей ссылке";
+      const shareUrl = `https://t.me/share/url?url=${encodeURIComponent(currentReferralUrl)}&text=${encodeURIComponent(shareText)}`;
+      if (tg && typeof tg.openTelegramLink === "function") {
+        tg.openTelegramLink(shareUrl);
+      } else {
+        window.open(shareUrl, "_blank", "noopener");
+      }
+      setStatus("Ссылка для шаринга открыта.", "ok");
+    });
+    bindAction(quickRenew7Btn, "renew:7", "Создаем заказ на 7 дней...", async () => {
       await createOrderByDays(7);
-    };
-    quickRenew30Btn.onclick = async () => {
+    });
+    bindAction(quickRenew30Btn, "renew:30", "Создаем заказ на 30 дней...", async () => {
       await createOrderByDays(30);
-    };
-    quickRenew90Btn.onclick = async () => {
+    });
+    bindAction(quickRenew90Btn, "renew:90", "Создаем заказ на 90 дней...", async () => {
       await createOrderByDays(90);
-    };
-    quickRenew365Btn.onclick = async () => {
+    });
+    bindAction(quickRenew365Btn, "renew:365", "Создаем заказ на 365 дней...", async () => {
       await createOrderByDays(365);
-    };
-    quickRenewLastBtn.onclick = async () => {
+    });
+    bindAction(quickRenewLastBtn, "renew:last", "Создаем заказ по прошлому тарифу...", async () => {
       await createLastPaidOrder();
-    };
-    repeatBtn.onclick = repeatOrder;
-    adminSaveBtn.onclick = async () => {
-      try {
-        await saveAdminPricing();
-      } catch (err) {
-        setStatus("Ошибка сохранения цен: " + err.message, "err");
-      }
-    };
-    adminReloadBtn.onclick = async () => {
-      try {
-        await loadAdminPanel();
-        setStatus("Конфиг обновлен.", "ok");
-      } catch (err) {
-        setStatus("Ошибка обновления конфига: " + err.message, "err");
-      }
-    };
-    adminSendBroadcastBtn.onclick = async () => {
-      try {
-        await adminNotify();
-      } catch (err) {
-        setStatus("Ошибка рассылки: " + err.message, "err");
-      }
-    };
-    adminRuntimeReloadBtn.onclick = async () => {
-      try {
-        await loadAdminRuntimeState();
-        setStatus("Статусы режимов обновлены.", "ok");
-      } catch (err) {
-        setStatus("Ошибка обновления статусов: " + err.message, "err");
-      }
-    };
-    adminToggleUpdateModeBtn.onclick = async () => {
-      try {
-        await adminToggleUpdateMode();
-      } catch (err) {
-        setStatus("Ошибка переключения режима update: " + err.message, "err");
-      }
-    };
-    adminSendUpdateNoticeBtn.onclick = async () => {
-      try {
-        await adminSendUpdateNotice();
-      } catch (err) {
-        setStatus("Ошибка update-рассылки: " + err.message, "err");
-      }
-    };
-    adminToggleMaintenanceBtn.onclick = async () => {
-      try {
-        await adminToggleMaintenance();
-      } catch (err) {
-        setStatus("Ошибка переключения техработ: " + err.message, "err");
-      }
-    };
-    adminAntiabuseSaveBtn.onclick = async () => {
-      try {
-        await adminSaveAntiabuseConfig();
-      } catch (err) {
-        setStatus("Ошибка сохранения антиабуза: " + err.message, "err");
-      }
-    };
-    adminAntiabuseResetBtn.onclick = async () => {
-      try {
-        await adminResetAntiabuseConfig();
-      } catch (err) {
-        setStatus("Ошибка сброса антиабуза: " + err.message, "err");
-      }
-    };
-    adminFlagsReloadBtn.onclick = async () => {
-      try {
-        await loadAdminFlags();
-        setStatus("Антифрод-флаги обновлены.", "ok");
-      } catch (err) {
-        setStatus("Ошибка загрузки флагов: " + err.message, "err");
-      }
-    };
-    adminResolveFlagBtn.onclick = async () => {
-      try {
-        await resolveAdminFlag();
-      } catch (err) {
-        setStatus("Ошибка закрытия флага: " + err.message, "err");
-      }
-    };
-    adminPromoSaveBtn.onclick = async () => {
+    });
+    bindAction(repeatBtn, "order:repeat", "Повторяем заказ...", async () => {
+      await repeatOrder();
+    });
+
+    bindAction(adminSaveBtn, "admin:save-pricing", "Сохраняем цены...", async () => {
+      await saveAdminPricing();
+    });
+    bindAction(adminReloadBtn, "admin:reload", "Обновляем админ-конфиг...", async () => {
+      await loadAdminPanel();
+      setStatus("Конфиг обновлен.", "ok");
+    });
+    bindAction(adminSendBroadcastBtn, "admin:broadcast", "Отправляем рассылку...", async () => {
+      await adminNotify();
+    });
+    bindAction(adminRuntimeReloadBtn, "admin:runtime", "Обновляем статусы...", async () => {
+      await loadAdminRuntimeState();
+      setStatus("Статусы режимов обновлены.", "ok");
+    });
+    bindAction(adminToggleUpdateModeBtn, "admin:update-mode", "Переключаем режим update...", async () => {
+      await adminToggleUpdateMode();
+    });
+    bindAction(adminSendUpdateNoticeBtn, "admin:update-notice", "Рассылаем update-уведомление...", async () => {
+      await adminSendUpdateNotice();
+    });
+    bindAction(adminToggleMaintenanceBtn, "admin:maintenance", "Переключаем режим техработ...", async () => {
+      await adminToggleMaintenance();
+    });
+    bindAction(adminAntiabuseSaveBtn, "admin:antiabuse:save", "Сохраняем антиабуз...", async () => {
+      await adminSaveAntiabuseConfig();
+    });
+    bindAction(adminAntiabuseResetBtn, "admin:antiabuse:reset", "Сбрасываем антиабуз к .env...", async () => {
+      await adminResetAntiabuseConfig();
+    });
+    bindAction(adminFlagsReloadBtn, "admin:flags:reload", "Загружаем антифрод-флаги...", async () => {
+      await loadAdminFlags();
+      setStatus("Антифрод-флаги обновлены.", "ok");
+    });
+    bindAction(adminResolveFlagBtn, "admin:flags:resolve", "Закрываем флаг...", async () => {
+      await resolveAdminFlag();
+    });
+    bindAction(adminPromoSaveBtn, "admin:promo:save", "Сохраняем промокод...", async () => {
       try {
         await saveAdminPromocode();
       } catch (err) {
-        setStatus("Ошибка сохранения промокода: " + promoErrorText(err.message), "err");
+        setStatus("Ошибка сохранения промокода: " + adminPromoErrorText(String(err.message || err)), "err");
       }
-    };
-    adminPromoReloadBtn.onclick = async () => {
+    });
+    bindAction(adminPromoReloadBtn, "admin:promo:reload", "Загружаем список промокодов...", async () => {
       try {
         await loadAdminPromocodes();
         setStatus("Список промокодов обновлен.", "ok");
       } catch (err) {
-        setStatus("Ошибка загрузки промокодов: " + err.message, "err");
+        setStatus("Ошибка загрузки промокодов: " + adminPromoErrorText(String(err.message || err)), "err");
       }
-    };
-    adminUserSearchBtn.onclick = async () => {
+    });
+    bindAction(adminPromoExtendBtn, "admin:promo:extend", "Продлеваем промокод...", async () => {
       try {
-        await adminFindUsers();
+        await adminExtendPromocode();
       } catch (err) {
-        setStatus("Ошибка поиска пользователя: " + err.message, "err");
+        setStatus("Ошибка продления промокода: " + adminPromoErrorText(String(err.message || err)), "err");
       }
-    };
-    adminGrantBtn.onclick = async () => {
+    });
+    bindAction(adminPromoSetExpiryBtn, "admin:promo:expiry", "Обновляем дату промокода...", async () => {
       try {
-        await adminGrantSubscription();
+        await adminSetPromocodeExpiry();
       } catch (err) {
-        setStatus("Ошибка выдачи подписки: " + err.message, "err");
+        setStatus("Ошибка изменения даты: " + adminPromoErrorText(String(err.message || err)), "err");
       }
-    };
-    adminRemoveSubBtn.onclick = async () => {
+    });
+    bindAction(adminPromoDeleteBtn, "admin:promo:delete", "Удаляем промокод...", async () => {
       try {
-        await adminRemoveSubscription();
+        await adminDeletePromocode();
       } catch (err) {
-        setStatus("Ошибка удаления подписки: " + err.message, "err");
+        setStatus("Ошибка удаления промокода: " + adminPromoErrorText(String(err.message || err)), "err");
       }
-    };
+    });
+    if (adminPromoShowArchivedEl) {
+      adminPromoShowArchivedEl.onchange = async () => {
+        try {
+          setStatus("Фильтруем промокоды...", "busy");
+          await loadAdminPromocodes();
+        } catch (err) {
+          setStatus("Ошибка фильтрации промокодов: " + adminPromoErrorText(String(err.message || err)), "err");
+        }
+      };
+    }
+    bindAction(adminUserSearchBtn, "admin:user:search", "Ищем пользователя...", async () => {
+      await adminFindUsers();
+    });
+    bindAction(adminGrantBtn, "admin:user:grant", "Выдаем подписку...", async () => {
+      await adminGrantSubscription();
+    });
+    bindAction(adminRemoveSubBtn, "admin:user:remove", "Удаляем подписку...", async () => {
+      await adminRemoveSubscription();
+    });
 
-    copyBtn.onclick = async () => {
+    bindAction(copyBtn, "order:copy", "Копируем код заказа...", async () => {
       if (!currentOrderId) {
         setStatus("Нет кода заказа для копирования.", "err");
         return;
@@ -2148,14 +3584,47 @@
       } catch (_) {
         setStatus("Не удалось скопировать автоматически.", "err");
       }
-    };
+    });
+
+    (function setupGlobalFx() {
+      const sparksHost = document.getElementById("fxSparks");
+      const spotlight = document.getElementById("fxSpotlight");
+      if (!sparksHost || !spotlight) return;
+
+      for (let i = 0; i < 30; i += 1) {
+        const spark = document.createElement("div");
+        const size = Math.random() * 3 + 1;
+        spark.className = "fx-spark";
+        spark.style.left = `${Math.random() * 100}%`;
+        spark.style.top = `${Math.random() * 100}%`;
+        spark.style.width = `${size}px`;
+        spark.style.height = `${size}px`;
+        spark.style.opacity = String(Math.random() * 0.5 + 0.1);
+        spark.style.animationDelay = `${Math.random() * 15}s`;
+        spark.style.animationDuration = `${10 + Math.random() * 20}s`;
+        spark.style.boxShadow = `0 0 ${size * 2}px rgba(255,255,255,0.5)`;
+        sparksHost.appendChild(spark);
+      }
+
+      let rafId = 0;
+      const updateSpotlight = (event) => {
+        if (rafId) cancelAnimationFrame(rafId);
+        rafId = requestAnimationFrame(() => {
+          spotlight.style.background = `radial-gradient(600px circle at ${event.clientX}px ${event.clientY}px, rgba(249, 115, 22, 0.06), transparent 40%)`;
+          rafId = 0;
+        });
+      };
+
+      window.addEventListener("mousemove", updateSpotlight, { passive: true });
+    })();
 
     (async () => {
       try {
+        setStatus("Загружаем данные Mini App...", "busy");
         await loadPlans();
         await loadProfile();
       } catch (err) {
-        setStatus("Ошибка загрузки: " + err.message, "err");
+        setStatus("Ошибка загрузки: " + errorMessageFromAny(err), "err");
       }
     })();
   </script>
