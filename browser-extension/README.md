@@ -1,30 +1,48 @@
-# BoxVolt Browser Extension (MV3)
+# BoxVolt Browser Extension
 
-## Что это
-Расширение для Google Chrome, Microsoft Edge и Opera с входом через Telegram-бота и подключением браузерного proxy (BR/RU) через `chrome.proxy`.
+Chromium target for:
 
-## Быстрый старт
-1. В `config.js` укажите:
-   - `apiBaseUrl`: базовый URL вашего backend (например `https://connect.boxvolt.shop`).
-2. В `.env` backend заполните `EDGE_SERVER_BR_*` и `EDGE_SERVER_RU_*`.
-3. Перезапустите бот (`python3 bot.py`).
-4. Для Chrome: откройте `chrome://extensions` -> `Режим разработчика` -> `Загрузить распакованное` и выберите папку `browser-extension`.
-5. Для Edge: откройте `edge://extensions` -> `Режим разработчика` -> `Загрузить распакованное` и выберите папку `browser-extension`.
-6. Для Opera: откройте `opera://extensions` -> включите `Режим разработчика` -> `Загрузить распакованное` и выберите папку `browser-extension`.
+- Google Chrome
+- Microsoft Edge
+- Opera
 
-## Тестовый режим
+This extension authenticates through the BoxVolt Telegram bot and receives browser proxy endpoints from the BoxVolt backend.
 
-В текущем шаблоне включен `demoMode: true` в `config.js`.
+## Start Here
 
-- Авторизация через Telegram и API идет в реальный backend.
-- Подключение BR/RU в demo-режиме не переключает браузер на реальный proxy.
-- Для боевого релиза установите `demoMode: false` и заполните `EDGE_SERVER_BR_*`, `EDGE_SERVER_RU_*` в `.env`.
+- Full guide: [`../docs/EXTENSION_GUIDE.md`](../docs/EXTENSION_GUIDE.md)
+- Safe production proxy setup: [`../docs/EDGE_EXTENSION_PROD_SETUP.md`](../docs/EDGE_EXTENSION_PROD_SETUP.md)
 
-Есть готовый пример прод-конфига: `config.prod.example.js`.
+## Local Load
 
-## Публикация
-Перед публикацией в магазине Edge:
-- замените тестовые значения в `config.js` на прод-домен;
-- ограничьте `host_permissions` в `manifest.json` только нужными доменами;
-- подготовьте privacy policy и описание платной подписки;
-- проверьте работу логина `Telegram -> /start edgeauth_* -> approved`.
+1. Open `chrome://extensions`, `edge://extensions` or `opera://extensions`
+2. Enable developer mode
+3. Click `Load unpacked`
+4. Select the `browser-extension/` folder
+
+## Important Config
+
+Edit `config.js` before testing:
+
+- set `apiBaseUrl`
+- disable `demoMode` for real proxy testing
+
+Production example:
+
+```js
+apiBaseUrl: "https://connect.boxvolt.shop",
+demoMode: false,
+demoBypassSubscription: false,
+demoServers: []
+```
+
+## Backend Contract
+
+The extension expects:
+
+- `POST /edge/api/auth/start`
+- `POST /edge/api/auth/poll`
+- `GET /edge/api/me`
+- `POST /edge/api/logout`
+
+Those routes are implemented in `bot.py`.

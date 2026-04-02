@@ -1,17 +1,31 @@
-# Edge Extension: Safe Production Setup
+# Edge Extension Safe Production Setup
 
-## Goal
-- Enable Edge extension with BR/RU proxy servers.
-- Keep existing VPN sales/infra untouched (`x-ui`, `VLESS`, `nginx`, `443`).
+This is the lowest-risk way to launch the BoxVolt browser extension in production.
+
+Goal:
+
+- enable browser proxy access for authorized users
+- keep the main VPN stack untouched
+- avoid changes to `443`, `x-ui` and Xray VPN inbounds
 
 ## Safety Rules
-- Do not change `INBOUND_ID`, `x-ui` settings, or existing VLESS inbounds.
-- Do not reuse `443` for SOCKS5.
-- Run SOCKS5 on dedicated new ports (example: `2081` for BR, `2082` for RU).
 
-## 1) Deploy SOCKS5 on BR VPS
+- do not change `INBOUND_ID`
+- do not reuse VPN transport ports for browser proxy
+- do not bind SOCKS5 to `443`
+- use dedicated new ports for extension traffic
+- keep rollback simple
 
-On BR server (root):
+Recommended example ports:
+
+- `2081` for the first proxy
+- `2082` for the second proxy
+
+## 1. Provision Dedicated Proxy Hosts
+
+You can reuse existing VPSes, but the proxy ports must stay separate from the VPN ports.
+
+## 2. Install SOCKS5 on the First Host
 
 ```bash
 cd /root/boxvolt
@@ -22,9 +36,7 @@ ALLOW_CIDR=0.0.0.0/0 \
 scripts/install_edge_socks5.sh
 ```
 
-## 2) Deploy SOCKS5 on RU VPS
-
-On RU server (root):
+## 3. Install SOCKS5 on the Second Host
 
 ```bash
 cd /root/boxvolt
@@ -35,9 +47,7 @@ ALLOW_CIDR=0.0.0.0/0 \
 scripts/install_edge_socks5.sh
 ```
 
-## 3) Verify both proxies
-
-From any Linux host with network access:
+## 4. Verify Both Proxies
 
 ```bash
 cd /root/boxvolt
@@ -45,9 +55,9 @@ scripts/check_edge_socks5.sh BR_HOST_OR_IP 2081 edge_br 'CHANGE_ME_STRONG_BR_PAS
 scripts/check_edge_socks5.sh RU_HOST_OR_IP 2082 edge_ru 'CHANGE_ME_STRONG_RU_PASS'
 ```
 
-If both checks pass, proceed.
+Do not continue until both checks pass.
 
-## 4) Fill bot `.env` for Edge
+## 5. Fill Backend `.env`
 
 ```env
 EDGE_EXTENSION_ENABLED=1
@@ -71,16 +81,13 @@ EDGE_SERVER_RU_USERNAME=edge_ru
 EDGE_SERVER_RU_PASSWORD=CHANGE_ME_STRONG_RU_PASS
 ```
 
-Restart bot:
+Restart BoxVolt after the env change.
 
-```bash
-cd /root/boxvolt
-python3 bot.py
-```
+## 6. Disable Demo Mode in the Extension
 
-## 5) Disable demo mode in extension
+File:
 
-File: `browser-extension/config.js`
+- `browser-extension/config.js`
 
 Set:
 
@@ -90,21 +97,39 @@ demoBypassSubscription: false,
 demoServers: []
 ```
 
-And keep:
+Keep:
 
 ```js
 apiBaseUrl: "https://connect.boxvolt.shop"
 ```
 
-## 6) Final smoke test
-- Login in extension via Telegram.
-- Test account with active subscription:
-  - BR connect -> open websites
-  - RU connect -> open websites
-- Test account without subscription:
-  - extension should login but deny server connect.
+## 7. Final Smoke Test
 
-## Rollback (safe)
-- In extension set `demoMode: true` and reload extension.
-- Or set `EDGE_EXTENSION_ENABLED=0` in bot `.env` and restart bot.
-- Existing VPN (VLESS via x-ui) remains untouched.
+### Active subscription
+
+- login through Telegram
+- receive approved session
+- connect through the first proxy
+- connect through the second proxy
+
+### Inactive subscription
+
+- login may succeed
+- proxy use must still be denied by backend policy
+
+## 8. Rollback
+
+Fast rollback options:
+
+1. set `demoMode: true` in the extension and reload it
+2. set `EDGE_EXTENSION_ENABLED=0` in backend `.env`
+3. restart `boxvolt-bot`
+
+This rollback does not touch:
+
+- `3x-ui`
+- Xray VPN inbounds
+- main subscription URLs
+- payment logic
+
+For the broader extension flow and repo layout, use [EXTENSION_GUIDE.md](EXTENSION_GUIDE.md).

@@ -1,348 +1,203 @@
-# BoxVolt VPN Bot
+# BoxVolt VPN
 
-Telegram-бот для продажи и управления VPN-подпиской (VLESS Reality через 3x-ui) с оплатой через DonatePay/CryptoBot и webhook/API-синхронизацией.
+BoxVolt VPN is a self-hosted Telegram-first VPN service built around one personal subscription URL, payment automation, a web cabinet, a Telegram Mini App, browser extensions and optional MTProto access.
 
-## Что уже реализовано
+The current production shape of the project is:
 
-- Оплата через DonatePay и CryptoBot (без Telegram Payments / YooKassa).
-- Создание заказа в боте с уникальным `order_id`.
-- Проверка оплаты через webhook + защита секретом.
-- Фоновая синхронизация платежей DonatePay через API.
-- Автопродление `subscription_end` после успешной оплаты.
-- Автосоздание VLESS-клиента в 3x-ui и отправка ключа в Telegram.
-- Динамические цены из `pricing.json` (подхват без перезапуска бота).
-- Скидки (глобальные и по тарифам) + админ-рассылка акции.
-- Реферальная программа: deep-link + автозачисление бонусных дней за оплаченные приглашения.
-- Антифрод: rate-limit заказов, burst-лимит, blacklist, защита trial по username/cooldown.
-- Админ-метрики `/admin_stats` + ежедневный авто-отчет в админ-чат.
-- Главное меню + под-кнопки (inline) для тарифов и инструкций.
-- Telegram Mini App (`/webapp`) с оплатой и проверкой статуса.
-- Встроенная админ-панель прямо в Mini App (для admin ID): цены/акции/рассылка.
-- Инструкции для Android / iOS / Windows / macOS / Linux.
+- Telegram bot with sales, onboarding, support entrypoints and admin actions
+- personal subscription feed at `/sub/<token>`
+- site cabinet and Mini App for payments, subscription access and key reissue
+- multi-protocol VPN subscription for DE and RU nodes
+- browser extension flow with Telegram login and BR/RU proxy delivery
+- optional MTProto with health-check and auto-fallback
 
-## Структура проекта
+## What BoxVolt Delivers
 
-- `bot.py` — основной бот, webhook-сервер, логика оплаты, интеграция 3x-ui.
-- `database.py` — инициализация/миграция схемы БД.
-- `users.db` — SQLite база пользователей и платежей.
-- `.env` — рабочие секреты и настройки.
-- `.env.example` — шаблон переменных окружения.
+- One subscription URL with paired DE/RU profiles.
+- Current profile set: `VLESS XHTTP`, `VLESS Reality TCP`, `VLESS gRPC Reality`, `VMess TCP`, `Trojan Reality`, `Hysteria2`.
+- Separate text keys for `AmneziaVPN`.
+- Payment automation via `Platega`.
+- Personal access control via `telegram_id`, `subscription_end`, `vless_uuid` and subscription tokens.
+- Site cabinet, QR page, key reissue, order status polling and contact forms.
+- Telegram Mini App with admin tooling.
+- Browser extension backend for login and proxy delivery.
+- MTProto device management with region health-check and fallback.
 
-## База данных
+## Current Topology
 
-Таблица пользователей:
+BoxVolt is not a generic control panel wrapper. The source of truth remains the BoxVolt application itself.
 
-```sql
-CREATE TABLE users (
-    telegram_id INTEGER PRIMARY KEY,
-    username TEXT,
-    subscription_end TEXT,
-    vless_uuid TEXT,
-    trial_used INTEGER DEFAULT 0
-);
+- `bot.py` runs the Telegram bot and the `aiohttp` backend.
+- `3x-ui` stores and serves Xray inbounds on VPN nodes.
+- `nginx` exposes public domains and fake-site pages.
+- `Hysteria2` is authenticated through BoxVolt HTTP auth, not a shared password.
+- Payments, subscription state and token logic live in SQLite and BoxVolt code, not in `3DP-MANAGER`.
+
+Current production pattern:
+
+1. Primary app host with bot, site, Mini App, `/sub`, DE node and payment webhooks.
+2. Secondary reserve node with RU inbounds and optional RU fake-site.
+3. Shared BoxVolt backend that generates all client configs.
+
+## Repository Map
+
+- `bot.py` — main Telegram bot, backend routes, subscription generation, payment logic, web pages.
+- `database.py` — DB helpers and migrations.
+- `subscription_protocols.py` — link builders for `vmess://`, `trojan://`, `hy2://`, `vless://`.
+- `profile_display.py`, `profile_card.py`, `pricing_display.py` — presentation helpers.
+- `mtproto_utils.py`, `scripts/mtproto_manager.py` — MTProto support layer.
+- `browser-extension/` — Chromium extension.
+- `firefox-extension/` — Firefox extension.
+- `frontend/` — modern site frontend source.
+- `webapp/` — static legacy web assets and pages.
+- `docs/` — operational guides and architecture notes.
+- `deploy/` — service unit templates for MTProto components.
+- `tests/` — focused unit tests for helper modules.
+
+## Documentation Map
+
+- [Self-hosting guide](docs/SELF_HOSTING_GUIDE.md)
+- [Server onboarding guide](docs/SERVER_ONBOARDING.md)
+- [Browser extension guide](docs/EXTENSION_GUIDE.md)
+- [Safe Edge proxy production setup](docs/EDGE_EXTENSION_PROD_SETUP.md)
+- [Security checklist](docs/SECURITY_CHECKLIST.md)
+- [Threat model](docs/THREAT_MODEL_2026-03-04.md)
+
+## Quick Start
+
+### 1. Clone and prepare Python
+
+```bash
+git clone git@github.com:Roskud/boxvolt.git
+cd boxvolt
+python3 -m venv .venv
+source .venv/bin/activate
+pip install -r requirements.txt
 ```
 
-Таблица платежей:
-
-```sql
-CREATE TABLE payments (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
-    order_id TEXT UNIQUE NOT NULL,
-    telegram_id INTEGER NOT NULL,
-    provider TEXT NOT NULL,
-    amount_rub REAL NOT NULL,
-    days INTEGER NOT NULL,
-    status TEXT NOT NULL DEFAULT 'pending',
-    created_at TEXT NOT NULL,
-    paid_at TEXT,
-    raw_payload TEXT
-);
-```
-
-## Настройка `.env`
-
-1. Создайте рабочий конфиг из шаблона:
+### 2. Create runtime config
 
 ```bash
 cp .env.example .env
 ```
 
-2. Заполните минимум:
+Fill the minimum required groups:
 
-- `BOT_TOKEN`
-- `XUI_URL`, `XUI_USERNAME`, `XUI_PASSWORD`, `INBOUND_ID`
-- `SERVER_IP`, `PUBLIC_KEY`, `SHORT_ID`, `SNI`
-- `DONATEPAY_DONATE_BASE_URL`
-- `DONATEPAY_API_KEY`
-- `DONATEPAY_WEBHOOK_SECRET`
-- `CRYPTOBOT_ENABLED=1` и `CRYPTOBOT_API_TOKEN` (если хотите включить CryptoBot)
-- `WEBAPP_PUBLIC_URL`
-- `PRICING_FILE`
-- `ADMIN_TELEGRAM_IDS` (для команды рассылки акции)
-- `ADMIN_NOTIFY_CHAT_IDS` (опционально: chat_id групп/каналов для уведомлений об оплате)
-- `ADMIN_NOTIFY_TOPIC_ID` (опционально: ID топика в группе для уведомлений об оплате)
-- `REFERRAL_ENABLED`, `REFERRAL_REWARD_DAYS`, `REFERRAL_MIN_PLAN_DAYS` (реферальная программа)
-- `BLACKLIST_TELEGRAM_IDS` (опционально: статический blacklist через `.env`)
-- `ORDER_CREATE_COOLDOWN_SECONDS`, `ORDER_BURST_WINDOW_SECONDS`, `ORDER_BURST_MAX` (лимиты создания заказов)
-- `TRIAL_REQUEST_COOLDOWN_SECONDS`, `TRIAL_USERNAME_UNIQUE` (защита trial)
-- `ADMIN_DAILY_REPORT_ENABLED`, `ADMIN_DAILY_REPORT_INTERVAL_SECONDS` (ежедневный отчет)
-- `PAYMENT_PENDING_TTL_MINUTES` (авто-отмена неоплаченного заказа)
-- `PAYMENT_CLEANUP_INTERVAL_SECONDS` (интервал фоновой очистки)
+- Telegram: `BOT_TOKEN`
+- main node / `3x-ui`: `XUI_URL`, `XUI_USERNAME`, `XUI_PASSWORD`, `INBOUND_ID`
+- Reality TCP: `SERVER_IP`, `SERVER_PORT`, `PUBLIC_KEY`, `SHORT_ID`, `SNI`, `UTLS_FP`
+- subscription: `SUBSCRIPTION_SECRET`, `SUBSCRIPTION_PATH`, `WEBAPP_PUBLIC_URL`, `PUBLIC_BASE_URL`, `PUBLIC_STATUS_URL`
+- payments: `PLATEGA_ENABLED`, `PLATEGA_MERCHANT_ID`, `PLATEGA_SECRET`
 
-## Динамические цены и скидки
+Then enable optional groups as needed:
 
-Файл цен: `pricing.json`.
+- DE/RU multi-protocol inbounds
+- `Hysteria2`
+- browser extension
+- MTProto
+- site e-mail auth
+- mail bridge
 
-Пример:
-
-```json
-{
-  "global_discount_percent": 0,
-  "sale_title": "Весенняя акция",
-  "sale_message": "Только до конца недели.",
-  "plans": [
-    {"code":"m1","title":"30 дней","days":30,"amount_rub":50,"discount_percent":0},
-    {"code":"m3","title":"90 дней","days":90,"amount_rub":120,"discount_percent":0}
-  ]
-}
-```
-
-Как работает:
-- Бот автоматически подхватывает изменения `pricing.json` без перезапуска.
-- `global_discount_percent` применяется ко всем планам.
-- `discount_percent` внутри плана добавляется к глобальной скидке.
-- Максимальная скидка ограничена 90%.
-
-Команды:
-- `/prices` — показать актуальные тарифы и активную акцию.
-- `/rules` — показать правила сервиса.
-- `/myid` — показать ваш Telegram ID (удобно для `ADMIN_TELEGRAM_IDS`).
-- `/admin` — открыть админ-панель (только для admin ID).
-- `/admin_stats` — метрики (24ч / 7д / всего).
-- `/sale_notify` — админ-рассылка текста акции из `pricing.json`.
-- `/sale_notify ваш текст` — админ-рассылка произвольного текста.
-- `/blacklist_add <tg_id> [причина]` — добавить в blacklist.
-- `/blacklist_del <tg_id>` — удалить из blacklist.
-- `/blacklist_list` — показать blacklist.
-
-Mini App Admin:
-- Если ваш ID есть в `ADMIN_TELEGRAM_IDS`, в Mini App появится блок `🛠 Админ-панель`.
-- Доступно: редактирование планов, сохранение цен, обновление акции, рассылка пользователям.
-
-Важно: для админ-команд укажите в `.env` список ID:
-`ADMIN_TELEGRAM_IDS=123456789,987654321`
-
-Для уведомлений об оплате в админ-чат(ы) можно указать:
-`ADMIN_NOTIFY_CHAT_IDS=-1001234567890,-1009876543210`
-
-Для отправки именно в топик (форум-тему) укажите:
-`ADMIN_NOTIFY_TOPIC_ID=12345`
-`Topic ID` можно получить командой `/myid`, отправив её внутри нужного топика.
-
-## DonatePay: webhook + API sync
-
-Если в вашем кабинете DonatePay есть вебхук, настройте URL:
-
-```text
-https://YOUR_DOMAIN/donatepay/webhook?secret=YOUR_SECRET
-```
-
-Где `YOUR_SECRET` должен совпадать с `DONATEPAY_WEBHOOK_SECRET` в `.env`.
-
-Если вебхука в интерфейсе нет, это нормально: бот работает без него через API polling (`DONATEPAY_API_KEY`, `DONATEPAY_POLL_ENABLED=1`).
-
-Важно:
-- Бот связывает платеж с пользователем по `order_id`.
-- Также поддерживается fallback через `metadata.telegram_id` (берется последний pending-заказ пользователя).
-- В ссылке оплаты `order_id` подставляется в комментарий автоматически.
-- После webhook с успешной оплатой подписка продлевается автоматически.
-- Если webhook не пришел, фоновый poll подтянет платеж через API DonatePay.
-- Неоплаченный заказ отменяется автоматически через `PAYMENT_PENDING_TTL_MINUTES` минут.
-
-## CryptoBot (Crypto Pay API)
-
-Включение в `.env`:
-
-```env
-CRYPTOBOT_ENABLED=1
-CRYPTOBOT_API_TOKEN=YOUR_CRYPTO_PAY_API_TOKEN
-CRYPTOBOT_WEBHOOK_PATH=/cryptobot/webhook
-CRYPTOBOT_POLL_ENABLED=1
-```
-
-Webhook URL для CryptoBot:
-
-```text
-https://YOUR_DOMAIN/cryptobot/webhook
-```
-
-Рекомендуется:
-- включать `CRYPTOBOT_VALIDATE_SIGNATURE=1`, если прокси не ломает исходные webhook-заголовки;
-- при необходимости задать `CRYPTOBOT_WEBHOOK_SECRET` и передавать его в URL/заголовке;
-- не отключать poll (`CRYPTOBOT_POLL_ENABLED=1`) как fallback, если webhook задерживается.
-
-## Telegram WebApp
-
-Mini App доступен по внутреннему пути `/webapp`.
-
-В `.env`:
-
-```env
-WEBAPP_PUBLIC_URL=https://YOUR_DOMAIN/webapp
-WEBAPP_INITDATA_MAX_AGE_SECONDS=86400
-```
-
-В BotFather для вашего бота задайте домен WebApp:
-
-1. `/mybots` -> ваш бот -> `Bot Settings` -> `Menu Button`.
-2. Выберите `Web App` и укажите `WEBAPP_PUBLIC_URL`.
-3. (Опционально) добавьте через `/setdomain` этот же домен.
-
-## Browser Extension API
-
-Для браузерного расширения (Chrome/Edge/Opera) доступны роуты:
-
-- `POST /edge/api/auth/start` — создать запрос входа (возвращает `bot_start_url` + `request_id/poll_token`).
-- `POST /edge/api/auth/poll` — дождаться подтверждения через `/start edgeauth_<code>`.
-- `GET /edge/api/me` — получить профиль, статус подписки и BR/RU proxy-конфиги.
-- `POST /edge/api/logout` — завершить сессию расширения.
-
-Новые переменные `.env` для расширения:
-
-- `EDGE_EXTENSION_ENABLED`, `EDGE_AUTH_PREFIX`, `EDGE_AUTH_REQUEST_TTL_SECONDS`
-- `EDGE_SESSION_TTL_SECONDS`, `EDGE_MAX_ACTIVE_SESSIONS_PER_USER`
-- `EDGE_SERVER_BR_*`, `EDGE_SERVER_RU_*`
-
-Шаблон MV3-расширения для Chrome/Edge/Opera лежит в папке `browser-extension/`.
-Шаблон Firefox (AMO) лежит в папке `firefox-extension/`.
-
-Безопасный прод-план (отдельные SOCKS5 порты, без изменений x-ui/443):
-- `docs/EDGE_EXTENSION_PROD_SETUP.md`
-- `scripts/install_edge_socks5.sh`
-- `scripts/check_edge_socks5.sh`
-
-## Домен и HTTPS
-
-Для webhook нужен публичный HTTPS.
-Если SSL на домене не активирован, webhook не будет стабильно работать.
-
-## Ограничения платежей
-
-Проверьте правила выбранного провайдера платежей перед запуском приема оплаты.
-
-## Запуск
-
-### Linux (Ubuntu/Debian)
+### 3. Start the app
 
 ```bash
-cd /root/boxvolt
-python3 -m venv .venv
 source .venv/bin/activate
-pip install -r requirements.txt
 python3 bot.py
 ```
 
-### macOS
+### 4. Verify local health
+
+- `GET /health`
+- `GET /status`
+- `GET /webapp`
+- `GET /sub/<token>`
+
+For a real deployment walkthrough, use [docs/SELF_HOSTING_GUIDE.md](docs/SELF_HOSTING_GUIDE.md).
+
+## Production Notes
+
+Recommended public domains:
+
+- `web.<domain>` — main website and Mini App
+- `connect.<domain>` — subscription feed, QR/profile page, status page
+- `hook.<domain>` — hidden `3x-ui` reverse proxy and operational endpoints
+- `<region>.<domain>` — optional node-local fake-site domains such as `ru.boxvolt.shop`
+
+Recommended service split:
+
+- `boxvolt-bot` — Python app
+- `nginx` — public reverse proxy and fake-site layer
+- `x-ui` — node control panel
+- `hysteria-server` — UDP transport
+- optional `boxvolt-mtg@` / `boxvolt-mtproxy@` — MTProto services
+
+## Browser Extension
+
+The repository contains two extension targets:
+
+- `browser-extension/` for Chrome, Edge and Opera
+- `firefox-extension/` for Firefox
+
+Extension backend routes already live in `bot.py`:
+
+- `POST /edge/api/auth/start`
+- `POST /edge/api/auth/poll`
+- `GET /edge/api/me`
+- `POST /edge/api/logout`
+
+Use [docs/EXTENSION_GUIDE.md](docs/EXTENSION_GUIDE.md) for the full flow, packaging, backend env and smoke checks.
+
+## Adding New Servers
+
+The current codebase supports:
+
+- one primary node
+- one reserve RU-style node with its own multi-protocol set
+
+To reproduce the current production shape, follow [docs/SERVER_ONBOARDING.md](docs/SERVER_ONBOARDING.md).
+
+Important limitation:
+
+- adding a third arbitrary region is not just an `.env` change today
+- the project currently models one primary node plus one reserve node pattern
+- if you need `DE + RU + NL` or similar, extend the code first, then document the new region group
+
+## Testing and Verification
+
+Unit tests:
 
 ```bash
-cd /path/to/boxvolt
-python3 -m venv .venv
-source .venv/bin/activate
-pip install -r requirements.txt
-python3 bot.py
+pytest tests -q
 ```
 
-### Windows (PowerShell)
+Targeted smoke:
 
-```powershell
-cd C:\path\to\boxvolt
-py -m venv .venv
-.\.venv\Scripts\Activate.ps1
-pip install -r requirements.txt
-py bot.py
+```bash
+python scripts/playwright_smoke.py --require-sub
 ```
 
-## Запуск как systemd service (Linux)
+Useful operational checks:
 
-```ini
-[Unit]
-Description=BoxVolt VPN Bot
-After=network.target
+- `systemctl status boxvolt-bot nginx x-ui hysteria-server`
+- `curl -I https://YOUR_DOMAIN/health`
+- `curl -I https://YOUR_DOMAIN/status`
+- live import of `/sub/<token>` into a supported client
 
-[Service]
-WorkingDirectory=/root/boxvolt
-ExecStart=/root/boxvolt/.venv/bin/python /root/boxvolt/bot.py
-Restart=always
-User=root
+## Security
 
-[Install]
-WantedBy=multi-user.target
-```
+- Never commit `.env`, mail credentials or real DB snapshots.
+- Keep fake-site pages neutral and do not describe VPN logic on node hostnames.
+- Keep `/sub` token handling centralized in BoxVolt.
+- Use separate backup copies before changing `x-ui` DBs or nginx configs.
+- Review [docs/SECURITY_CHECKLIST.md](docs/SECURITY_CHECKLIST.md) before production changes.
 
-## Reverse proxy пример (Nginx)
+## Supported Clients
 
-```nginx
-server {
-    listen 443 ssl;
-    server_name your-domain.tld;
+Current recommended clients:
 
-    ssl_certificate /etc/letsencrypt/live/your-domain.tld/fullchain.pem;
-    ssl_certificate_key /etc/letsencrypt/live/your-domain.tld/privkey.pem;
+- `Happ`
+- `V2rayTun`
+- `Hiddify`
+- `AmneziaVPN` for separate text keys
 
-    location /donatepay/webhook {
-        proxy_pass http://127.0.0.1:8080/donatepay/webhook;
-        proxy_set_header Host $host;
-        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
-        proxy_set_header X-Forwarded-Proto $scheme;
-    }
-
-    location /health {
-        proxy_pass http://127.0.0.1:8080/health;
-    }
-
-    location /webapp {
-        proxy_pass http://127.0.0.1:8080/webapp;
-        proxy_set_header Host $host;
-        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
-        proxy_set_header X-Forwarded-Proto $scheme;
-    }
-
-    location /webapp/api/ {
-        proxy_pass http://127.0.0.1:8080/webapp/api/;
-        proxy_set_header Host $host;
-        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
-        proxy_set_header X-Forwarded-Proto $scheme;
-    }
-}
-```
-
-## Инструкции для клиентов VPN
-
-В боте есть раздел `📚 Инструкции` с профилями:
-
-- Android: Happ / V2rayTun
-- iOS: Happ
-- Windows: V2rayTun
-- macOS: Happ
-- Linux: V2rayTun
-
-Основной сценарий:
-1. Купить подписку.
-2. Получить VLESS ссылку.
-3. Импортировать ссылку в Happ или V2rayTun.
-4. Нажать Connect/Start.
-
-## Проверка работоспособности
-
-- Бот: отправьте `/start`.
-- Webhook: откройте `https://YOUR_DOMAIN/health`.
-- DonatePay webhook endpoint: `https://YOUR_DOMAIN/donatepay/webhook`.
-- CryptoBot webhook endpoint: `https://YOUR_DOMAIN/cryptobot/webhook`.
-- WebApp: откройте `https://YOUR_DOMAIN/webapp` (из Telegram).
-- VPN: нажмите `🚀 Подключить VPN` и проверьте, что выдан валидный `vless://...` ключ.
-
-## Безопасность
-
-- Не храните секреты в `bot.py`.
-- Не коммитьте `.env`.
-- Регулярно меняйте `DONATEPAY_WEBHOOK_SECRET`.
+The exact onboarding text shown to users is maintained inside the application and the instruction file in [`Инструкция/Инструкция.txt`](Инструкция/Инструкция.txt).
